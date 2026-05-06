@@ -1,0 +1,28 @@
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{cs,axaml,csproj,sln}]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:suggestion
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion

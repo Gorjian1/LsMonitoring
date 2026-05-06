@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <!-- Avalonia.BuildServices telemetry reads %LOCALAPPDATA%\AvaloniaUI during build.
+         In restricted build environments that can fail before code compilation.
+         The application itself does not depend on this target. -->
+    <UsedAvaloniaProducts></UsedAvaloniaProducts>
+  </PropertyGroup>
+</Project>

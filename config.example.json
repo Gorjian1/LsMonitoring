@@ -1,0 +1,29 @@
+{
+  "connection": {
+    "gateway_ip": "169.254.0.1",
+    "username": "admin",
+    "password_b64": "",
+    "polling_interval_s": 5,
+    "request_timeout_s": 8
+  },
+  "thresholds": {
+    "warning_a": 5.0,
+    "critical_a": 10.0,
+    "warning_b": 5.0,
+    "critical_b": 10.0,
+    "same_for_ab": true,
+    "mode": "absolute"
+  },
+  "alarm": {
+    "sound": true,
+    "popup": true,
+    "log_to_csv": true,
+    "invalid_behavior": "mark",
+    "invalid_alarm_minutes": 5
+  },
+  "nodes": [
+    6989
+  ],
+  "plot_buffer_points": 1000,
+  "language": "ru"
+}

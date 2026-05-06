@@ -1,0 +1,350 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="using:LsMonitoring.Avalonia.Controls"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
+        x:Class="LsMonitoring.Avalonia.MainWindow"
+        Width="1280" Height="800"
+        MinWidth="980" MinHeight="620"
+        Title="LS-G6 Monitoring"
+        Background="#0d1117">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- ── Alarm banner (hidden until CRITICAL) ───────────────────── -->
+        <Border x:Name="AlarmBanner" Grid.Row="0"
+                Background="#c1272d" IsVisible="False" Padding="14,8">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="⚠" FontSize="20" VerticalAlignment="Center"
+                           Foreground="White" Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="1" x:Name="AlarmBannerText"
+                           Text="ALARM" FontSize="14" FontWeight="SemiBold"
+                           Foreground="White" VerticalAlignment="Center"/>
+                <Button Grid.Column="2" x:Name="AcknowledgeButton" Content="Acknowledge"
+                        Margin="8,0" Padding="10,4"/>
+                <Button Grid.Column="3" x:Name="MuteButton" Content="Mute 5min"
+                        Padding="10,4"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Top bar ────────────────────────────────────────────────── -->
+        <Border Grid.Row="1" Background="#161b22"
+                BorderBrush="#30363d" BorderThickness="0,0,0,1"
+                Padding="12,0" Height="40">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto">
+
+                <!-- Status dot -->
+                <Ellipse Grid.Column="0" x:Name="StatusDot"
+                         Width="10" Height="10" Margin="0,0,8,0"
+                         Fill="#768390" VerticalAlignment="Center"/>
+
+                <!-- Gateway IP -->
+                <TextBlock Grid.Column="1" x:Name="GatewayLabel"
+                           Text="169.254.0.1" Foreground="#8b949e"
+                           FontSize="13" VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                <!-- Connection status -->
+                <TextBlock Grid.Column="2" x:Name="ConnectionLabel"
+                           Text="Idle" Foreground="#8b949e"
+                           FontSize="13" VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                <!-- Separator -->
+                <Rectangle Grid.Column="3" Width="1" Height="18"
+                           Fill="#30363d" VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                <!-- Countdown / messages -->
+                <TextBlock Grid.Column="4" x:Name="CountdownLabel"
+                           Text="" Foreground="#8b949e"
+                           FontSize="12" VerticalAlignment="Center"/>
+
+                <!-- Spacer -->
+                <Grid Grid.Column="5"/>
+
+                <!-- Action buttons -->
+                <Button Grid.Column="6" x:Name="DiscoverButton"
+                        Content="Discover" Margin="4,0" Padding="10,4" FontSize="12"/>
+                <Button Grid.Column="7" x:Name="ExportButton"
+                        Content="Export" Margin="4,0" Padding="10,4" FontSize="12"/>
+                <Button Grid.Column="8" x:Name="LoadSampleButton"
+                        Content="Load CSV" Margin="4,0" Padding="10,4" FontSize="12"/>
+                <Button Grid.Column="9" x:Name="StartButton"
+                        Content="▶ Start" Margin="4,0" Padding="10,4" FontSize="12"/>
+                <Button Grid.Column="10" x:Name="StopButton"
+                        Content="■ Stop" Margin="4,0" Padding="10,4" FontSize="12"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Main area: sidebar + content ──────────────────────────── -->
+        <Grid Grid.Row="2" ColumnDefinitions="240,*">
+
+            <!-- ── Node sidebar ───────────────────────────────────────── -->
+            <Border Grid.Column="0" Background="#161b22"
+                    BorderBrush="#30363d" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <!-- Sidebar header -->
+                    <Border DockPanel.Dock="Top"
+                            BorderBrush="#30363d" BorderThickness="0,0,0,1"
+                            Padding="12,8">
+                        <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                            <TextBlock Text="NODES"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="#8b949e" LetterSpacing="2"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" x:Name="PollNowButton"
+                                    Content="⟳" Width="26" Height="26"
+                                    Padding="0" FontSize="14" Margin="4,0"/>
+                            <Button Grid.Column="2" x:Name="AddNodeButton2"
+                                    Content="+" Width="26" Height="26"
+                                    Padding="0" FontSize="16"/>
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="3"
+                                       x:Name="NodeSummaryText"
+                                       Text="0 nodes" Foreground="#8b949e"
+                                       FontSize="11" Margin="0,3,0,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Add-node input -->
+                    <Border DockPanel.Dock="Bottom"
+                            BorderBrush="#30363d" BorderThickness="0,1,0,0"
+                            Padding="8,6">
+                        <Grid ColumnDefinitions="*,56">
+                            <TextBox Grid.Column="0" x:Name="NodeIdBox"
+                                     PlaceholderText="Node ID" FontSize="12"
+                                     Margin="0,0,4,0"/>
+                            <Button Grid.Column="1" x:Name="AddNodeButton"
+                                    Content="Add" FontSize="12"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Node list -->
+                    <ListBox x:Name="NodeList" SelectionMode="Single"
+                             Background="Transparent"
+                             Padding="6,4">
+                        <ListBox.ItemContainerTheme>
+                            <ControlTheme TargetType="ListBoxItem" x:DataType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,0,4"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <ControlTemplate>
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                                    </ControlTemplate>
+                                </Setter>
+                            </ControlTheme>
+                        </ListBox.ItemContainerTheme>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="8" CornerRadius="6"
+                                        Background="#1f2937"
+                                        BorderBrush="#30363d" BorderThickness="1"
+                                        Margin="0,0,0,4">
+                                    <Grid ColumnDefinitions="6,*" RowDefinitions="Auto,Auto,Auto">
+                                        <!-- Status stripe -->
+                                        <Rectangle Grid.Column="0" Grid.RowSpan="3"
+                                                   Fill="{Binding StatusColor}"
+                                                   Width="4"
+                                                   Margin="0,0,8,0" VerticalAlignment="Stretch"/>
+
+                                        <!-- Title row -->
+                                        <Grid Grid.Column="1" Grid.Row="0"
+                                              ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="#e6edf3"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding AgeText}"
+                                                       FontSize="11" Foreground="#8b949e"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- Model + points -->
+                                        <TextBlock Grid.Column="1" Grid.Row="1"
+                                                   Text="{Binding Subtitle}"
+                                                   FontSize="11" Foreground="#8b949e"
+                                                   Margin="0,2,0,4"/>
+
+                                        <!-- Sparkline + values -->
+                                        <Grid Grid.Column="1" Grid.Row="2"
+                                              ColumnDefinitions="80,*">
+                                            <controls:Sparkline
+                                                Points="{Binding SparklineData}"
+                                                LineColor="{Binding StatusColor}"
+                                                Width="80" Height="20"/>
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Horizontal"
+                                                        Spacing="6" Margin="8,0,0,0"
+                                                        VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding AText}"
+                                                           FontSize="11" Foreground="#2f81f7"
+                                                           FontFamily="Cascadia Code, Consolas, monospace"/>
+                                                <TextBlock Text="{Binding BText}"
+                                                           FontSize="11" Foreground="#8957e5"
+                                                           FontFamily="Cascadia Code, Consolas, monospace"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- ── Content area ───────────────────────────────────────── -->
+            <Grid Grid.Column="1" RowDefinitions="200,3*,2*" Margin="12,10,12,10" RowSpacing="10">
+
+                <!-- Hero panel (3 tiles) -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+
+                    <!-- Temperature tile -->
+                    <Border Grid.Column="0" Background="#161b22"
+                            BorderBrush="#30363d" BorderThickness="1" CornerRadius="8"
+                            Padding="16,12">
+                        <Grid RowDefinitions="Auto,*,Auto">
+                            <TextBlock Text="TEMPERATURE" FontSize="10" FontWeight="SemiBold"
+                                       LetterSpacing="2" Foreground="#8b949e"/>
+                            <TextBlock Grid.Row="1" x:Name="HeroTempText"
+                                       Text="-" FontSize="52" FontWeight="SemiBold"
+                                       FontFamily="Cascadia Code, JetBrains Mono, Consolas, monospace"
+                                       Foreground="#e6edf3"
+                                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="°C" FontSize="18"
+                                           Foreground="#8b949e" VerticalAlignment="Bottom"/>
+                                <TextBlock Grid.Column="1" x:Name="HeroTempDeltaText"
+                                           Text="" FontSize="12" Foreground="#8b949e"
+                                           VerticalAlignment="Bottom"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- A-axis gauge -->
+                    <Border Grid.Column="1" Background="#161b22"
+                            BorderBrush="#30363d" BorderThickness="1" CornerRadius="8"
+                            Padding="8,8">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Text="A-AXIS" FontSize="10" FontWeight="SemiBold"
+                                       LetterSpacing="2" Foreground="#2f81f7" Margin="8,0"/>
+                            <controls:RadialGauge Grid.Row="1" x:Name="GaugeA"
+                                                  MinValue="-15" MaxValue="15"
+                                                  WarningThreshold="5" CriticalThreshold="10"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- B-axis gauge -->
+                    <Border Grid.Column="2" Background="#161b22"
+                            BorderBrush="#30363d" BorderThickness="1" CornerRadius="8"
+                            Padding="8,8">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Text="B-AXIS" FontSize="10" FontWeight="SemiBold"
+                                       LetterSpacing="2" Foreground="#8957e5" Margin="8,0"/>
+                            <controls:RadialGauge Grid.Row="1" x:Name="GaugeB"
+                                                  MinValue="-15" MaxValue="15"
+                                                  WarningThreshold="5" CriticalThreshold="10"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- History chart -->
+                <Border Grid.Row="1" Background="#161b22"
+                        BorderBrush="#30363d" BorderThickness="1" CornerRadius="8">
+                    <Grid RowDefinitions="Auto,*">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="12,8,12,0">
+                            <TextBlock Text="TREND" FontSize="11" FontWeight="SemiBold"
+                                       LetterSpacing="2" Foreground="#8b949e"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" x:Name="PlotMetaText"
+                                       Text="" Foreground="#8b949e" FontSize="11"/>
+                        </Grid>
+                        <controls:TrendPlot Grid.Row="1" x:Name="Plot"
+                                            Margin="6,4,10,6"/>
+                    </Grid>
+                </Border>
+
+                <!-- Readings table -->
+                <Border Grid.Row="2" Background="#161b22"
+                        BorderBrush="#30363d" BorderThickness="1" CornerRadius="8"
+                        Padding="10,8">
+                    <Grid RowDefinitions="Auto,Auto,*">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                            <TextBlock Text="RECENT READINGS" FontSize="11"
+                                       FontWeight="SemiBold" LetterSpacing="2"
+                                       Foreground="#8b949e"/>
+                            <TextBlock Grid.Column="1" x:Name="RowsMetaText"
+                                       Text="" Foreground="#8b949e" FontSize="11"/>
+                        </Grid>
+
+                        <!-- Column headers -->
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="160,76,90,90,90,90,*"
+                              Margin="0,6,0,2">
+                            <TextBlock Text="Time" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="#8b949e"/>
+                            <TextBlock Grid.Column="1" Text="T (°C)" FontSize="11"
+                                       FontWeight="SemiBold" Foreground="#8b949e"/>
+                            <TextBlock Grid.Column="2" Text="A (°)" FontSize="11"
+                                       FontWeight="SemiBold" Foreground="#8b949e"/>
+                            <TextBlock Grid.Column="3" Text="B (°)" FontSize="11"
+                                       FontWeight="SemiBold" Foreground="#8b949e"/>
+                            <TextBlock Grid.Column="4" Text="A-var" FontSize="11"
+                                       FontWeight="SemiBold" Foreground="#8b949e"/>
+                            <TextBlock Grid.Column="5" Text="B-var" FontSize="11"
+                                       FontWeight="SemiBold" Foreground="#8b949e"/>
+                            <TextBlock Grid.Column="6" Text="Flags" FontSize="11"
+                                       FontWeight="SemiBold" Foreground="#8b949e"/>
+                        </Grid>
+
+                        <ListBox Grid.Row="2" x:Name="RowsList"
+                                 FontFamily="Cascadia Code, JetBrains Mono, Consolas, monospace"
+                                 FontSize="12" Background="Transparent">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="160,76,90,90,90,90,*"
+                                          MinHeight="22">
+                                        <TextBlock Text="{Binding Time}"
+                                                   Foreground="#8b949e" FontSize="11"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Temperature}"
+                                                   Foreground="#e6edf3"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding AAxis}"
+                                                   Foreground="#2f81f7"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding BAxis}"
+                                                   Foreground="#8957e5"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding AVariation}"
+                                                   Foreground="#8b949e"/>
+                                        <TextBlock Grid.Column="5" Text="{Binding BVariation}"
+                                                   Foreground="#8b949e"/>
+                                        <TextBlock Grid.Column="6" Text="{Binding Flags}"
+                                                   Foreground="#f85149"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ── Status bar ─────────────────────────────────────────────── -->
+        <Border Grid.Row="3" Background="#161b22"
+                BorderBrush="#30363d" BorderThickness="0,1,0,0"
+                Padding="12,4" Height="26">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                <TextBlock x:Name="StatusText" Text="Idle"
+                           Foreground="#8b949e" FontSize="11"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" x:Name="SamplingRateLabel"
+                           Text="" Foreground="#8b949e" FontSize="11"
+                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <TextBlock Grid.Column="2" x:Name="LastSampleLabel"
+                           Text="" Foreground="#8b949e" FontSize="11"
+                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <TextBlock Grid.Column="3" x:Name="SourceText"
+                           Text="CSV" Foreground="#8b949e" FontSize="11"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

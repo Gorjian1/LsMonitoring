@@ -1,0 +1,39 @@
+# Local secrets and runtime state
+config.json
+data/
+logs/
+*.log
+
+# Python legacy app
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+build/
+dist/
+*.spec
+
+# .NET / Avalonia
+.dotnet-cli-home/
+dotnet/**/bin/
+dotnet/**/obj/
+dotnet/**/TestResults/
+TestResults/
+artifacts/
+publish/
+*.user
+*.suo
+*.nupkg
+*.snupkg
+
+# IDE and OS noise
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
