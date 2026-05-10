@@ -1,0 +1,23 @@
+# Local AI tool state
+/.claude/
+/.codex/
+/.antigravity/
+
+# Gemini/Antigravity should not spend context on local build/runtime output.
+/.dotnet-cli-home/
+/.pytest_cache/
+/build/
+/dist/
+/data/
+/logs/
+/TestResults/
+/artifacts/
+/publish/
+
+# Generated and private files
+config.json
+*.log
+*.tmp
+*.bak
+*.user
+*.suo

@@ -1,0 +1,21 @@
+# Exclude local AI tool state from Gemini Code Assist / Antigravity context.
+/.claude/
+/.codex/
+/.antigravity/
+
+# Exclude local build/runtime output and private data.
+/.dotnet-cli-home/
+/.pytest_cache/
+/build/
+/dist/
+/data/
+/logs/
+/TestResults/
+/artifacts/
+/publish/
+config.json
+*.log
+*.tmp
+*.bak
+*.user
+*.suo

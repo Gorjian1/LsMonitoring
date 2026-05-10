@@ -21,6 +21,7 @@ dist/
 dotnet/**/bin/
 dotnet/**/obj/
 dotnet/**/TestResults/
+dotnet/LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs
 TestResults/
 artifacts/
 publish/
@@ -37,3 +38,10 @@ publish/
 Thumbs.db
 *.tmp
 *.bak
+
+# Local AI tool state
+.claude/
+.codex/
+.antigravity/
+.gemini/history/
+.gemini/tmp/

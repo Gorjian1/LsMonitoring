@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Security.Cryptography;
 
 namespace LsMonitoring.Core.Configuration;
 
@@ -27,6 +28,9 @@ public sealed class Thresholds
 
 public sealed class AlarmConfig
 {
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; set; } = false;
+
     [JsonPropertyName("sound")]
     public bool Sound { get; set; } = true;
 
@@ -41,6 +45,21 @@ public sealed class AlarmConfig
 
     [JsonPropertyName("invalid_alarm_minutes")]
     public int InvalidAlarmMinutes { get; set; } = 5;
+}
+
+public sealed class TelegramConfig
+{
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; set; } = false;
+
+    [JsonPropertyName("bot_token")]
+    public string BotToken { get; set; } = "";
+
+    [JsonPropertyName("chat_ids")]
+    public List<long> ChatIds { get; set; } = [];
+
+    [JsonIgnore]
+    public string EffectiveBotToken => TelegramSecrets.ResolveBotToken(BotToken);
 }
 
 public sealed class ConnectionConfig
@@ -72,7 +91,16 @@ public sealed class ConnectionConfig
 
             try
             {
-                return Encoding.UTF8.GetString(Convert.FromBase64String(PasswordBase64));
+                var bytes = Convert.FromBase64String(PasswordBase64);
+                try
+                {
+                    bytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
+                }
+                catch
+                {
+                    // Fallback
+                }
+                return Encoding.UTF8.GetString(bytes);
             }
             catch
             {
@@ -81,9 +109,23 @@ public sealed class ConnectionConfig
         }
         set
         {
-            PasswordBase64 = string.IsNullOrEmpty(value)
-                ? ""
-                : Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+            if (string.IsNullOrEmpty(value))
+            {
+                PasswordBase64 = "";
+            }
+            else
+            {
+                var bytes = Encoding.UTF8.GetBytes(value);
+                try
+                {
+                    bytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
+                }
+                catch
+                {
+                    // Fallback
+                }
+                PasswordBase64 = Convert.ToBase64String(bytes);
+            }
         }
     }
 }
@@ -104,6 +146,9 @@ public sealed class AppConfig
 
     [JsonPropertyName("alarm")]
     public AlarmConfig Alarm { get; set; } = new();
+
+    [JsonPropertyName("telegram")]
+    public TelegramConfig Telegram { get; set; } = new();
 
     [JsonPropertyName("nodes")]
     public List<int> Nodes { get; set; } = [];

@@ -25,7 +25,7 @@ Move the working LS-G6 monitoring prototype from Python/PySide to C#/.NET + Aval
 - [x] Add local CSV loading for UI checks when the sensor is unavailable.
 - [x] Replace text-only readings output with a column-based recent readings view.
 - [x] Add latest A/B/T/sample summary panels.
-- [x] Port threshold/evaluation and invalid-streak core logic while keeping UI alarms disabled.
+- [x] Port threshold/evaluation core logic while keeping UI alarms disabled.
 - [x] Port stale-node detection based on estimated sampling interval.
 - [x] Add Excel-compatible CSV export for current in-memory node data.
 - [x] Keep alarms disabled temporarily, matching the current Python app state.
@@ -33,9 +33,8 @@ Move the working LS-G6 monitoring prototype from Python/PySide to C#/.NET + Aval
 
 ## Later
 
-- [ ] Add SQLite storage.
-- [ ] Add native `.xlsx` export if CSV is not enough.
-- [ ] Add proper settings dialog and secure password storage.
-- [ ] Re-enable thresholds/alarms as a UI toggle.
+- [x] Add proper settings dialog and secure password storage.
+- [x] Add Telegram bot integration to send critical data alerts exclusively to authorized users (by chat ID).
+- [x] Re-enable thresholds/alarms as a UI toggle.
 - [ ] Add Modbus TCP implementation after vendor register map is known.
 - [ ] Produce per-platform single-file publishes: `win-x64` first, then `linux-x64` if needed.

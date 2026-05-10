@@ -1,0 +1,12 @@
+{
+  "context": {
+    "fileFiltering": {
+      "respectGitIgnore": true,
+      "respectGeminiIgnore": true,
+      "customIgnoreFilePaths": [
+        ".geminiignore",
+        ".aiexclude"
+      ]
+    }
+  }
+}

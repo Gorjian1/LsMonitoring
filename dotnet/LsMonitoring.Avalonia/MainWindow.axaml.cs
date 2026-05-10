@@ -11,6 +11,7 @@ using LsMonitoring.Core.Monitoring;
 using LsMonitoring.Core.Parsing;
 using LsMonitoring.Core.Polling;
 using LsMonitoring.Core.Sources;
+using LsMonitoring.Core.Alarms;
 
 namespace LsMonitoring.Avalonia;
 
@@ -22,6 +23,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<int, ReadingBuffer> _buffersByNode = [];
     private readonly string _configPath;
     private AppConfig _config;
+    private TelegramAlertService? _telegramAlertService;
     private CsvGatewaySource? _source;
     private PollingService? _poller;
     private DispatcherTimer? _heartbeat;
@@ -43,6 +45,7 @@ public partial class MainWindow : Window
         RowsList.ItemsSource = _rows;
 
         LoadConfigToUi();
+        ReconfigureTelegramAlerts();
         WireEvents();
         LoadNodesFromConfig();
         StartHeartbeat();
@@ -52,6 +55,7 @@ public partial class MainWindow : Window
 
     protected override async void OnClosed(EventArgs e)
     {
+        await StopTelegramAlertsAsync();
         await StopPollingAsync();
         _heartbeat?.Stop();
         base.OnClosed(e);
@@ -62,6 +66,7 @@ public partial class MainWindow : Window
         StartButton.Click += async (_, _) => await StartPollingAsync();
         StopButton.Click += async (_, _) => await StopPollingAsync();
         PollNowButton.Click += async (_, _) => await PollOnceAsync();
+        SettingsButton.Click += async (_, _) => await ShowSettingsDialogAsync();
         DiscoverButton.Click += async (_, _) => await DiscoverNodesAsync();
         LoadSampleButton.Click += async (_, _) => await LoadCsvAsync();
         ExportButton.Click += async (_, _) => await ExportCurrentNodeAsync();
@@ -201,6 +206,70 @@ public partial class MainWindow : Window
                 StatusText.Text = $"Node {node.NodeId}: {e.Message}";
             }
         }
+    }
+
+    private async Task ShowSettingsDialogAsync()
+    {
+        await StopTelegramAlertsAsync();
+        var dialog = new SettingsDialog();
+        dialog.LoadConfig(_config);
+
+        try
+        {
+            var saved = await dialog.ShowDialog<bool>(this);
+            if (saved)
+            {
+                _config.Save(_configPath);
+                LoadConfigToUi();
+                RefreshCurrentNode();
+            }
+        }
+        finally
+        {
+            ReconfigureTelegramAlerts();
+        }
+    }
+
+    private void ReconfigureTelegramAlerts()
+    {
+        StopTelegramAlerts();
+
+        var botToken = _config.Telegram.EffectiveBotToken;
+        if (_config.Telegram.Enabled && !string.IsNullOrWhiteSpace(botToken))
+        {
+            _telegramAlertService = new TelegramAlertService(
+                botToken, 
+                _config.Telegram.ChatIds.ToList(), // pass a copy or reference depending on logic, list is fine
+                OnNewChatIdDiscovered);
+        }
+    }
+
+    private void StopTelegramAlerts()
+    {
+        _telegramAlertService?.Stop();
+        _telegramAlertService = null;
+    }
+
+    private async Task StopTelegramAlertsAsync()
+    {
+        var service = _telegramAlertService;
+        _telegramAlertService = null;
+        if (service is not null)
+        {
+            await service.StopAsync();
+        }
+    }
+
+    private void OnNewChatIdDiscovered(long newChatId)
+    {
+        Dispatcher.UIThread.Post(() => 
+        {
+            if (!_config.Telegram.ChatIds.Contains(newChatId))
+            {
+                _config.Telegram.ChatIds.Add(newChatId);
+                _config.Save(_configPath);
+            }
+        });
     }
 
     private async Task DiscoverNodesAsync()
@@ -351,6 +420,16 @@ public partial class MainWindow : Window
 
         UpdateNodeSummary();
         _nextPollAt = DateTime.Now + TimeSpan.FromSeconds(_config.Connection.PollingIntervalSeconds);
+
+        var latest = buffer.Latest;
+        if (latest != null && !latest.Invalid && _telegramAlertService != null)
+        {
+            var isACritical = latest.AAxis != null && Math.Abs(latest.AAxis.Value) >= _config.Thresholds.CriticalA;
+            var isBCritical = latest.BAxis != null && Math.Abs(latest.BAxis.Value) >= _config.Thresholds.CriticalB;
+            
+            _ = _telegramAlertService.UpdateAlarmAsync(nodeId, "A", isACritical, latest.AAxis ?? 0, latest.Timestamp);
+            _ = _telegramAlertService.UpdateAlarmAsync(nodeId, "B", isBCritical, latest.BAxis ?? 0, latest.Timestamp);
+        }
     }
 
     private void RefreshCurrentNode(Reading? previousLatest = null)
@@ -428,6 +507,12 @@ public partial class MainWindow : Window
             GaugeB.IsCritical = Math.Abs(latest.BAxis.Value) >= _config.Thresholds.CriticalB;
             GaugeB.WarningThreshold = _config.Thresholds.WarningB;
             GaugeB.CriticalThreshold = _config.Thresholds.CriticalB;
+        }
+
+        if (_config.Alarm.Enabled && (GaugeA.IsCritical || GaugeB.IsCritical))
+        {
+            AlarmBanner.IsVisible = true;
+            AlarmBannerText.Text = $"CRITICAL ALARM on Node {nodeId}";
         }
 
         // Remember previous valid values for delta
