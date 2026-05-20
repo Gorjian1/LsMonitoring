@@ -1,88 +1,261 @@
 # LS Monitoring
 
-Desktop monitoring tool for LoadSensing / Worldsensing LS-G6 tilt sensor data.
+> **Десктопная система мониторинга наклона, температуры и состояния датчиков LS-G6 в реальном времени.**  
+> Программа помогает быстро видеть текущую картину по объекту, отслеживать изменения по осям A/B, работать с CSV-данными шлюза и своевременно реагировать на критические отклонения.
 
-The repository currently contains the working Python prototype and the active C#/.NET + Avalonia migration. The Avalonia app is the main direction: it keeps the real-time gateway polling, parsing, in-memory chart data, node discovery, CSV loading, and export logic while the Python app remains as a behavior reference.
+<p align="center">
+  <img alt="Status" src="https://img.shields.io/badge/status-active_development-2ea44f?style=for-the-badge">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows_10%2F11-blue?style=for-the-badge">
+  <img alt="Built with" src="https://img.shields.io/badge/built_with-.NET_9_%2B_Avalonia-purple?style=for-the-badge">
+  <img alt="Data" src="https://img.shields.io/badge/data-CSV_%2B_Gateway-orange?style=for-the-badge">
+</p>
 
-## Current Status
+---
 
-- C# solution lives in `dotnet/`.
-- `LsMonitoring.Core` contains platform-neutral gateway, parser, polling, buffer, alarm-evaluation, and export logic.
-- `LsMonitoring.Avalonia` contains the cross-platform desktop UI.
-- Python files under `src/` are kept temporarily until the Avalonia version fully replaces them.
-- SQLite/history is intentionally deferred for now.
-- UI alarms are temporarily disabled; the app currently focuses on showing live data as-is.
+## Что это
 
-## Requirements
+**LS Monitoring** — это прикладная программа для инженеров, техников и специалистов, которым нужно наблюдать за показаниями датчиков **LoadSensing / Worldsensing LS-G6** без ручной проверки файлов, таблиц и страниц шлюза.
 
-- .NET SDK 9.0, pinned by `global.json`.
-- Windows 10/11 for the first target build.
-- Linux should remain possible through Avalonia once runtime-specific publish commands are added.
+Приложение собирает данные с локального gateway, показывает их в понятном интерфейсе, строит тренды, выделяет последние показания, помогает быстро переключаться между узлами и сохранять результаты в CSV для отчётов или дальнейшего анализа.
 
-For the legacy Python app:
+---
 
-- Python 3.11+
-- Dependencies from `requirements.txt`
+## Главная идея
 
-## Configuration
+Когда датчики используются на реальном объекте, важны не только сами значения, а скорость понимания ситуации:
 
-Real local configuration is stored in `config.json` and is ignored by Git.
+- есть ли связь со шлюзом;
+- какие узлы сейчас доступны;
+- что происходит по осям A и B;
+- насколько быстро меняются показания;
+- есть ли критическое отклонение;
+- можно ли выгрузить данные для отчёта.
 
-Create it from the safe example:
+**LS Monitoring превращает поток технических CSV-данных в рабочую панель наблюдения**, где оператор видит главное без лишних действий.
 
-```powershell
-Copy-Item .\config.example.json .\config.json
-```
+---
 
-Then set the gateway password through the app or by filling `connection.password_b64` with a base64-encoded password. Do not commit real gateway credentials.
+## Для кого
 
-## Run Avalonia App
+| Роль | Как помогает |
+|---|---|
+| **Инженер на объекте** | Быстро проверяет показания датчиков, видит тренды и состояние узлов. |
+| **Технический специалист** | Настраивает подключение к gateway, проверяет CSV, экспортирует данные. |
+| **Проектная команда** | Получает понятный инструмент для демонстрации динамики и контроля состояния. |
+| **Сервисная команда** | Использует программу для диагностики, проверки связи и анализа последних измерений. |
+
+---
+
+## Возможности
+
+### Мониторинг данных LS-G6
+
+- подключение к локальному gateway;
+- опрос выбранных Node ID;
+- автоматическое обнаружение доступных live-узлов;
+- получение актуальных CSV-показаний;
+- отображение температуры, осей A/B и вариаций;
+- работа с несколькими узлами в одном интерфейсе.
+
+### Наглядная визуализация
+
+- крупные карточки текущих значений;
+- отдельные индикаторы для A-axis и B-axis;
+- график тренда по выбранному узлу;
+- таблица последних измерений;
+- быстрый список узлов с мини-графиками;
+- статус подключения, время последнего измерения и счётчик сообщений.
+
+### Работа с CSV
+
+- загрузка CSV-файла вручную для проверки данных без live-сенсора;
+- парсинг формата выгрузки gateway;
+- отображение исторических данных из файла;
+- экспорт данных выбранного узла в CSV;
+- добавление статуса и причин срабатывания порогов при экспорте.
+
+### Контроль отклонений
+
+- настраиваемые пороги Warning и Critical для осей A/B;
+- визуальное выделение критических значений;
+- баннер тревоги в интерфейсе;
+- поддержка Telegram-уведомлений для критических событий;
+- фиксация момента начала и завершения тревоги.
+
+### Удобство эксплуатации
+
+- тёмный интерфейс для длительного мониторинга;
+- компактная панель управления;
+- добавление узлов вручную;
+- сохранение настроек подключения и списка узлов;
+- отдельное окно настроек gateway, тревог и Telegram.
+
+---
+
+## Как выглядит рабочий сценарий
+
+1. **Подключите компьютер к gateway** по сети.
+2. **Укажите IP, логин и пароль** в настройках программы.
+3. **Найдите live-узлы** через Discover или добавьте Node ID вручную.
+4. **Запустите мониторинг** — программа начнёт регулярный опрос.
+5. **Следите за трендом** по выбранному узлу и текущими значениями A/B.
+6. **При необходимости выгрузите CSV** для отчёта или дальнейшего анализа.
+
+---
+
+## Что показывает интерфейс
+
+| Блок | Назначение |
+|---|---|
+| **Gateway status** | Показывает состояние подключения и IP шлюза. |
+| **Nodes** | Список узлов, их актуальность, модель и мини-тренд. |
+| **Temperature** | Последняя температура по выбранному узлу. |
+| **A-axis / B-axis** | Основные угловые показатели с визуальными индикаторами. |
+| **Trend** | График истории измерений. |
+| **Recent readings** | Последние строки данных: время, температура, оси, вариации и флаги. |
+| **Export** | Сохранение данных выбранного узла в CSV. |
+
+---
+
+## Преимущества
+
+### Быстрее, чем ручная проверка
+
+Не нужно открывать страницы gateway, скачивать CSV и вручную искать нужные значения. Основная информация собрана в одном окне.
+
+### Понятнее, чем таблица
+
+Графики, карточки и индикаторы помогают быстрее заметить изменение, скачок или критическое отклонение.
+
+### Удобно для диагностики
+
+Можно загрузить CSV без подключения к live-датчику и проверить, как программа распознаёт данные, строит график и формирует таблицу.
+
+### Готово к развитию
+
+Архитектура разделяет ядро обработки данных и интерфейс, поэтому проект можно расширять: добавлять хранение истории, новые типы отчётов, дополнительные каналы уведомлений и сборки под разные платформы.
+
+---
+
+
+## Данные и безопасность
+
+LS Monitoring рассчитан на локальную работу с gateway и конфигурацией проекта.
+
+- реальные параметры подключения хранятся локально в `config.json`;
+- файл конфигурации не предназначен для публикации в репозитории;
+- пароль не нужно хранить в открытом виде;
+- экспортированные CSV и приватные логи датчиков не следует коммитить;
+- Telegram-токен и chat ID должны использоваться только в защищённой среде.
+
+---
+
+## Текущий статус
+
+Проект находится в активной разработке.
+
+Основное направление — **десктопное приложение на C#/.NET и Avalonia**. Python-версия сохранена как референс поведения на период миграции.
+
+Уже реализовано:
+
+- ядро для работы с gateway и CSV;
+- парсинг показаний LS-G6;
+- буфер показаний в памяти;
+- визуальный интерфейс мониторинга;
+- загрузка CSV;
+- экспорт данных;
+- обнаружение live-узлов;
+- базовая система порогов;
+- подготовка Telegram-уведомлений.
+
+В развитии:
+
+- полноценная история измерений;
+- расширенная работа с тревогами;
+- дополнительные отчёты;
+- финальная упаковка релизных сборок;
+- улучшение UX для эксплуатации на объекте.
+
+---
+
+## Быстрый старт для демонстрации
+
+Даже без подключённого датчика можно проверить интерфейс на CSV-файле.
+
+1. Запустите приложение.
+2. Нажмите **Load CSV**.
+3. Выберите тестовый файл с показаниями.
+4. Проверьте график, таблицу и текущие значения.
+
+Такой режим удобен для демонстрации, проверки парсинга и разработки интерфейса без доступа к live-gateway.
+
+---
+
+## Для разработчиков
+
+<details>
+<summary>Показать технический запуск</summary>
+
+### Требования
+
+- .NET SDK 9.0
+- Windows 10/11 для основной целевой сборки
+- Visual Studio / Rider / VS Code по желанию
+
+### Запуск Avalonia-приложения
 
 ```powershell
 dotnet restore .\dotnet\LsMonitoring.sln
 dotnet run --project .\dotnet\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj
 ```
 
-When the sensor is unavailable, use `Load CSV` in the app and select `fixtures/sample_readings.csv` to verify parsing, charting, and recent readings.
-
-## Test
+### Тесты
 
 ```powershell
 dotnet test .\dotnet\LsMonitoring.sln
 ```
 
-## Build
+### Сборка
 
 ```powershell
 dotnet build .\dotnet\LsMonitoring.sln
 ```
 
-## Publish
-
-Windows self-contained single-file build:
+### Публикация Windows-сборки
 
 ```powershell
 dotnet publish .\dotnet\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
-Linux self-contained build, when needed:
+</details>
 
-```powershell
-dotnet publish .\dotnet\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+---
+
+## Структура проекта
+
+```text
+dotnet/
+  LsMonitoring.Core/        # ядро: gateway, CSV, буферы, пороги, экспорт
+  LsMonitoring.Avalonia/    # desktop UI на Avalonia
+  LsMonitoring.Core.Tests/  # тесты ядра
+src/                        # legacy Python-версия как референс
+fixtures/                   # тестовые CSV-данные
 ```
 
-## Legacy Python App
+---
 
-```powershell
-pip install -r requirements.txt
-python .\main.py
-```
 
-The Python version is kept as the reference implementation during migration and should not be deleted until the Avalonia app is fully verified against the live gateway.
+## Назначение проекта
 
-## Repository Hygiene
+LS Monitoring создаётся как практичный инструмент для полевых и инженерных задач: быстро подключиться к данным, увидеть состояние датчиков и получить понятную визуальную картину без ручной обработки CSV.
 
-- Do not commit `config.json`, `dist/`, `build/`, `data/`, `logs/`, `.dotnet-cli-home/`, or IDE/build outputs.
-- Do not commit real gateway credentials or exported private sensor logs.
-- Keep `fixtures/sample_readings.csv` only as the current parser/UI fixture.
-- Choose and add a `LICENSE` file before publishing this as a public open-source repository.
+Программа особенно полезна там, где важно не просто собрать измерения, а оперативно понять, **стабилен ли объект, есть ли отклонения и какие данные нужно передать дальше**.
+
+---
+
+
+
+<p align="center">
+  <strong>LS Monitoring</strong><br>
+  Мониторинг LS-G6 без лишней ручной работы.
+</p>
