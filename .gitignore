@@ -12,7 +12,9 @@ __pycache__/
 .ruff_cache/
 .venv/
 venv/
-build/
+build/*
+!build/installer/
+!build/installer/**
 dist/
 *.spec
 

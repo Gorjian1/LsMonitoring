@@ -307,6 +307,9 @@ public sealed class AppConfig
             current = current.Parent;
         }
 
-        return basePath;
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return string.IsNullOrWhiteSpace(localAppData)
+            ? basePath
+            : Path.Combine(localAppData, "LS Monitoring", "config.json");
     }
 }

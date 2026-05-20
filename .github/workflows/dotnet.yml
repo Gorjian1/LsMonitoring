@@ -2,7 +2,14 @@ name: dotnet
 
 on:
   push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
   pull_request:
+
+permissions:
+  contents: write
 
 jobs:
   build-test:
@@ -25,3 +32,78 @@ jobs:
 
       - name: Test
         run: dotnet test dotnet/LsMonitoring.sln --no-build -c Release
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test
+    runs-on: windows-latest
+
+    env:
+      PROJECT_PATH: dotnet/LsMonitoring.Avalonia/LsMonitoring.Avalonia.csproj
+      RUNTIME_ID: win-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish self-contained app
+        shell: pwsh
+        run: |
+          dotnet publish $env:PROJECT_PATH `
+            -c Release `
+            -r $env:RUNTIME_ID `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -p:Version=${{ steps.version.outputs.value }} `
+            -o artifacts/publish/$env:RUNTIME_ID
+          Get-ChildItem artifacts/publish/$env:RUNTIME_ID -Filter *.pdb -File | Remove-Item -Force
+
+      - name: Create portable zip
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/release | Out-Null
+          Copy-Item `
+            artifacts/publish/$env:RUNTIME_ID/LsMonitoring.Avalonia.exe `
+            artifacts/release/LsMonitoring-$env:RUNTIME_ID.exe
+          Compress-Archive `
+            -Path artifacts/publish/$env:RUNTIME_ID/* `
+            -DestinationPath artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip `
+            -Force
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            build/installer/LsMonitoring.iss `
+            /DAppVersion=${{ steps.version.outputs.value }} `
+            /DPublishDir="${{ github.workspace }}\artifacts\publish\$env:RUNTIME_ID" `
+            /DOutputDir="${{ github.workspace }}\artifacts\release"
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            artifacts/release/* `
+            --title "LS Monitoring ${{ github.ref_name }}" `
+            --notes "Автоматическая сборка LS Monitoring ${{ github.ref_name }}."
