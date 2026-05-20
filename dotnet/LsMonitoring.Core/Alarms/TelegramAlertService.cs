@@ -36,7 +36,7 @@ public class TelegramAlertService
         _botToken = botToken.Trim();
         _chatIds = chatIds;
         _onNewChatIdDiscovered = onNewChatIdDiscovered;
-        _httpClient = new HttpClient { BaseAddress = new Uri("https://api.telegram.org/") };
+        _httpClient = new HttpClient();
 
         if (startPolling)
         {
@@ -145,14 +145,14 @@ public class TelegramAlertService
         var chatIds = GetChatIdsSnapshot();
         if (chatIds.Count == 0)
         {
-            LastError = "No Telegram chat IDs registered.";
+            LastError = "Не зарегистрировано ни одного Telegram-чата.";
             return false;
         }
 
         bool allSuccess = true;
         foreach (var chatId in chatIds)
         {
-            var msgId = await SendMessageAsync(chatId, "🛠 Это тестовое сообщение от LS Monitoring App!");
+            var msgId = await SendMessageAsync(chatId, "🛠 Тестовое сообщение от LS Monitoring!");
             if (msgId == null)
                 allSuccess = false;
         }
@@ -162,14 +162,22 @@ public class TelegramAlertService
     public async Task UpdateAlarmAsync(int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
     {
         var key = (nodeId, axis);
+        var chatCount = GetChatIdsSnapshot().Count;
+        var hasKey = _activeAlarms.ContainsKey(key);
+        LogDiagnostic($"UpdateAlarmAsync node={nodeId} axis={axis} critical={isCritical} value={value:F3} chats={chatCount} hasActiveKey={hasKey}");
+
+        if (chatCount == 0)
+        {
+            LogDiagnostic($"UpdateAlarmAsync skipped: no chat ids registered");
+            return;
+        }
 
         if (isCritical)
         {
             if (!_activeAlarms.ContainsKey(key))
             {
                 var activeMap = new Dictionary<long, ActiveTelegramAlarm>();
-                _activeAlarms[key] = activeMap;
-                
+
                 foreach (var chatId in GetChatIdsSnapshot())
                 {
                     var msg = FormatMessage(nodeId, axis, value, timestamp, timestamp);
@@ -183,6 +191,11 @@ public class TelegramAlertService
                             LastValue = value
                         };
                     }
+                }
+
+                if (activeMap.Count > 0)
+                {
+                    _activeAlarms[key] = activeMap;
                 }
             }
             else
@@ -218,13 +231,13 @@ public class TelegramAlertService
     private string FormatMessage(int nodeId, string axis, double value, DateTime startTime, DateTime currentTime)
     {
         var duration = currentTime - startTime;
-        return $"🚨 CRITICAL ALARM 🚨\nNode: {nodeId}\nAxis: {axis}\nValue: {value:F3}\nStart Time: {startTime:HH:mm:ss}\nDuration: {duration.ToString(@"hh\:mm\:ss")}";
+        return $"🔔 LS Monitoring\nУзел {nodeId}, ось {axis}: отклонение вышло за заданный максимум.\nОтклонение: {value:F3}°\nНачало: {startTime:HH:mm:ss}\nДлительность: {duration.ToString(@"hh\:mm\:ss")}";
     }
 
     private string FormatResolvedMessage(int nodeId, string axis, DateTime startTime, DateTime resolveTime)
     {
         var duration = resolveTime - startTime;
-        return $"✅ ALARM RESOLVED ✅\nNode: {nodeId}\nAxis: {axis}\nStart Time: {startTime:HH:mm:ss}\nResolved At: {resolveTime:HH:mm:ss}\nTotal Duration: {duration.ToString(@"hh\:mm\:ss")}";
+        return $"✅ LS Monitoring\nУзел {nodeId}, ось {axis}: значение вернулось в норму.\nНачало события: {startTime:HH:mm:ss}\nЗавершено: {resolveTime:HH:mm:ss}\nДлительность: {duration.ToString(@"hh\:mm\:ss")}";
     }
 
     private async Task<int?> SendMessageAsync(long chatId, string text)
@@ -348,6 +361,11 @@ public class TelegramAlertService
     private void RecordError(string message)
     {
         LastError = message;
+        LogDiagnostic(message);
+    }
+
+    public static void LogDiagnostic(string message)
+    {
         try
         {
             Directory.CreateDirectory("logs");
@@ -355,7 +373,7 @@ public class TelegramAlertService
         }
         catch
         {
-            // Diagnostics should never break alert delivery.
+            // Диагностика не должна ломать доставку тревог.
         }
     }
 
@@ -367,6 +385,6 @@ public class TelegramAlertService
 
     private string ApiPath(string method)
     {
-        return $"/bot{_botToken}/{method}";
+        return $"https://api.telegram.org/bot{_botToken}/{method}";
     }
 }

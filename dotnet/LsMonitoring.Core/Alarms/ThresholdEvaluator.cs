@@ -6,9 +6,9 @@ namespace LsMonitoring.Core.Alarms;
 
 public static class ThresholdEvaluator
 {
-    public static Evaluation Evaluate(Reading reading, Thresholds thresholds, AlarmConfig alarm)
+    public static Evaluation Evaluate(Reading reading, Thresholds thresholds, AlarmConfig alarm, NodeCalibration? calibration = null)
     {
-        var evaluation = EvaluateAxisThresholds(reading, thresholds);
+        var evaluation = EvaluateAxisThresholds(reading, thresholds, calibration);
         if (!reading.Invalid)
         {
             return evaluation;
@@ -24,14 +24,14 @@ public static class ThresholdEvaluator
         };
     }
 
-    public static Evaluation EvaluateAxisThresholds(Reading reading, Thresholds thresholds)
+    public static Evaluation EvaluateAxisThresholds(Reading reading, Thresholds thresholds, NodeCalibration? calibration = null)
     {
-        var aValue = thresholds.Mode == "variation" ? reading.AVariation : reading.AAxis;
-        var bValue = thresholds.Mode == "variation" ? reading.BVariation : reading.BAxis;
+        var aValue = thresholds.DeviationA(reading, calibration?.ZeroA);
+        var bValue = thresholds.DeviationB(reading, calibration?.ZeroB);
         var warningA = thresholds.WarningA;
         var criticalA = thresholds.CriticalA;
-        var warningB = thresholds.SameForAb ? thresholds.WarningA : thresholds.WarningB;
-        var criticalB = thresholds.SameForAb ? thresholds.CriticalA : thresholds.CriticalB;
+        var warningB = thresholds.EffectiveWarningB();
+        var criticalB = thresholds.EffectiveCriticalB();
 
         var status = Status.Ok;
         var reasons = new List<string>();
@@ -41,12 +41,12 @@ public static class ThresholdEvaluator
             if (Math.Abs(a) >= criticalA)
             {
                 status = Status.Critical;
-                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|A|={Math.Abs(a):F3} >= critical {criticalA}"));
+                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|A-zero|={Math.Abs(a):F3} >= max {criticalA}"));
             }
             else if (Math.Abs(a) >= warningA)
             {
                 status = Max(status, Status.Warning);
-                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|A|={Math.Abs(a):F3} >= warning {warningA}"));
+                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|A-zero|={Math.Abs(a):F3} >= warning {warningA}"));
             }
         }
 
@@ -55,12 +55,12 @@ public static class ThresholdEvaluator
             if (Math.Abs(b) >= criticalB)
             {
                 status = Status.Critical;
-                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|B|={Math.Abs(b):F3} >= critical {criticalB}"));
+                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|B-zero|={Math.Abs(b):F3} >= max {criticalB}"));
             }
             else if (Math.Abs(b) >= warningB)
             {
                 status = Max(status, Status.Warning);
-                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|B|={Math.Abs(b):F3} >= warning {warningB}"));
+                reasons.Add(string.Create(CultureInfo.InvariantCulture, $"|B-zero|={Math.Abs(b):F3} >= warning {warningB}"));
             }
         }
 

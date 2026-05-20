@@ -96,6 +96,55 @@ public sealed class CmtCsvParserTests
     }
 
     [Fact]
+    public void EvaluatesDeviationFromConfiguredZeroInBothModes()
+    {
+        var reading = new Reading
+        {
+            Timestamp = DateTime.UtcNow,
+            AAxis = 12.5,
+            BAxis = -7.0,
+            AVariation = 0.25,
+            BVariation = -0.40
+        };
+
+        var absoluteThresholds = new Thresholds
+        {
+            Mode = Thresholds.AbsoluteMode,
+            ZeroA = 10.0,
+            ZeroB = -5.0,
+            WarningA = 1.0,
+            WarningB = 1.0,
+            CriticalA = 3.0,
+            CriticalB = 3.0,
+            SameForAb = false
+        };
+
+        var absolute = ThresholdEvaluator.EvaluateAxisThresholds(reading, absoluteThresholds);
+        Assert.Equal(Status.Warning, absolute.Status);
+        Assert.Equal(2.5, absolute.AValue);
+        Assert.Equal(-2.0, absolute.BValue);
+
+        var variationThresholds = new Thresholds
+        {
+            Mode = Thresholds.VariationMode,
+            ZeroA = 0.10,
+            ZeroB = -0.10,
+            WarningA = 0.1,
+            WarningB = 0.1,
+            CriticalA = 0.2,
+            CriticalB = 0.2,
+            SameForAb = false
+        };
+
+        var variation = ThresholdEvaluator.EvaluateAxisThresholds(reading, variationThresholds);
+        Assert.Equal(Status.Critical, variation.Status);
+        Assert.NotNull(variation.AValue);
+        Assert.NotNull(variation.BValue);
+        Assert.Equal(0.15, variation.AValue.Value, precision: 10);
+        Assert.Equal(-0.30, variation.BValue.Value, precision: 10);
+    }
+
+    [Fact]
     public void ExportsExcelCompatibleCsv()
     {
         var parsed = CmtCsvParser.ParseFile(SampleCsvPath);

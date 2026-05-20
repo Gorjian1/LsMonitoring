@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using LsMonitoring.Core.Configuration;
 using LsMonitoring.Core.Models;
 using LsMonitoring.Core.Monitoring;
 
@@ -10,14 +11,16 @@ public sealed class NodeListItem : INotifyPropertyChanged
     private int _pointCount;
     private DateTime? _latestTimestamp;
     private string? _model;
-    private string _connectionText = "No data";
+    private string _connectionText = "Нет данных";
     private string _aText = "-";
     private string _bText = "-";
     private string _tText = "-";
-    private string _ageText = "No data";
-    private string _statusColor = "#768390";
+    private string _ageText = "Нет данных";
+    private string _statusColor = "#8c959f";
     private IReadOnlyList<double> _sparklineData = [];
     private bool _isStale;
+    private bool _hasZero;
+    private string _zeroText = "";
 
     public NodeListItem(int nodeId)
     {
@@ -27,11 +30,11 @@ public sealed class NodeListItem : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public int NodeId { get; }
-    public string Title => $"Node {NodeId}";
+    public string Title => $"Узел {NodeId}";
 
     public string Subtitle => string.IsNullOrWhiteSpace(Model)
-        ? $"{PointCount} pts"
-        : $"{Model}  —  {PointCount} pts";
+        ? $"{PointCount} точ."
+        : $"{Model}  —  {PointCount} точ.";
 
     public string? Model
     {
@@ -111,7 +114,19 @@ public sealed class NodeListItem : INotifyPropertyChanged
         set => SetField(ref _isStale, value);
     }
 
-    public void UpdateFrom(ReadingBuffer buffer, string? model = null)
+    public bool HasZero
+    {
+        get => _hasZero;
+        set => SetField(ref _hasZero, value);
+    }
+
+    public string ZeroText
+    {
+        get => _zeroText;
+        set => SetField(ref _zeroText, value);
+    }
+
+    public void UpdateFrom(ReadingBuffer buffer, string? model = null, NodeCalibration? calibration = null)
     {
         if (!string.IsNullOrWhiteSpace(model))
         {
@@ -122,20 +137,31 @@ public sealed class NodeListItem : INotifyPropertyChanged
         var latest = buffer.Latest;
         LatestTimestamp = latest?.Timestamp;
         ConnectionText = ReadingSnapshot.LinkText(buffer, DateTime.Now);
-        AText = latest is null ? "-" : ReadingSnapshot.FormatValue(latest.AAxis);
-        BText = latest is null ? "-" : ReadingSnapshot.FormatValue(latest.BAxis);
+
+        var aRaw = latest?.AAxis;
+        var bRaw = latest?.BAxis;
+        var aShown = aRaw is { } av && calibration?.ZeroA is { } za ? av - za : aRaw;
+        var bShown = bRaw is { } bv && calibration?.ZeroB is { } zb ? bv - zb : bRaw;
+
+        AText = latest is null ? "-" : ReadingSnapshot.FormatValue(aShown);
+        BText = latest is null ? "-" : ReadingSnapshot.FormatValue(bShown);
         TText = latest is null ? "-" : ReadingSnapshot.FormatValue(latest.Temperature, digits: 1);
         AgeText = FormatAge(latest?.Timestamp, DateTime.Now);
         IsStale = ReadingSnapshot.IsStale(buffer, DateTime.Now);
-        StatusColor = latest is null ? "#768390" :
-                      IsStale ? "#768390" :
-                      latest.Invalid ? "#f85149" :
-                      "#238636";
+        StatusColor = latest is null ? "#8c959f" :
+                      IsStale ? "#8c959f" :
+                      latest.Invalid ? "#cf222e" :
+                      "#1a7f37";
+
+        HasZero = calibration?.HasZero == true;
+        ZeroText = calibration?.HasZero == true
+            ? $"0: A={ReadingSnapshot.FormatValue(calibration.ZeroA)}  B={ReadingSnapshot.FormatValue(calibration.ZeroB)}"
+            : "";
 
         SparklineData = buffer.Readings
             .TakeLast(50)
             .Where(r => r.AAxis.HasValue && !r.Invalid)
-            .Select(r => r.AAxis!.Value)
+            .Select(r => calibration?.ZeroA is { } z ? r.AAxis!.Value - z : r.AAxis!.Value)
             .ToList();
     }
 
@@ -143,21 +169,21 @@ public sealed class NodeListItem : INotifyPropertyChanged
     {
         if (timestamp is not { } ts)
         {
-            return "No data";
+            return "нет данных";
         }
 
         var age = now - ts;
         if (age.TotalSeconds < 60)
         {
-            return $"{(int)age.TotalSeconds}s ago";
+            return $"{(int)age.TotalSeconds} с назад";
         }
 
         if (age.TotalMinutes < 60)
         {
-            return $"{(int)age.TotalMinutes}m ago";
+            return $"{(int)age.TotalMinutes} мин назад";
         }
 
-        return $"{(int)age.TotalHours}h ago";
+        return $"{(int)age.TotalHours} ч назад";
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

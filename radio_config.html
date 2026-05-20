@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" href="/dataserver/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/dataserver/css/bootstrap-theme.min.css">
+		<link rel="stylesheet" href="/dataserver/js/jquery-ui/jquery-ui.min.css">
+		<link rel="stylesheet" href="/dataserver/js/jquery-ui/jquery-ui.structure.min.css">
+		
+					<title>Loadsensing Data Server</title>
+			<link rel="stylesheet" href="/dataserver/js/jquery-ui/jquery-ui.theme.min.css">
+				
+				
+		<link rel="stylesheet" href="/dataserver/css/screen.css">
+		
+		<script src="/dataserver/js/jquery.min.js"></script>
+		<script src="/dataserver/js/jquery-ui/jquery-ui.min.js"></script>
+		<script src="/dataserver/js/npm.js"></script>
+		<script src="/dataserver/js/bootstrap.min.js"></script>
+			</head>
+	<body class="theme0">
+		<div id="preFooter">
+			<div class="header">
+				<div class="container">
+					<nav class="navbar navbar-default">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="/dataserver/">
+									<img class="logo" src="/dataserver/images/logo0.png" alt=""/>
+								</a>
+							</div>
+							<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+								<ul class="nav navbar-nav">
+									<li class="">
+										<a href="/dataserver/">Networks</a>
+									</li>
+									
+																		
+										<li class="dropdown ">
+											<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Status <span class="caret"></span></a>
+											<ul class="dropdown-menu" role="menu">
+												<li><a href="/dataserver/config/external/status">Gateway status</a></li>
+												<li><a href="/dataserver/config/log">Logs</a></li>
+											</ul>
+										</li>
+
+										<li class="dropdown active">
+											<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Configuration <span class="caret"></span></a>
+											<ul class="dropdown-menu" role="menu">
+												<li><a href="/dataserver/config/edit">General</a></li>
+												<li><a href="/dataserver/config/ftp">FTP client</a></li>
+												<li><a href="/dataserver/config/comp/edit">Compacted CSV</a></li>
+												<li><a href="/dataserver/config/external/modbus">Modbus gateway</a></li>
+												<li class="divider" role="separator"></li>
+												<li><a href="/dataserver/config/external/internet">Internet</a></li>
+												<li><a href="/dataserver/config/external/gprs">GPRS / 3G</a></li>
+												<li><a href="/dataserver/config/external/radio">Radio</a></li>
+												<li><a href="/dataserver/config/external/remote">Remote access</a></li>
+												<li class="divider" role="separator"></li>
+												<li><a href="/dataserver/config/delete">Delete all</a></li>
+												<li><a href="/dataserver/config/external/reboot">Reboot</a></li>
+											</ul>
+										</li>
+										
+																	</ul>
+							</div>
+						</div>
+					</nav>
+				</div>
+			</div>
+			
+			<div class="container">
+												<h1>    Radio
+</h1>
+				<div class="breadcrumbs small"><span class="divider">/</span><ul class="breadcrumbs"><li class="active">Radio</li></ul></div>
+					<iframe id="external" src="../../../radioConfig.html" frameborder="0" style="width: 100%;" onload="adjustSize ();"></iframe>
+	<script type="text/javascript">
+		function adjustSize () {
+			var contHeight = document.getElementById('external').contentWindow.document.body.scrollHeight + 40;
+			console.log (contHeight);
+			$('iframe').height(contHeight);
+		}
+		$(window).resize(function() {
+			adjustSize ();
+		})
+	</script>
+			</div>
+		</div>
+		<footer class="container small">
+			All rights reserved <a href="http://www.worldsensing.com/">Worldsensing</a> © 2026<br/>
+			Version 1.5.2
+		</footer>
+	</body>
+</html>
+

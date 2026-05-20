@@ -2,11 +2,15 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography;
+using LsMonitoring.Core.Models;
 
 namespace LsMonitoring.Core.Configuration;
 
 public sealed class Thresholds
 {
+    public const string AbsoluteMode = "absolute";
+    public const string VariationMode = "variation";
+
     [JsonPropertyName("warning_a")]
     public double WarningA { get; set; } = 5.0;
 
@@ -23,7 +27,56 @@ public sealed class Thresholds
     public bool SameForAb { get; set; } = true;
 
     [JsonPropertyName("mode")]
-    public string Mode { get; set; } = "absolute";
+    public string Mode { get; set; } = AbsoluteMode;
+
+    [JsonPropertyName("zero_a")]
+    public double ZeroA { get; set; }
+
+    [JsonPropertyName("zero_b")]
+    public double ZeroB { get; set; }
+
+    [JsonIgnore]
+    public bool UsesVariation => string.Equals(Mode, VariationMode, StringComparison.OrdinalIgnoreCase);
+
+    public double? SourceA(Reading reading)
+    {
+        return UsesVariation ? reading.AVariation : reading.AAxis;
+    }
+
+    public double? SourceB(Reading reading)
+    {
+        return UsesVariation ? reading.BVariation : reading.BAxis;
+    }
+
+    public double? DeviationA(Reading reading)
+    {
+        return DeviationA(reading, null);
+    }
+
+    public double? DeviationB(Reading reading)
+    {
+        return DeviationB(reading, null);
+    }
+
+    public double? DeviationA(Reading reading, double? zeroOverride)
+    {
+        return SourceA(reading) is { } value ? value - (zeroOverride ?? ZeroA) : null;
+    }
+
+    public double? DeviationB(Reading reading, double? zeroOverride)
+    {
+        return SourceB(reading) is { } value ? value - (zeroOverride ?? ZeroB) : null;
+    }
+
+    public double EffectiveWarningB()
+    {
+        return SameForAb ? WarningA : WarningB;
+    }
+
+    public double EffectiveCriticalB()
+    {
+        return SameForAb ? CriticalA : CriticalB;
+    }
 }
 
 public sealed class AlarmConfig
@@ -92,13 +145,16 @@ public sealed class ConnectionConfig
             try
             {
                 var bytes = Convert.FromBase64String(PasswordBase64);
-                try
+                if (OperatingSystem.IsWindows())
                 {
-                    bytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
-                }
-                catch
-                {
-                    // Fallback
+                    try
+                    {
+                        bytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
+                    }
+                    catch
+                    {
+                        // Fallback
+                    }
                 }
                 return Encoding.UTF8.GetString(bytes);
             }
@@ -116,18 +172,33 @@ public sealed class ConnectionConfig
             else
             {
                 var bytes = Encoding.UTF8.GetBytes(value);
-                try
+                if (OperatingSystem.IsWindows())
                 {
-                    bytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
-                }
-                catch
-                {
-                    // Fallback
+                    try
+                    {
+                        bytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
+                    }
+                    catch
+                    {
+                        // Fallback
+                    }
                 }
                 PasswordBase64 = Convert.ToBase64String(bytes);
             }
         }
     }
+}
+
+public sealed class NodeCalibration
+{
+    [JsonPropertyName("zero_a")]
+    public double? ZeroA { get; set; }
+
+    [JsonPropertyName("zero_b")]
+    public double? ZeroB { get; set; }
+
+    [JsonIgnore]
+    public bool HasZero => ZeroA.HasValue || ZeroB.HasValue;
 }
 
 public sealed class AppConfig
@@ -153,11 +224,35 @@ public sealed class AppConfig
     [JsonPropertyName("nodes")]
     public List<int> Nodes { get; set; } = [];
 
+    [JsonPropertyName("node_calibration")]
+    public Dictionary<int, NodeCalibration> NodeCalibration { get; set; } = [];
+
     [JsonPropertyName("plot_buffer_points")]
     public int PlotBufferPoints { get; set; } = 1000;
 
     [JsonPropertyName("language")]
     public string Language { get; set; } = "ru";
+
+    public NodeCalibration? GetCalibration(int nodeId)
+    {
+        return NodeCalibration.TryGetValue(nodeId, out var c) ? c : null;
+    }
+
+    public void SetCalibration(int nodeId, double? zeroA, double? zeroB)
+    {
+        if (zeroA is null && zeroB is null)
+        {
+            NodeCalibration.Remove(nodeId);
+            return;
+        }
+
+        NodeCalibration[nodeId] = new NodeCalibration { ZeroA = zeroA, ZeroB = zeroB };
+    }
+
+    public void ClearCalibration(int nodeId)
+    {
+        NodeCalibration.Remove(nodeId);
+    }
 
     public static AppConfig LoadDefault()
     {

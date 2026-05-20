@@ -1,0 +1,657 @@
+WI-SOS 480 WIRELESS TILT METER
+
+MODEL LS-G6-INC15
+
+                                                           USER GUIDE V1.8
+                                                           March 2018
+
+LS-G6 USER GUIDE V1.8  September 2016
+Tiltmeter
+
+                       1
+                              WI-SOS 480 (LS-G6 INC15)
+
+CONTENTS
+
+CONTENTS                                                2
+
+TABLES                                                  3
+
+1. DATALOGGER EQUIPMENT                                 4
+
+2. INTRODUCTION                                         5
+
+3. TILTMETER OVERVIEW                                   5
+
+4. TECHNICAL SPECIFICATIONS                             7
+
+5. INSTALLATION                                         8
+
+5.1 Zero position                                       8
+
+5.2 Supports                                            9
+
+5.3. Mounting the tiltmeter                             14
+
+5.4. Tiltmeter configuration                            15
+
+5.5. Data storage                                       23
+
+5.6. Battery life estimate                              24
+
+6. CALIBRATION                                          25
+
+7. MAINTENANCE                                          26
+
+8. TROUBLESHOOTING                                      27
+
+9. CONTACT GEOSENSE                                     28
+
+APPENDIX A. Vibration resistance test                   29
+
+                                                        2
+                                WI-SOS 480 (LS-G6 INC15)
+
+TABLES
+
+Table 1: Product technical specifications                                                    7
+
+Table 2: Indicative storage capacity of the tiltmeter datalogger.                            24
+
+Table 3: Indicative lifespan for LS-G6 INC15-3. Estimates using 2 C-size batteries.          25
+
+Table 4: Life time estimations based on the lifetime mathematical model from Saft for three
+
+different temperature profiles                                                               25
+
+Table 5: Results from vibration resistance test.                                             30
+
+                                                                                             3
+                   WI-SOS 480 (LS-G6 INC15)
+
+1. DATALOGGER EQUIPMENT
+
+Geosense wireless Tilt Meters/nodes are shipped with the following accessories:
+
+                -  Data-Logger/Wireless tiltmeter (includes grounding connector)
+                -  Antenna
+                -  Antenna adapter
+Not included:
+
+- Horizontal/vertical support
+- USB-OTG configuration cable
+- Batteries
+- Sensor surge protector
+- Grounding rod
+
+                                                                                  4
+                                          WI-SOS 480 (LS-G6 INC15)
+
+2. INTRODUCTION
+
+     This document describes WI-SOS 480 Tiltmeter model LS-G6-INC15 and details its installation and the
+     basic procedure for data acquisition.
+
+3. TILTMETER OVERVIEW
+
+     The WI-SOS 480 Tiltmeter is a low-power long-range wireless datalogger and inclinometer in a single
+     compact box. It measures tilt in two (biaxial) perpendicular axes in the plane of the base with a highly
+     precise MEMS sensor.
+     The tiltmeter can also be used as a standalone logger for manual monitoring and can be configured easily
+     and connected with a USB cable and an Android phone.
+     It is designed for monitoring tilt in structures such as buildings, towers, monuments, bridges, tunnels,
+     piles, walls, and dams. It can also be used to measure rock mass rotation or slopes.
+
+     The tiltmeter is composed of:
+     1. The casing
+     2. RP N Female connector, which complies with Federal Communications Commission (FCC) regulations,
+     for the sensor network radio antenna
+     3. Pressure stabilizer for protection against condensation (protective vent)
+     4. Grounding
+     5. Connector male RP N to RP - SMA male and aerial with RP - SMA male.
+
+                                                        Figure 1: LS-G6-INC15 elements
+
+                                                                                                                                     5
+                                      WI-SOS 480 (LS-G6 INC15)
+
+                                     Figure 2: LS-G6-INC15 Antenna with N-connector
+
+The wireless tiltmeter can also be provided with a more robust antenna, to be placed horizontally, instead
+of the standard L-antenna that is installed vertically. Please contact us with questions or for additional
+details.
+
+                                                                                                                               6
+                               WI-SOS 480 (LS-G6 INC15)
+
+4. TECHNICAL SPECIFICATIONS
+
+SPECIFICATIONS
+
+SENSOR
+
+Type                           MEMS (Micro-Electro-Mechanical) inclinometer
+
+Range                          ± 15
+
+Axes                           Two (biaxial)
+
+Accuracy (± 5)                 0.03% FS / 0.004°
+
+Accuracy full range            0.17% FS / 0.025°
+
+Resolution                     0.00°
+
+Repeatability                  0.005°
+
+Temperature dependency         0.002°/°C
+
+Time required for a reading     10 seconds
+
+Temperature sensor resolution  0.1 °C
+
+Temperature sensor accuracy    ±0.5 °C
+
+MEMORY
+
+Reading capacity               200,000 readings
+
+ENVIRONMENTAL / MECHANICAL
+
+Box dimensions (W×L×H)         100×100×61 mm
+
+Overall dimensions             150×120×61 mm (excluding antenna)
+
+Operating temperature          -40 °C to 80 °C (-40 °F to 175 °F)
+
+Weather protection             IP67
+
+External antenna               100 mm length (including connector)
+
+Box material                   Aluminum alloy
+
+Vibration resistance           Test: Random vibration test Railroad profile according to level
+                               C.3 (on ballast) of standard EN 50125-3:2003
+
+Impact resistance1             Drop from 1 meter onto a concrete surface (20,000g)
+
+RADIO
+
+Range open sight               15 km
+
+Range with obstacles           > 1 km
+
+Maximum link budget            151 dB
+
+Configuration                  Star (no repeaters needed)
+
+                               Table 1: Product technical specifications
+
+1 The tiltmeter has a good impact resistance. However it should be treated gently like any precision
+instrument. In particular, care should be taken to avoid any impact, to protect the internal MEMS tilt sensor
+and to avoid distorting the mechanics of the device.
+
+                                                                                                                               7
+                                          WI-SOS 480 (LS-G6 INC15)
+
+5. INSTALLATION
+
+     The WI-SOS 480 Wireless Tilt Meter can be mounted horizontally or over a vertical plane, depending on
+     the aim of the monitoring. Geosense provides several supports to fix the device.
+
+    5.1 Zero position
+
+     The WI-SOS 480 Wireless Tilt Meter has to be installed horizontally. In the following figure you will see
+     the sign criteria for both axes.
+
+                                        Figure 3: LS-G6-INC15 A-Axis and B-Axis zero position
+
+                                                                                                                                     8
+                                      WI-SOS 480 (LS-G6 INC15)
+
+5.2 Supports
+
+The WI-SOS 480 Wireless Tilt Meters can be attached to the measurement surface using threaded rods
+and chemical anchors (bonded anchors) or using torque-controlled expansion anchors that go into the
+surface. Three-point mounting is the best option because it prevents bending and torsion that can lead to
+unstable readings. Single-anchor mounting is more prone to drift and disturbance. It is not recommended
+for long-term applications.
+Geosense supplies torque-controlled expansion anchors with its horizontal and vertical supports. For long-
+term applications, chemical anchors are preferable because their performance is more stable and the
+vibration resistance is higher. Torque-controlled expansion anchors can also be used, but only if the
+mounting plate or bracket is drawn tight against the surface and cannot shift laterally.
+Geosense recommends sourcing the chemical anchors locally because they are considered dangerous
+goods for air transportation. If you want to install chemical anchors, Geosense can supply the mounting
+plates with the M4 lock washers and socket screws required to attach the tiltmeter to the mounting plate.
+Please contact us with questions or for additional details.
+The following drawings illustrate the installation procedure for the LS-G6-INC15 wireless tiltmeter and its
+supports for horizontal and vertical surfaces.
+With the aim of reducing the thermal effects on the tiltmeter, we suggest installing a plastic cover or
+similar, to keep the tiltmeter in the shade. Sun exposure causes a thermal gradient in the enclosure.
+
+                                                                                                                               9
+                                      WI-SOS 480 (LS-G6 INC15)
+HORIZONTAL MOUNTING PLATE
+
+                                              Figure 4: Horizontal mounting plate
+
+It is also possible to glue the WI-SOS 480 Wireless Tilt Meter to the measurement surface. In this case, we
+also recommend attaching the horizontal mounting plate to the tiltmeter because the plate will offer a
+greater surface area to increase its adhesion.
+
+                                                                                                                              10
+                WI-SOS 480 (LS-G6 INC15)
+
+Figure 5: Horizontal mounting plate mounting procedure
+
+                                                                                                    11
+                                      WI-SOS 480 (LS-G6 INC15)
+VERTICAL MOUNTING PLATE (wall mounting)
+
+                                        Figure 6: Vertical L-Shaped mounting bracket
+
+                                Figure 7: Vertical mounting plate installation procedure
+
+                                                                                                                              12
+                                      WI-SOS 480 (LS-G6 INC15)
+VERTICAL MOUNTING PLATE (pole mounting)
+
+The WI-SOS 480 Wireless Tilt Meters can be also mounted on a pole using metallic supports.
+The installation of the pole and its stability will be critical for the reliability of the readings. Depending on
+the installation, a pole can be more sensitive to deformation caused by environmental loads (wind, rain,
+snow, groundwater, frost, etc.) than other structures.
+
+                                   Figure 8: Vertical mounting plate for pole mounting
+
+                                                                                                                              13
+                                      WI-SOS 480 (LS-G6 INC15)
+5.3. Mounting the tiltmeter
+
+The WI-SOS 480 Wireless Tilt Meter can be installed on any concrete or rocky wall, affixed to the structure
+by a vertical or a horizontal plate support, bolted to the concrete or to a rock.
+To mounting it, these steps should be followed:
+
+     1. Drill the measurement surface
+     2. Adjust bolts between the wall and the plate
+     3. Open tiltmeter and place it over the plate
+     4. Adjust bolts between tiltmeter and plate
+     5. Close the tiltmeter (see section 1.3 of LS G6 Nodes User Guide)
+     6. Place the aerial in the vertical position
+
+                                               Figure 9 Bolts adjusted to the plate
+
+                                           Figure 10 correct placement on the plate
+
+                                                                                                                              14
+                                      WI-SOS 480 (LS-G6 INC15)
+5.4. Tiltmeter configuration
+
+The WI-SOS 480 Wireless Tilt Meters is shipped closed and without batteries installed. In order to
+initialize it, the user should follow these steps:
+
+     a. Open the WI-SOS 480 Wireless Tilt Meter LS-G6-INC15 (using a 2.5 mm Allen wrench).
+
+                                          Figure 11: Different views of the tiltmeter.
+
+     b. The WI-SOS 480 Wireless Tilt Meters is designed to work with either a type-C battery or an
+          external power source (e.g., a solar panel). If battery mode is selected, be sure that C-type
+          batteries are in the battery holders; 1 to 2 batteries can be connected. Polarity is indicated.
+
+                                                Figure 12: Detail of power switch.
+
+              The WI-SOS 480 Wireless Tilt Meter does not have an RTC battery to keep time, so it is very
+             important for the node to be powered with batteries and the time set during the installation.
+             Otherwise the node will default to the year 1970 and data will not appear in the gateway (a
+
+                                               warning will appear in the log's tab).
+
+                                                                                                                              15
+                                      WI-SOS 480 (LS-G6 INC15)
+
+            Note that there is reverse battery protection, but it is not safe to keep batteries reversed in the
+                                                     datalogger for a long time.
+
+              WARNING: RISK OF EXPLOSION IF THE BATTERIES ARE SUBSTITUTED WITH AN INCORRECT
+               MODEL. DISPOSE OF BATTERIES ACCORDING TO THE INSTRUCTIONS. THIS EQUIPMENT IS
+
+                                   MEANT TO BE INSTALLED IN RESTRICTED ACCESS AREAS.
+
+Complete configuration is done through the Android Configuration App (see chapter 2 of the WI-SOS 480
+Nodes User Guide). When a new version of the app is available, a message appears automatically when
+connecting the datalogger by USB.
+
+The configuration of the tiltmeter and the radio is accessed by selecting the Setup wizard (in the tab menu,
+"Node configuration," Figure 5). Inside the Node configuration menu, there are also other parameters
+that the user can change, such as the Node ID or the date and time (especially important when accessing
+the Node for the first time).
+
+a)  b)
+
+Figure 13: a) Main screen of the Android Configuration App and b) Node configuration screen, which
+                                             has to be accessed to configure the datalogger.
+
+                                                                                                                             16
+                                      WI-SOS 480 (LS-G6 INC15)
+
+Selecting the Setup wizard initiates the step-by-step configuration of the sensors and the radio:
+1) Network size.
+The size of the network (Figure 6) defines the slot time for each of the nodes to send data to the gateway,
+in order to avoid data collision (see section 5 of LS G6 Gateway User Guide).
+
+                                             Figure 14: Network size configuration.
+
+                                                                                                                              17
+                                      WI-SOS 480 (LS-G6 INC15)
+
+2) Tiltmeter configuration.
+On the sensor configuration screen, user can configure the sampling rate interval. Calibration coefficients
+(obtained for each device) are given by the app.
+
+                              Figure 15: Sensor configuration options for LS-G6-VW-5 ch.
+
+NOTE: Each unit is individually calibrated to provide the ultimate in system accuracy and repeatability. The
+calibration formula is directly applied to the collected reading, so data transmitted and logged into the
+node is already corrected, and the user does not have to reapply the calibration formula.
+
+                                                                                                                              18
+                                      WI-SOS 480 (LS-G6 INC15)
+
+3) Sensor data.
+A reading of the sensor is displayed (Figure 10). In this stage, the user can see the readings in this
+specific moment, and also the temperature.
+
+                                          Figure 16: Data readings of active sensors.
+
+                                                                                                                              19
+                                      WI-SOS 480 (LS-G6 INC15)
+
+4) Radio configuration.
+The user must set the correct region and country to comply with local regulations. See chapter 56.2 on
+the WI-SOS 480 Gateway User Guide. The network is identified by a Network ID and protected with a
+password. All tiltmeters and the gateway of an installation need to have identical settings (region and
+password). The default credentials of the radio network are specified in the Gateway Information Sheet
+(Figure 11).
+For the majority of installations, the advanced options should not be changed. For more details on the
+advanced options, check chapter 2 of the WI-SOS 480 Gateway User Guide.
+
+                                             Figure 17: Radio configuration screen.
+
+Note that in order to simplify the datalogger configuration tasks, especially in large installations, the
+network ID and password of the last datalogger configured are saved in the Android app. To edit them,
+the option has to be activated by the user; otherwise the credentials introduced in the configuration of the
+datalogger will be the ones that were introduced the last time the Android app was used.
+
+                                                                                                                              20
+                                      WI-SOS 480 (LS-G6 INC15)
+
+5) Radio signal coverage test
+Once the gateway is configured, a signal coverage test can be performed (Figure 12).
+This test will check for correct connectivity between the datalogger and the gateway. Some test packages
+will be sent by the datalogger, and then the Android app will check reception on the gateway (using the
+Internet connection). The test will check for:
+
+                 Correct gateway operation and communication
+                 Correct radio configuration on both gateway and datalogger (including matching region
+
+                     and ID / password configurations)
+                 Quality of the signal received by the gateway from the datalogger
+
+For the results of this test to be displayed immediately on the Android device, the gateway needs to be
+installed with a working Internet connection, and the Android device also needs to be connected to the
+Internet. This is what we call an "online test."
+
+In order to perform an online test, the Glog app needs to be supplied with the gateway's serial number
+and remote access password.
+
+The remote access password is used to protect access to the gateway from the local network or the
+Internet. It is separate from the radio network password, even though it is set to the same value by
+default.
+
+The gateway ID and default password are specified in the Gateway Information Sheet. Before starting the
+test itself, the gateway connectivity is checked. In the case of any problem with the credentials, an error
+message will appear.
+
+The results displayed are listed for each Spreading Factor (SF). The SF represents a way of modulating
+data. The gateway is capable of receiving all frequencies with several SFs at the same time. The lower the
+SF number is, the shorter the message, so more messages can be sent on the network. The SF is
+proportional to the distance between datalogger and gateway: higher spreading factors are capable of
+transmitting data at higher distances, while lower spreading factors reach lower distances.
+
+During the radio signal coverage test, the datalogger sends 5 or 10 packages of data at SF7 to SF12. The
+number of data packages that reach the gateway can be viewed in the results in order to ensure correct
+communication.
+
+                                                                                                                              21
+                                      WI-SOS 480 (LS-G6 INC15)
+
+When performing a Radio signal coverage test, the position of the Android device is kept (if the user gave
+permission to the app to access to the GPS data), and a security token number identifies each test.
+
+If the gateway and/or the Android device do not have Internet connectivity during the test, the online test
+will fail (since it will have been impossible to contact the gateway over the Internet), and the user will
+need to perform an "Offline test." In this mode, however, the results of the test cannot be displayed in
+the Android device. The security token number identifies each test. The user must write down the token
+number, along with a description of where and under what conditions the test was taken. The user will
+then have to check the results of the coverage test on the gateway's web interface (under network 
+Signal coverage test map  Download all tests of this network).
+A coverage test is considered correct if any of the Spreading Factors are able to deliver at least half the
+packets sent.
+
+Note that running the Radio signal coverage test takes approximately 2 minutes.
+
+a)  b)
+
+     Figure 18: Radio signal coverage performed at the end of the datalogger setup (using the Setup
+                                                                          wizard).
+
+Once the coverage test has finished, a message with the text "You have completed the configuration of
+the node. Please make sure to check the coverage test results and data readings before permanently
+installing the nodes onsite" will appear on the screen. This means the user has followed all the steps
+needed to configure the node, but it may be necessary to check the signal coverage first to ensure that
+the node can communicate with the gateway.
+
+                                                                                                                              22
+           WI-SOS 480 (LS-G6 INC15)
+
+5.5. Data storage
+
+The internal node memory size is 4 MB. The WI-SOS 480 Wireless Tilt Meter stores up to 200,000 readings.
+Data storage times are indicated in Table 3. Memory mode is a circular buffer. When the memory is full,
+logging continues by overwriting the earliest readings. Besides the data from the sensor, the logger also
+collects health data hourly, which indicates the battery voltage, the internal temperature of the node and
+the node uptime.
+
+Number of  Sampling rate  30 minutes  10 minutes
+sensors    60 minutes
+
+1          more than 10 more than 20  3.5 years
+
+           years          years
+
+   Table 2: Indicative storage capacity of the tiltmeter datalogger.
+
+                                                                      23
+                                      WI-SOS 480 (LS-G6 INC15)
+
+5.6. Battery life estimate
+
+The following table gives approximate battery lifespans. The user should take into account that
+consumption varies depending on sampling rate and the environmental conditions.
+
+    Sampling rate       SF9@14dBm                   SF8@20dBm
+
+       30 sec                 5 weeks               5 weeks
+
+       1 min                  10 weeks              11 weeks
+
+       5 min                  48 weeks              1.1 years
+
+       30 min                 3.3 years             3.6 years
+
+               1h             4.6 years             4.7 years
+
+               6h             6.7 years             6.4 years
+
+       12 h                   >7 years              >7 years
+
+Table 3: Indicative lifespan for LS-G6 INC15-3. Estimates using 2 C-size batteries.
+
+Table 3 shows the lifetime estimate for three different temperature profiles to present how the
+environmental conditions are also relevant to the battery life.
+
+                              Lifetime estimates in years
+
+Sampling rate      Singapore             Barcelona                                   Moscow
+
+5 min              1.1                   1.2                                         1.2
+
+1h                 4.7                   5.8                                         6.0
+
+6h                 6.4                   8.3                                         8.9
+
+Table 4: Life time estimations based on the lifetime mathematical model from Saft for three different
+
+                   temperature profiles
+
+                                                                                                       24
+                                          WI-SOS 480 (LS-G6 INC15)
+
+6. CALIBRATION
+
+     All tiltmeters are assembled, calibrated, and tested under stringent quality control standards.
+     Coefficients for a third-degree polynomial are determined by the least-squares method with 7 inclination
+     steps (0, 2, 5, 9, -2, -5 and -9 degrees). The calibration formula is directly applied to the collected readings
+     by the LS-G6-INC15 node. As a consequence, data transmitted and logged into the node is already
+     corrected.
+     DO NOT REAPPLY THE CALIBRATION FORMULA.
+     Regarding the recalibration of the wireless tiltmeter, Geosense recommends recalibrations only for the
+     following situations:
+
+           When it is required a certificate of the tiltmeter according to the quality program of your
+                company/project.
+                In this case, it can also be possible to obtain the certificate locally. If you can find a laboratory
+                with a proper rotary frame, you can place the wireless tiltmeter on the calibration frame and
+                take measurements at different inclination steps. Then, if the probe is found to be within the
+                specifications, the laboratory will be able to print out a certificate for the tiltmeter. Coefficients
+                of the third-order polynomial will not be recalculated in this case. However, if the wireless
+                tiltmeter is found to be out of tolerance, it will be necessary to send the device to Geosense.
+
+           The tiltmeter requires repair. After repairing a tiltmeter, it must be recalibrated. (See
+                "Troubleshooting" section)
+
+           After completing a monitoring project. Civil works and mines are hard environments. During the
+                project, the tiltmeter can be affected by: impacts, different levels of vibration, physical stresses,
+                etc. Depending on the state of the tiltmeter after project completion, it may be recommendable
+                to return the tiltmeter to Geosense for inspection of the mechanical parts, reassembly and
+                recalibration.
+
+           In the case of recalibration, Geosense will disassemble the wireless tiltmeter to inspect the
+                mechanical parts before recalibrating.
+
+                                                                                                                                   25
+                                          WI-SOS 480 (LS-G6 INC15)
+
+7. MAINTENANCE
+
+     The WI-SOS 480 Wireless Tilt Meter is packaged in a rugged aluminum box and should provide many years
+     of trouble-free operation.
+     The tiltmeters require no maintenance other than normal cleaning, battery replacement, and inspection
+     of the seals. Apart from this maintenance, the tiltmeters are not field-serviceable.
+     The tiltmeter is a precision instrument. Apparently minor external actions or changes in the initial
+     conditions of the structure can cause changes in the tilt readings, such as: rust in the supports, any
+     construction pathology, the structure's thermal behavior, etc. Visual inspections can help to understand
+     the cause of some registered movements.
+     The tiltmeter should be treated gently like any precision instrument. In particular, care should be taken
+     to avoid any impact, to protect the internal MEMS tilt sensor and to avoid distorting the mechanics of the
+     device.
+
+                                                                                                                                   26
+                                          WI-SOS 480 (LS-G6 INC15)
+
+8. TROUBLESHOOTING
+
+     Readings that appear unreliable
+     Unstable and anomalous readings, such as the following, are signs of a possible fault in the tiltmeter:
+
+           Excessive thermal effects. Temperature dependency of LS-G6-INC15 is 0.002°/°C
+           Anomalous behavior that cannot be easily explained according to the expected movements, such
+
+                as values going up and suddenly going down and then going back up again or vice versa.
+           Anomalous behavior of one of the two measurement axes.
+
+     The reliability of the wireless tiltmeter reading can be affected by:
+           Impacts. Dents on the tiltmeter enclosure are signs of impacts.
+           High vibration levels.
+           Water ingress. The LS-G6-INC15 wireless tiltmeter ingress protection is IP67 (1 meter of water
+                column for 30 minutes). The tiltmeters should never be submerged in water. WATER DAMAGE
+                TO INTERNAL COMPONENTS VOIDS THE WARRANTY!
+
+     The LS wireless tiltmeter can be damaged by the above causes.
+     In case of doubt regarding the reliability of the readings, the best way to detect and identify the defect is
+     to compare the collected readings. Geosense recommends the following steps:
+
+           First, inspect the structure where the tiltmeter is attached and the mounting hardware
+                (mounting plates, anchors, etc.). Any compromise to or mechanical deformation of the mounting
+                hardware can cause unstable readings in the tiltmeter.
+
+           After ruling out issues related to the structure or the mounting hardware, it is recommended to
+                install an additional tiltmeter close to the possibly affected one.
+
+           Check and compare the tilt readings of the original and the verifying tiltmeter.
+           If the results of the new tiltmeter are as expected, while the results of the originally installed one
+
+                continue to be erratic, it will be concluded that the original has been damaged in the field.
+
+     Upon detecting an affected tiltmeter, the user must contact support@geosense.co.uk to open a ticket
+     and request a Return Material Authorization (RMA).
+     After receiving the returned tiltmeter, Geosense will inspect the mechanical parts, reassemble and
+     recalibrate the node. If this occurs after expiration of the warranty, Geosense will repair the equipment
+     at its factory for parts and labor charges. Geosense will provide a quote for repairs ­ if feasible ­ for
+     products returned after warranty expiration.
+     Geosense is not liable for damages or erroneous decisions caused by defective units, since it is only
+     responsible for the warranty of the equipment.
+
+                                                                                                                                   27
+                                      WI-SOS 480 (LS-G6 INC15)
+
+9. CONTACT GEOSENSE
+
+Phone: +44 1359 270457
+Technical support support@geosense.co.uk
+General information:sales@geosense.co.uk
+www.geosense.co.uk
+Geosense Ltd
+Nova House,
+Rougham Industrial Estate,
+Rougham,
+Bury St Edmunds,
+Suffolk,
+IP30 9ND
+England,
+
+                                                                                                                              28
+                                          WI-SOS 480 (LS-G6 INC15)
+
+APPENDIX A. Vibration resistance test
+
+                     Table 5: Results from vibration resistance test.
+
+CONTROL STRATEGY
+Weighted control between two points placed on the tooling, for all testing directions.
+See pictures in section 5.2
+
+FINAL MEASUREMENTS
+Final measurements according to specifications
+
+CLIMATIC CONDITIONS
+
+Temperature (ºC):    23.4
+
+                                                                                        29
+                                      WI-SOS 480 (LS-G6 INC15)
+
+Relative Humidity (HR): 36
+Atmospheric Pressure (hPa): 993
+
+                                                                                                                              30
+

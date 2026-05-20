@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" href="/dataserver/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/dataserver/css/bootstrap-theme.min.css">
+		<link rel="stylesheet" href="/dataserver/js/jquery-ui/jquery-ui.min.css">
+		<link rel="stylesheet" href="/dataserver/js/jquery-ui/jquery-ui.structure.min.css">
+		
+					<title>Loadsensing Data Server</title>
+			<link rel="stylesheet" href="/dataserver/js/jquery-ui/jquery-ui.theme.min.css">
+				
+				
+		<link rel="stylesheet" href="/dataserver/css/screen.css">
+		
+		<script src="/dataserver/js/jquery.min.js"></script>
+		<script src="/dataserver/js/jquery-ui/jquery-ui.min.js"></script>
+		<script src="/dataserver/js/npm.js"></script>
+		<script src="/dataserver/js/bootstrap.min.js"></script>
+			</head>
+	<body class="theme0">
+		<div id="preFooter">
+			<div class="header">
+				<div class="container">
+					<nav class="navbar navbar-default">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="/dataserver/">
+									<img class="logo" src="/dataserver/images/logo0.png" alt=""/>
+								</a>
+							</div>
+							<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+								<ul class="nav navbar-nav">
+									<li class="">
+										<a href="/dataserver/">Networks</a>
+									</li>
+									
+																		
+										<li class="dropdown ">
+											<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Status <span class="caret"></span></a>
+											<ul class="dropdown-menu" role="menu">
+												<li><a href="/dataserver/config/external/status">Gateway status</a></li>
+												<li><a href="/dataserver/config/log">Logs</a></li>
+											</ul>
+										</li>
+
+										<li class="dropdown ">
+											<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Configuration <span class="caret"></span></a>
+											<ul class="dropdown-menu" role="menu">
+												<li><a href="/dataserver/config/edit">General</a></li>
+												<li><a href="/dataserver/config/ftp">FTP client</a></li>
+												<li><a href="/dataserver/config/comp/edit">Compacted CSV</a></li>
+												<li><a href="/dataserver/config/external/modbus">Modbus gateway</a></li>
+												<li class="divider" role="separator"></li>
+												<li><a href="/dataserver/config/external/internet">Internet</a></li>
+												<li><a href="/dataserver/config/external/gprs">GPRS / 3G</a></li>
+												<li><a href="/dataserver/config/external/radio">Radio</a></li>
+												<li><a href="/dataserver/config/external/remote">Remote access</a></li>
+												<li class="divider" role="separator"></li>
+												<li><a href="/dataserver/config/delete">Delete all</a></li>
+												<li><a href="/dataserver/config/external/reboot">Reboot</a></li>
+											</ul>
+										</li>
+										
+																	</ul>
+							</div>
+						</div>
+					</nav>
+				</div>
+			</div>
+			
+			<div class="container">
+												<h1>    Engineering units</h1>
+				<div class="breadcrumbs small"><span class="divider">/</span><ul class="breadcrumbs"><li><a href="/dataserver/">Networks</a> <span class="divider">/</span></li><li><a href="/dataserver/network/view/13456">13456</a> <span class="divider">/</span></li><li><a href="/dataserver/node/view/6989">Node 6989</a> <span class="divider">/</span></li><li class="active">Engineering units</li></ul></div>
+							<h2>Channel 1</h2>
+		<form method="POST" action="/dataserver/formula/update/6989/0" accept-charset="UTF-8"><input name="_token" type="hidden" value="CKVHi8Bcd1J1H9SlYy6k64w3GRwuyN5zo8gUre68">
+		<div class="form-group">
+			<div class="checkbox">
+				<label>
+					<input id="formulaEnabled" name="formulaEnabled" type="checkbox" value="1">
+					Use engineering units
+				</label>
+			</div>
+		</div>
+
+		<div id="formulaConfig">
+											<select class="form-control" name="i"><option value="Formula-AngleVariation">Angle variation (&deg;)</option><option value="Formula-AngleVariationWithAxesRotation">Angle variation with axes rotation (&deg;)</option></select>
+				<div class="i">
+											<div id="Formula-AngleVariation" class="formula">
+							<div class="formulaDesc">
+								<img src="/dataserver/images/formula/anglevariation.png" class="formulaImg" alt="Formula" />
+								<table class="formulaInfo">
+																			<tr><td>∆A:</td><td>Angle variation in degrees</td></tr>
+																			<tr><td>∆B:</td><td>Angle variation in degrees</td></tr>
+																			<tr><td>A<sub>i</sub>:</td><td>Current angle reading in degrees</td></tr>
+																			<tr><td>B<sub>i</sub>:</td><td>Current angle reading in degrees</td></tr>
+																	</table>
+							</div>
+															<div class="form-group required">
+										<label for="Formula-AngleVariationA0" class="control-label">A<sub>0</sub>: Initial angle in degrees</label>
+									<div>
+										<input class="form-control" name="Formula-AngleVariationA0" type="text" id="Formula-AngleVariationA0">
+									</div>
+								</div>
+															<div class="form-group required">
+										<label for="Formula-AngleVariationB0" class="control-label">B<sub>0</sub>: Initial angle in degrees</label>
+									<div>
+										<input class="form-control" name="Formula-AngleVariationB0" type="text" id="Formula-AngleVariationB0">
+									</div>
+								</div>
+									
+						</div>
+											<div id="Formula-AngleVariationWithAxesRotation" class="formula">
+							<div class="formulaDesc">
+								<img src="/dataserver/images/formula/anglevariationwithaxesrotation.png" class="formulaImg" alt="Formula" />
+								<table class="formulaInfo">
+																			<tr><td>∆A':</td><td>Angle variation in degrees</td></tr>
+																			<tr><td>∆B':</td><td>Angle variation in degrees</td></tr>
+																			<tr><td>A<sub> i</sub>':</td><td>-B<sub>i</sub> sinΘ + A<sub>i</sub> cosΘ</td></tr>
+																			<tr><td>A<sub> 0</sub>':</td><td>-B<sub>0</sub> sinΘ + A<sub>0</sub> cosΘ</td></tr>
+																			<tr><td>B<sub> i</sub>':</td><td>B<sub>i</sub> cosΘ + A<sub>i</sub> sinΘ</td></tr>
+																			<tr><td>B<sub> 0</sub>':</td><td>B<sub>0</sub> cosΘ + A<sub>0</sub> sinΘ</td></tr>
+																	</table>
+							</div>
+															<div class="form-group required">
+										<label for="Formula-AngleVariationWithAxesRotationtheta" class="control-label">Θ: Angle of rotation in degrees</label>
+									<div>
+										<input class="form-control" name="Formula-AngleVariationWithAxesRotationtheta" type="text" id="Formula-AngleVariationWithAxesRotationtheta">
+									</div>
+								</div>
+															<div class="form-group required">
+										<label for="Formula-AngleVariationWithAxesRotationA0" class="control-label">A<sub>0</sub>: Initial A angle in degrees. AB-coordinate system</label>
+									<div>
+										<input class="form-control" name="Formula-AngleVariationWithAxesRotationA0" type="text" id="Formula-AngleVariationWithAxesRotationA0">
+									</div>
+								</div>
+															<div class="form-group required">
+										<label for="Formula-AngleVariationWithAxesRotationB0" class="control-label">B<sub>0</sub>: Initial B angle in degrees. AB-coordinate system</label>
+									<div>
+										<input class="form-control" name="Formula-AngleVariationWithAxesRotationB0" type="text" id="Formula-AngleVariationWithAxesRotationB0">
+									</div>
+								</div>
+									
+						</div>
+									</div>
+					</div>
+		<div class="form-group">
+			<input class="btn btn-default" onclick="return preSubmit();" type="submit" value="Save">		</div>
+	</form>
+	<script type="text/javascript">
+		function showConfig () {
+			if (jQuery('#formulaEnabled').is(':checked'))
+				jQuery('#formulaConfig').show ();
+			else jQuery('#formulaConfig').hide ();
+		}
+		function showFormula () {
+			var name = $(this).attr ('name');
+			jQuery ('.' + name + ' .formula').hide ();
+			jQuery ('.' + name + ' #' + $(this).val ()).show ();
+		}
+		function preSubmit () {
+			var ok = true;
+			
+			jQuery ('p.help-block').remove ();
+			jQuery ('.has-error').each (function () { $(this).removeClass ('has-error'); });
+			
+			jQuery ('.required input[type=text]:visible').each (function () {
+				if (!jQuery.isNumeric ($(this).val ())) {
+					$(this).parent ().parent ().addClass ('has-error');
+					$(this).after ('<p class="help-block">Invalid input value</p>');
+					ok = false;
+				}
+			});
+			jQuery ('input[type=text]:hidden').each (function () {
+				$(this).val ('');
+			});
+			return ok;
+		}
+		showConfig ();
+		jQuery('#formulaEnabled').change (showConfig);
+		jQuery('select').change (showFormula);
+		jQuery.each (jQuery('select'), showFormula);
+	</script>
+			</div>
+		</div>
+		<footer class="container small">
+			All rights reserved <a href="http://www.worldsensing.com/">Worldsensing</a> © 2026<br/>
+			Version 1.5.2
+		</footer>
+	</body>
+</html>
+

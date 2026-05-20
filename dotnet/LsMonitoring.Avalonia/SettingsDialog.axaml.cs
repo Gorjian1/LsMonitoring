@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using LsMonitoring.Core.Alarms;
@@ -24,7 +25,15 @@ public partial class SettingsDialog : Window
         UsernameBox.Text = config.Connection.Username;
         PasswordBox.Text = config.Connection.Password;
         EnableAlarmsBox.IsChecked = config.Alarm.Enabled;
-        
+
+        ThresholdModeBox.SelectedIndex = string.Equals(config.Thresholds.Mode, Thresholds.VariationMode, StringComparison.OrdinalIgnoreCase)
+            ? 1
+            : 0;
+        ZeroABox.Text = FormatNumber(config.Thresholds.ZeroA);
+        ZeroBBox.Text = FormatNumber(config.Thresholds.ZeroB);
+        CriticalABox.Text = FormatThreshold(config.Thresholds.CriticalA);
+        CriticalBBox.Text = FormatThreshold(config.Thresholds.CriticalB);
+
         EnableTelegramBox.IsChecked = config.Telegram.Enabled;
         TelegramChatIdsBox.Text = string.Join(", ", config.Telegram.ChatIds);
     }
@@ -35,11 +44,75 @@ public partial class SettingsDialog : Window
         _config.Connection.Username = UsernameBox.Text ?? "";
         _config.Connection.Password = PasswordBox.Text ?? "";
         _config.Alarm.Enabled = EnableAlarmsBox.IsChecked ?? false;
-        
+
+        _config.Thresholds.Mode = ReadSelectedThresholdMode();
+        _config.Thresholds.ZeroA = ParseNumber(ZeroABox.Text, _config.Thresholds.ZeroA);
+        _config.Thresholds.ZeroB = ParseNumber(ZeroBBox.Text, _config.Thresholds.ZeroB);
+        _config.Thresholds.CriticalA = ParseThreshold(CriticalABox.Text, _config.Thresholds.CriticalA);
+        _config.Thresholds.CriticalB = ParseThreshold(CriticalBBox.Text, _config.Thresholds.CriticalB);
+        _config.Thresholds.WarningA = AutoWarning(_config.Thresholds.CriticalA);
+        _config.Thresholds.WarningB = AutoWarning(_config.Thresholds.CriticalB);
+        _config.Thresholds.SameForAb = false;
+
         _config.Telegram.Enabled = EnableTelegramBox.IsChecked ?? false;
         _config.Telegram.ChatIds = ParseTelegramChatIds(TelegramChatIdsBox.Text ?? "");
-        
+
         Close(true);
+    }
+
+    private string ReadSelectedThresholdMode()
+    {
+        if (ThresholdModeBox.SelectedItem is ComboBoxItem item &&
+            item.Tag?.ToString() is { Length: > 0 } mode)
+        {
+            return mode;
+        }
+
+        return Thresholds.AbsoluteMode;
+    }
+
+    private static double AutoWarning(double maxDeviation)
+    {
+        return maxDeviation * 0.8;
+    }
+
+    private static string FormatNumber(double value)
+    {
+        return value.ToString("G", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatThreshold(double value)
+    {
+        return value.ToString("G", CultureInfo.InvariantCulture);
+    }
+
+    private static double ParseNumber(string? text, double fallback)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return fallback;
+        }
+
+        var normalized = text.Trim().Replace(',', '.');
+        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : fallback;
+    }
+
+    private static double ParseThreshold(string? text, double fallback)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return fallback;
+        }
+
+        var normalized = text.Trim().Replace(',', '.');
+        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) && parsed > 0)
+        {
+            return parsed;
+        }
+
+        return fallback;
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)
@@ -52,7 +125,7 @@ public partial class SettingsDialog : Window
         var token = _config.Telegram.EffectiveBotToken;
         if (string.IsNullOrWhiteSpace(token))
         {
-            await FlashTestButtonAsync("No Bot");
+            await FlashTestButtonAsync("Нет бота");
             return;
         }
 
@@ -64,30 +137,30 @@ public partial class SettingsDialog : Window
         {
             if (chatIds.Count == 0)
             {
-                TestTelegramButton.Content = "Press /start";
+                TestTelegramButton.Content = "Нажмите /start";
                 await service.DiscoverChatIdsAsync(TimeSpan.FromSeconds(30));
                 TelegramChatIdsBox.Text = string.Join(", ", chatIds.Distinct());
             }
 
             if (chatIds.Count == 0)
             {
-                await FlashTestButtonAsync(service.LastError is null ? "No Chat" : "Failed");
+                await FlashTestButtonAsync(service.LastError is null ? "Нет чатов" : "Ошибка");
                 return;
             }
 
-            TestTelegramButton.Content = "Sending...";
+            TestTelegramButton.Content = "Отправка...";
             var success = await service.SendTestMessageAsync();
             if (success)
             {
                 EnableTelegramBox.IsChecked = true;
             }
 
-            await FlashTestButtonAsync(success ? "Sent!" : "Failed");
+            await FlashTestButtonAsync(success ? "Отправлено!" : "Ошибка");
         }
         finally
         {
             service.Stop();
-            TestTelegramButton.Content = "Test";
+            TestTelegramButton.Content = "Тест";
             TestTelegramButton.IsEnabled = true;
         }
     }
@@ -111,6 +184,6 @@ public partial class SettingsDialog : Window
     {
         TestTelegramButton.Content = content;
         await Task.Delay(2000);
-        TestTelegramButton.Content = "Test";
+        TestTelegramButton.Content = "Тест";
     }
 }

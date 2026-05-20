@@ -1,45 +1,72 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="LsMonitoring.Avalonia.SettingsDialog"
-        Title="Settings"
-        Width="400" Height="400"
+        Title="Настройки"
+        Width="480" Height="620"
         WindowStartupLocation="CenterOwner"
-        Background="#0d1117"
+        Background="#ffffff"
         CanResize="False">
-    <StackPanel Margin="20" Spacing="15">
-        <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold" Foreground="#e6edf3" Margin="0,0,0,10"/>
+    <ScrollViewer>
+        <StackPanel Margin="20" Spacing="14">
+            <TextBlock Text="Настройки" FontSize="18" FontWeight="SemiBold" Foreground="#1f2328" Margin="0,0,0,4"/>
 
-        <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="15">
-            <!-- Gateway IP -->
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Gateway IP:" VerticalAlignment="Center" Foreground="#8b949e"/>
-            <TextBox Grid.Row="0" Grid.Column="1" x:Name="GatewayIpBox"/>
+            <!-- Соединение -->
+            <TextBlock Text="ПОДКЛЮЧЕНИЕ" FontSize="10" FontWeight="SemiBold"
+                       LetterSpacing="2" Foreground="#656d76"/>
+            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="IP шлюза:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBox Grid.Row="0" Grid.Column="1" x:Name="GatewayIpBox"/>
 
-            <!-- Username -->
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="Username:" VerticalAlignment="Center" Foreground="#8b949e"/>
-            <TextBox Grid.Row="1" Grid.Column="1" x:Name="UsernameBox"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Логин:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="UsernameBox"/>
 
-            <!-- Password -->
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="Password:" VerticalAlignment="Center" Foreground="#8b949e"/>
-            <TextBox Grid.Row="2" Grid.Column="1" x:Name="PasswordBox" PasswordChar="*"/>
-            
-            <!-- Enable Alarms -->
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="Alarms:" VerticalAlignment="Center" Foreground="#8b949e"/>
-            <CheckBox Grid.Row="3" Grid.Column="1" x:Name="EnableAlarmsBox" Content="Enable UI Alarms" Foreground="#e6edf3"/>
-
-            <!-- Telegram -->
-            <TextBlock Grid.Row="4" Grid.Column="0" Text="Telegram:" VerticalAlignment="Center" Foreground="#8b949e"/>
-            <CheckBox Grid.Row="4" Grid.Column="1" x:Name="EnableTelegramBox" Content="Enable Telegram Alerts" Foreground="#e6edf3"/>
-
-            <TextBlock Grid.Row="5" Grid.Column="0" Text="Chat IDs:" VerticalAlignment="Center" Foreground="#8b949e"/>
-            <Grid Grid.Row="5" Grid.Column="1" ColumnDefinitions="*,Auto">
-                <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox" PlaceholderText="e.g. 1234567, 9876543"/>
-                <Button Grid.Column="1" x:Name="TestTelegramButton" Content="Test" Margin="8,0,0,0"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Пароль:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="PasswordBox" PasswordChar="*"/>
             </Grid>
-        </Grid>
 
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,20,0,0">
-            <Button x:Name="CancelButton" Content="Cancel" Padding="15,6"/>
-            <Button x:Name="SaveButton" Content="Save" Padding="15,6" Background="#238636" Foreground="White"/>
+            <!-- Пороги -->
+            <TextBlock Text="ОТКЛОНЕНИЕ ОТ НУЛЯ (°)" FontSize="10" FontWeight="SemiBold"
+                       LetterSpacing="2" Foreground="#656d76" Margin="0,8,0,0"/>
+            <Grid ColumnDefinitions="140,*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="8">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Режим:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="ThresholdModeBox">
+                    <ComboBoxItem Content="Углы A/B из прибора" Tag="absolute"/>
+                    <ComboBoxItem Content="Вариации ΔA/ΔB из прибора" Tag="variation"/>
+                </ComboBox>
+
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Ноль" Foreground="#656d76" FontSize="11" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="Макс. отклонение" Foreground="#cf222e" FontSize="11" HorizontalAlignment="Center"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Ось A (°):" VerticalAlignment="Center" Foreground="#0969da"/>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="ZeroABox"/>
+                <TextBox Grid.Row="2" Grid.Column="2" x:Name="CriticalABox"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Ось B (°):" VerticalAlignment="Center" Foreground="#8250df"/>
+                <TextBox Grid.Row="3" Grid.Column="1" x:Name="ZeroBBox"/>
+                <TextBox Grid.Row="3" Grid.Column="2" x:Name="CriticalBBox"/>
+            </Grid>
+
+            <!-- Уведомления -->
+            <TextBlock Text="УВЕДОМЛЕНИЯ" FontSize="10" FontWeight="SemiBold"
+                       LetterSpacing="2" Foreground="#656d76" Margin="0,8,0,0"/>
+            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Тревоги в UI:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableAlarmsBox" Content="Показывать баннер при критике" Foreground="#1f2328"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Telegram:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <CheckBox Grid.Row="1" Grid.Column="1" x:Name="EnableTelegramBox" Content="Включить уведомления в Telegram" Foreground="#1f2328"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="ID чатов:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox" PlaceholderText="например 1234567, 9876543"/>
+                    <Button Grid.Column="1" x:Name="TestTelegramButton" Content="Тест" Margin="8,0,0,0"/>
+                </Grid>
+            </Grid>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,20,0,0">
+                <Button x:Name="CancelButton" Content="Отмена" Padding="15,6"/>
+                <Button x:Name="SaveButton" Content="Сохранить" Padding="15,6" Background="#1f883d" Foreground="White"/>
+            </StackPanel>
         </StackPanel>
-    </StackPanel>
+    </ScrollViewer>
 </Window>

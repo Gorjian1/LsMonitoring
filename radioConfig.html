@@ -1,0 +1,181 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+	<script src="js/httpobj.js" type="text/javascript" type="text/javascript"></script>
+	<style type="text/css">
+		.hide {display:none}
+		input[type=number]::-webkit-inner-spin-button, 
+		input[type=number]::-webkit-outer-spin-button { 
+			-webkit-appearance: none; 
+			margin: 0; 
+		}
+		input[type=number] {-moz-appearance: textfield;}
+	</style>
+	<script type="text/javascript">
+		String.prototype.trim = function() {   return this.replace(/^\s+|\s+$/g, "");};
+		function loadData(){
+			if (http) {
+				http.open("GET", "cgi-bin/netid.cgi",false);
+				http.onreadystatechange = HttpLoadResponse_netid;
+				http.send(null)
+
+				http.open("GET","cgi-bin/getRadioConf.cgi",false);
+				http.onreadystatechange = HttpLoadResponse_currentconf;
+				http.send(null)
+
+
+			}
+		}
+		function HttpLoadResponse_netid(){
+			if (http.readyState == 4) {
+				var netid = http.responseText.trim()
+				document.getElementById("network_id").value=netid
+			}
+		}
+		var selectedCountry = ""
+		var selectedFreq = ""
+
+		function HttpLoadResponse_currentconf(){
+			if (http.readyState == 4) {
+				var response = http.responseText;
+//				alert("Reponse is "+response);
+				var data = JSON.parse(response);
+				selectedCountry = data.country;
+				selectedFreq = data.freq;
+				//alert("country is "+selectedCountry+", freq is "+selectedFreq);
+
+				http.open("GET","cgi-bin/listRadioConf.cgi",false);
+				http.onreadystatechange = HttpLoadResponse_list;
+				http.send(null)
+			}
+		}
+		function toggleHide(element){
+			if(document.getElementById(element).style.display == 'block'){
+				document.getElementById(element).style.display = 'none';
+			} else {
+				document.getElementById(element).style.display = 'block';
+			}
+		}
+		var countryDivs = [];
+		var freqRadios = [];
+		var defaultFreqs;
+		function HttpLoadResponse_list(){
+			if (http.readyState == 4) {
+				var response = http.responseText;
+//				alert("Reponse is "+response);
+				var data = JSON.parse(response);
+				var form="";
+				var countries = data.radioConfs;
+				defaultFreqs = data.defaults;
+				for (var i=0; i<countries.length;i++){
+					countryDivs.push("country"+countries[i].name)
+					form += "<input type=\"radio\" name=\"country\" value=\""+countries[i].name+"\" onclick='toggleCountry(\""+countries[i].name+"\")'";
+//					alert("Country is "+countries[i].name+", selected is "+selectedCountry);
+					if (countries[i].name == selectedCountry){
+						form +=" checked=true ";
+					}
+					form += "/>"+countries[i].name+"<br>\n";
+//					alert("Country: "+countries[i].name);
+					var freqs = countries[i].freqs;
+					form += "<div id=\"country"+countries[i].name+"\" class=\""
+					if (countries[i].name == selectedCountry){
+						form +="block";
+					} else{
+						form +="hide";
+					}
+					form +="\">";
+					if (defaultFreqs[i].freq!="conf"){
+						form +="&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"javascript:;\" onclick=toggleHide(\"freqsCountry"+countries[i].name+"\")>show/hide frequency selection (advanced)</a><br>";
+					} 
+					form +="<div id=\"freqsCountry"+countries[i].name+"\" class=\"hide\">";
+					form += "<table>";
+					var j = ""
+					for (var j = 0; j<freqs.length;j++){
+//						alert("Freq: "+freqs[j]);
+						if (freqs[j]){
+							form += "<tr><td>&nbsp;&nbsp;</td><td><input type=\"radio\" name=\"freq\" value=\""+freqs[j]+"\"";
+							if (freqs[j] == selectedFreq){
+								form +=" checked=true ";
+							}
+							form += "/>"+freqs[j]+"</tr></td>\n";
+						}
+					}
+					form += "</table></div></div>"
+				}
+				form += "<br>Changes will not be applied until next device reboot.<br>"
+				form += "<br><input type=\"submit\" value=\"Change Country and frequency\"></p>";
+				var element = document.getElementById("freqForm");
+//				alert(form);
+				element.innerHTML = form
+			}
+		}
+		function setCheckedValue(radioObj, newValue) {
+//			alert("Setting checked value for "+radioObj+" to "+newValue);
+			if(!radioObj) return;
+			var radioLength = radioObj.length;
+			if(radioLength == undefined) {
+				radioObj.checked = (radioObj.value == newValue.toString());
+				return;
+			}
+			for(var i = 0; i < radioLength; i++) {
+				radioObj[i].checked = false;
+				if(radioObj[i].value == newValue.toString()) {
+					radioObj[i].checked = true;
+				}
+			}
+		}
+		function toggleCountry(selectedCountry){
+//			alert("Showing "+country);
+			for (var i in countryDivs){
+				divName = countryDivs[i];
+				countryName = divName.substring(7);
+//				alert("Showing "+countryName+", selected is "+selectedCountry);
+				if (countryName == selectedCountry){
+					document.getElementById(divName).style.display="block";
+					for (var i in defaultFreqs){
+						if (defaultFreqs[i].name == countryName){
+							setCheckedValue(document.countryForm.freq,defaultFreqs[i].freq);
+						}
+					}
+				} else {
+					document.getElementById(divName).style.display="none";
+				}
+			}
+		}
+	</script>
+  </head>
+  <body onload="loadData()"> 
+	<form id="countryForm" name="countryForm" enctype="multipart/form-data" action="cgi-bin/saveCountry.py" method="post">
+		<p>
+		Change country and frequency range:
+		<ul>
+			<li>These parameters must match those configured on all sensors in the network</li>
+			<li>You must choose the correct country where this equipment will be used. This device may otherwise fail to comply with local regulations</li>
+		</ul>
+		<div id="freqForm" style="margin:50px">
+			Loading..
+		</div>
+	</form>
+	<br><br>
+	<form id="radioForm" name="radioForm" enctype="multipart/form-data" action="cgi-bin/saveRadioData.py" method="post">
+		<p>
+		Change Radio Network ID and password for this gateway:
+		<ul>
+		<li>These parameters must match those configured on all sensors in the network</li>
+		<li>The network ID matches the Gateway ID by default. Do not change unless you know what you're doing</li>
+		<li>The network password cannot be retrieved from the gateway, <b>write it down and keep it in a safe <br> place</b>, you will need it to configure the Loadsensing nodes, and in case you need to replace this gateway</li>
+		<li>The network password is case sensitive</li>
+		</ul>
+		</p>
+		<table border=0>
+			<tr><td>Network ID:</td><td> <input type="number" name="network_id" id="network_id"></td></tr>
+			<tr><td>Network Password: </td><td><input type="text" name="network_pass" id="network_pass"></td></tr>
+		</table>
+		<br/><br/>
+		Changes will not be applied until next device reboot.<br><br/>
+		<input type="submit" value="Change Network ID and password"></p>
+	</form> 
+  </body>
+</html>
+
+

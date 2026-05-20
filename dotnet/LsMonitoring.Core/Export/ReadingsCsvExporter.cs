@@ -15,11 +15,13 @@ public static class ReadingsCsvExporter
         "B-axis",
         "A-variation",
         "B-variation",
+        "A-deviation",
+        "B-deviation",
         "Status",
         "Reasons"
     ];
 
-    public static void Export(string path, IEnumerable<Reading> readings, Thresholds thresholds, AlarmConfig alarm)
+    public static void Export(string path, IEnumerable<Reading> readings, Thresholds thresholds, AlarmConfig alarm, NodeCalibration? calibration = null)
     {
         var dir = Path.GetDirectoryName(path);
         if (!string.IsNullOrWhiteSpace(dir))
@@ -32,7 +34,7 @@ public static class ReadingsCsvExporter
 
         foreach (var reading in readings)
         {
-            var evaluation = ThresholdEvaluator.Evaluate(reading, thresholds, alarm);
+            var evaluation = ThresholdEvaluator.Evaluate(reading, thresholds, alarm, calibration);
             writer.WriteLine(string.Join(",",
                 Escape(reading.Timestamp.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)),
                 Format(reading.Temperature),
@@ -40,6 +42,8 @@ public static class ReadingsCsvExporter
                 Format(reading.BAxis),
                 Format(reading.AVariation),
                 Format(reading.BVariation),
+                Format(evaluation.AValue),
+                Format(evaluation.BValue),
                 evaluation.Status,
                 Escape(string.Join("; ", evaluation.Reasons))));
         }
