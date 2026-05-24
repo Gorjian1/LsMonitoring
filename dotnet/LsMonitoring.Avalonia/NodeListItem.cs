@@ -16,7 +16,7 @@ public sealed class NodeListItem : INotifyPropertyChanged
     private string _bText = "-";
     private string _tText = "-";
     private string _ageText = "Нет данных";
-    private string _statusColor = "#8c959f";
+    private string _statusColor = "#94A3B8";
     private IReadOnlyList<double> _sparklineData = [];
     private bool _isStale;
     private bool _hasZero;
@@ -148,10 +148,10 @@ public sealed class NodeListItem : INotifyPropertyChanged
         TText = latest is null ? "-" : ReadingSnapshot.FormatValue(latest.Temperature, digits: 1);
         AgeText = FormatAge(latest?.Timestamp, DateTime.Now);
         IsStale = ReadingSnapshot.IsStale(buffer, DateTime.Now);
-        StatusColor = latest is null ? "#8c959f" :
-                      IsStale ? "#8c959f" :
-                      latest.Invalid ? "#cf222e" :
-                      "#1a7f37";
+        StatusColor = latest is null ? "#94A3B8" :
+                      IsStale ? "#94A3B8" :
+                      latest.Invalid ? "#D92D20" :
+                      "#087443";
 
         HasZero = calibration?.HasZero == true;
         ZeroText = calibration?.HasZero == true

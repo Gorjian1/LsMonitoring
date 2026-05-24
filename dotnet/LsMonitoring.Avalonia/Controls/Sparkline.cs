@@ -10,7 +10,7 @@ public sealed class Sparkline : Control
         AvaloniaProperty.Register<Sparkline, IReadOnlyList<double>?>(nameof(Points));
 
     public static readonly StyledProperty<string> LineColorProperty =
-        AvaloniaProperty.Register<Sparkline, string>(nameof(LineColor), "#0969da");
+        AvaloniaProperty.Register<Sparkline, string>(nameof(LineColor), "#1769E0");
 
     static Sparkline()
     {

@@ -103,16 +103,16 @@ public sealed class RadialGauge : Control
         var trackThickness = radius * 0.18;
 
         // Background tile
-        var bgColor = IsInvalid ? Color.FromRgb(0x1a, 0x1e, 0x24) :
-                      IsCritical ? Color.FromRgb(0x2a, 0x10, 0x10) :
-                                   Color.FromRgb(0x16, 0x1b, 0x22);
+        var bgColor = IsInvalid ? Color.FromRgb(0xf1, 0xf5, 0xf9) :
+                      IsCritical ? Color.FromRgb(0xfe, 0xf3, 0xf2) :
+                                   Color.FromRgb(0xff, 0xff, 0xff);
         context.FillRectangle(new SolidColorBrush(bgColor), Bounds);
 
         if (IsInvalid)
         {
-            DrawArcTrack(context, cx, cy, radius, trackThickness, 0, SweepAngleDeg, Color.FromRgb(0x30, 0x36, 0x3d));
-            DrawCenteredText(context, "INVALID", cx, cy - 10, 13, "#768390");
-            DrawCenteredText(context, "overflow", cx, cy + 8, 11, "#4a5260");
+            DrawArcTrack(context, cx, cy, radius, trackThickness, 0, SweepAngleDeg, Color.FromRgb(0xd8, 0xe0, 0xe7));
+            DrawCenteredText(context, "INVALID", cx, cy - 10, 13, "#667085");
+            DrawCenteredText(context, "overflow", cx, cy + 8, 11, "#94A3B8");
             return;
         }
 
@@ -130,26 +130,26 @@ public sealed class RadialGauge : Control
         var greenSweep = SweepAngleDeg * critFrac;
         var amberSweep = SweepAngleDeg * (critFrac - warnFrac) * 0.5;
         // Simplified: draw full track grey, overlay zones
-        DrawArcTrack(context, cx, cy, radius, trackThickness, 0, SweepAngleDeg, Color.FromRgb(0x30, 0x36, 0x3d));
+        DrawArcTrack(context, cx, cy, radius, trackThickness, 0, SweepAngleDeg, Color.FromRgb(0xd8, 0xe0, 0xe7));
 
         // Green zone: center portion (safe range)
         var warnOffset = (1.0 - warnFrac) * SweepAngleDeg / 2.0;
         var warnSweep = SweepAngleDeg * warnFrac;
-        DrawArcTrack(context, cx, cy, radius, trackThickness, warnOffset, warnSweep, Color.FromRgb(0x1a, 0x52, 0x2a));
+        DrawArcTrack(context, cx, cy, radius, trackThickness, warnOffset, warnSweep, Color.FromRgb(0xa6, 0xf4, 0xc5));
 
         // Amber zone: beyond warning, before critical
         if (crit > warn)
         {
             var ambOffset = (1.0 - critFrac) * SweepAngleDeg / 2.0;
             var ambSweep = (critFrac - warnFrac) / 2.0 * SweepAngleDeg;
-            DrawArcTrack(context, cx, cy, radius, trackThickness, ambOffset, ambSweep, Color.FromRgb(0x5a, 0x40, 0x0a));
+            DrawArcTrack(context, cx, cy, radius, trackThickness, ambOffset, ambSweep, Color.FromRgb(0xfe, 0xf0, 0xc7));
             DrawArcTrack(context, cx, cy, radius, trackThickness,
                 StartAngleDeg - ambOffset - amberSweep + StartAngleDeg + warnOffset + warnSweep - StartAngleDeg,
-                ambSweep, Color.FromRgb(0x5a, 0x40, 0x0a));
+                ambSweep, Color.FromRgb(0xfe, 0xf0, 0xc7));
 
             // Red zone: beyond critical
-            DrawArcTrack(context, cx, cy, radius, trackThickness, 0, ambOffset, Color.FromRgb(0x5a, 0x18, 0x16));
-            DrawArcTrack(context, cx, cy, radius, trackThickness, SweepAngleDeg - ambOffset, ambOffset, Color.FromRgb(0x5a, 0x18, 0x16));
+            DrawArcTrack(context, cx, cy, radius, trackThickness, 0, ambOffset, Color.FromRgb(0xfe, 0xe4, 0xe2));
+            DrawArcTrack(context, cx, cy, radius, trackThickness, SweepAngleDeg - ambOffset, ambOffset, Color.FromRgb(0xfe, 0xe4, 0xe2));
         }
 
         // Needle
@@ -161,24 +161,24 @@ public sealed class RadialGauge : Control
         var nx = cx + Math.Cos(needleAngleRad) * needleLen;
         var ny = cy + Math.Sin(needleAngleRad) * needleLen;
 
-        var needleColor = IsCritical ? Color.FromRgb(0xf8, 0x51, 0x49) :
-                          Math.Abs(Value) >= CriticalThreshold ? Color.FromRgb(0xf8, 0x51, 0x49) :
-                          Math.Abs(Value) >= WarningThreshold ? Color.FromRgb(0xd2, 0x99, 0x22) :
-                          Color.FromRgb(0xe6, 0xed, 0xf3);
+        var needleColor = IsCritical ? Color.FromRgb(0xd9, 0x2d, 0x20) :
+                          Math.Abs(Value) >= CriticalThreshold ? Color.FromRgb(0xd9, 0x2d, 0x20) :
+                          Math.Abs(Value) >= WarningThreshold ? Color.FromRgb(0xc4, 0x7f, 0x17) :
+                          Color.FromRgb(0x18, 0x22, 0x30);
 
         context.DrawLine(new Pen(new SolidColorBrush(needleColor), 2.5), new Point(cx, cy), new Point(nx, ny));
         context.FillRectangle(new SolidColorBrush(needleColor), new Rect(cx - 3, cy - 3, 6, 6));
 
         // Center value text
         var valueStr = Value.ToString("F2") + "°";
-        DrawCenteredText(context, valueStr, cx, cy - radius * 0.30, 20, needleColor == Color.FromRgb(0xe6, 0xed, 0xf3) ? "#e6edf3" : ColorToHex(needleColor));
+        DrawCenteredText(context, valueStr, cx, cy - radius * 0.30, 20, needleColor == Color.FromRgb(0x18, 0x22, 0x30) ? "#182230" : ColorToHex(needleColor));
 
         // Delta
         if (PreviousValue is { } prev)
         {
             var delta = Value - prev;
             var deltaStr = delta >= 0 ? $"+{delta:F2}°" : $"{delta:F2}°";
-            DrawCenteredText(context, deltaStr, cx, cy + radius * 0.05, 11, "#8b949e");
+            DrawCenteredText(context, deltaStr, cx, cy + radius * 0.05, 11, "#667085");
         }
 
         // Scale labels
@@ -248,7 +248,7 @@ public sealed class RadialGauge : Control
             FlowDirection.LeftToRight,
             Typeface.Default,
             9,
-            new SolidColorBrush(Color.Parse("#8b949e")));
+            new SolidColorBrush(Color.Parse("#667085")));
         context.DrawText(ft, new Point(x - ft.Width / 2, y - ft.Height / 2));
     }
 

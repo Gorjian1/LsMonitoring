@@ -1,13 +1,20 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.7.11811.120 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LsMonitoring.Core", "LsMonitoring.Core\LsMonitoring.Core.csproj", "{947C3402-9A45-480C-85C7-27C52FB4A952}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LsMonitoring.Avalonia", "LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj", "{54DD7044-27CB-4303-8D3E-7A78A7197EBD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LsMonitoring.Core.Tests", "LsMonitoring.Core.Tests\LsMonitoring.Core.Tests.csproj", "{4643905A-92DE-4D8A-8910-DD7F71AB849E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{7D79D729-1559-410C-BA76-4C58528ECBCA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{F8CC5387-9801-4FD0-B453-712C97FAF636}"
+	ProjectSection(SolutionItems) = preProject
+		release.yml = release.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,5 +65,11 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F8CC5387-9801-4FD0-B453-712C97FAF636} = {7D79D729-1559-410C-BA76-4C58528ECBCA}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {45937AF4-5AB9-4A7E-8A3B-C294586D5A51}
 	EndGlobalSection
 EndGlobal

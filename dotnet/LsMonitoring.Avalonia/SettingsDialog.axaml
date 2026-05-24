@@ -4,59 +4,59 @@
         Title="Настройки"
         Width="480" Height="620"
         WindowStartupLocation="CenterOwner"
-        Background="#ffffff"
+        Background="{StaticResource BrushAppBackground}"
         CanResize="False">
     <ScrollViewer>
         <StackPanel Margin="20" Spacing="14">
-            <TextBlock Text="Настройки" FontSize="18" FontWeight="SemiBold" Foreground="#1f2328" Margin="0,0,0,4"/>
+            <TextBlock Text="Настройки" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource BrushText}" Margin="0,0,0,4"/>
 
             <!-- Соединение -->
             <TextBlock Text="ПОДКЛЮЧЕНИЕ" FontSize="10" FontWeight="SemiBold"
-                       LetterSpacing="2" Foreground="#656d76"/>
+                       LetterSpacing="2" Foreground="{StaticResource BrushMuted}"/>
             <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="IP шлюза:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="IP шлюза:" VerticalAlignment="Center" Foreground="{StaticResource BrushMuted}"/>
                 <TextBox Grid.Row="0" Grid.Column="1" x:Name="GatewayIpBox"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Логин:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Логин:" VerticalAlignment="Center" Foreground="{StaticResource BrushMuted}"/>
                 <TextBox Grid.Row="1" Grid.Column="1" x:Name="UsernameBox"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Пароль:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Пароль:" VerticalAlignment="Center" Foreground="{StaticResource BrushMuted}"/>
                 <TextBox Grid.Row="2" Grid.Column="1" x:Name="PasswordBox" PasswordChar="*"/>
             </Grid>
 
             <!-- Пороги -->
             <TextBlock Text="ОТКЛОНЕНИЕ ОТ НУЛЯ (°)" FontSize="10" FontWeight="SemiBold"
-                       LetterSpacing="2" Foreground="#656d76" Margin="0,8,0,0"/>
+                       LetterSpacing="2" Foreground="{StaticResource BrushMuted}" Margin="0,8,0,0"/>
             <Grid ColumnDefinitions="140,*,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" ColumnSpacing="8">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Режим:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Режим:" VerticalAlignment="Center" Foreground="{StaticResource BrushMuted}"/>
                 <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="ThresholdModeBox">
                     <ComboBoxItem Content="Углы A/B из прибора" Tag="absolute"/>
                     <ComboBoxItem Content="Вариации ΔA/ΔB из прибора" Tag="variation"/>
                 </ComboBox>
 
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="Ноль" Foreground="#656d76" FontSize="11" HorizontalAlignment="Center"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="Макс. отклонение" Foreground="#cf222e" FontSize="11" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Ноль" Foreground="{StaticResource BrushMuted}" FontSize="11" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="Макс. отклонение" Foreground="{StaticResource BrushDanger}" FontSize="11" HorizontalAlignment="Center"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Ось A (°):" VerticalAlignment="Center" Foreground="#0969da"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Ось A (°):" VerticalAlignment="Center" Foreground="{StaticResource BrushAccentA}"/>
                 <TextBox Grid.Row="2" Grid.Column="1" x:Name="ZeroABox"/>
                 <TextBox Grid.Row="2" Grid.Column="2" x:Name="CriticalABox"/>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Ось B (°):" VerticalAlignment="Center" Foreground="#8250df"/>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Ось B (°):" VerticalAlignment="Center" Foreground="{StaticResource BrushAccentB}"/>
                 <TextBox Grid.Row="3" Grid.Column="1" x:Name="ZeroBBox"/>
                 <TextBox Grid.Row="3" Grid.Column="2" x:Name="CriticalBBox"/>
             </Grid>
 
             <!-- Уведомления -->
             <TextBlock Text="УВЕДОМЛЕНИЯ" FontSize="10" FontWeight="SemiBold"
-                       LetterSpacing="2" Foreground="#656d76" Margin="0,8,0,0"/>
+                       LetterSpacing="2" Foreground="{StaticResource BrushMuted}" Margin="0,8,0,0"/>
             <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Тревоги в UI:" VerticalAlignment="Center" Foreground="#656d76"/>
-                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableAlarmsBox" Content="Показывать баннер при критике" Foreground="#1f2328"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Тревоги в UI:" VerticalAlignment="Center" Foreground="{StaticResource BrushMuted}"/>
+                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableAlarmsBox" Content="Показывать баннер при критике" Foreground="{StaticResource BrushText}"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Telegram:" VerticalAlignment="Center" Foreground="#656d76"/>
-                <CheckBox Grid.Row="1" Grid.Column="1" x:Name="EnableTelegramBox" Content="Включить уведомления в Telegram" Foreground="#1f2328"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Telegram:" VerticalAlignment="Center" Foreground="{StaticResource BrushMuted}"/>
+                <CheckBox Grid.Row="1" Grid.Column="1" x:Name="EnableTelegramBox" Content="Включить уведомления в Telegram" Foreground="{StaticResource BrushText}"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="ID чатов:" VerticalAlignment="Center" Foreground="#656d76"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="ID чатов:" VerticalAlignment="Center" Foreground="{StaticResource BrushMuted}"/>
                 <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,Auto">
                     <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox" PlaceholderText="например 1234567, 9876543"/>
                     <Button Grid.Column="1" x:Name="TestTelegramButton" Content="Тест" Margin="8,0,0,0"/>
@@ -65,7 +65,7 @@
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,20,0,0">
                 <Button x:Name="CancelButton" Content="Отмена" Padding="15,6"/>
-                <Button x:Name="SaveButton" Content="Сохранить" Padding="15,6" Background="#1f883d" Foreground="White"/>
+                <Button x:Name="SaveButton" Content="Сохранить" Padding="15,6" Background="{StaticResource BrushPrimary}" Foreground="White" BorderBrush="{StaticResource BrushPrimaryHover}"/>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

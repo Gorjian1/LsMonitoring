@@ -8,13 +8,13 @@
         Width="1280" Height="800"
         MinWidth="980" MinHeight="620"
         Title="LS-G6 Мониторинг"
-        Background="#ffffff">
+        Background="{StaticResource BrushAppBackground}">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- ── Баннер тревоги (всегда видим при критике) ──────────────── -->
         <Border x:Name="AlarmBanner" Grid.Row="0"
-                Background="#cf222e" IsVisible="False" Padding="14,8">
+                Background="{StaticResource BrushDangerDark}" IsVisible="False" Padding="14,8">
             <Grid ColumnDefinitions="Auto,*">
                 <TextBlock Grid.Column="0" Text="⚠" FontSize="20" VerticalAlignment="Center"
                            Foreground="White" Margin="0,0,10,0"/>
@@ -25,28 +25,28 @@
         </Border>
 
         <!-- ── Верхняя панель ─────────────────────────────────────────── -->
-        <Border Grid.Row="1" Background="#f6f8fa"
-                BorderBrush="#d0d7de" BorderThickness="0,0,0,1"
+        <Border Grid.Row="1" Background="{StaticResource BrushChrome}"
+                BorderBrush="{StaticResource BrushChromeLine}" BorderThickness="0,0,0,1"
                 Padding="12,0" Height="40">
             <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
 
                 <Ellipse Grid.Column="0" x:Name="StatusDot"
                          Width="10" Height="10" Margin="0,0,8,0"
-                         Fill="#8c959f" VerticalAlignment="Center"/>
+                         Fill="{StaticResource BrushStatusIdle}" VerticalAlignment="Center"/>
 
                 <TextBlock Grid.Column="1" x:Name="GatewayLabel"
-                           Text="169.254.0.1" Foreground="#656d76"
+                           Text="169.254.0.1" Foreground="{StaticResource BrushChromeMuted}"
                            FontSize="13" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
                 <TextBlock Grid.Column="2" x:Name="ConnectionLabel"
-                           Text="Ожидание" Foreground="#656d76"
+                           Text="Ожидание" Foreground="{StaticResource BrushChromeMuted}"
                            FontSize="13" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
                 <Rectangle Grid.Column="3" Width="1" Height="18"
-                           Fill="#d0d7de" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                           Fill="{StaticResource BrushChromeLine}" VerticalAlignment="Center" Margin="0,0,12,0"/>
 
                 <TextBlock Grid.Column="4" x:Name="CountdownLabel"
-                           Text="" Foreground="#656d76"
+                           Text="" Foreground="{StaticResource BrushChromeMuted}"
                            FontSize="12" VerticalAlignment="Center"/>
 
                 <Grid Grid.Column="5"/>
@@ -70,16 +70,17 @@
         <Grid Grid.Row="2" ColumnDefinitions="240,*">
 
             <!-- ── Список узлов ───────────────────────────────────────── -->
-            <Border Grid.Column="0" Background="#f6f8fa"
-                    BorderBrush="#d0d7de" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Background="{StaticResource BrushSidebar}"
+                    BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0">
                 <DockPanel>
                     <Border DockPanel.Dock="Top"
-                            BorderBrush="#d0d7de" BorderThickness="0,0,0,1"
+                            Background="{StaticResource BrushPanelAlt}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1"
                             Padding="12,8">
                         <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
                             <TextBlock Text="УЗЛЫ"
                                        FontSize="11" FontWeight="SemiBold"
-                                       Foreground="#656d76" LetterSpacing="2"
+                                       Foreground="{StaticResource BrushMuted}" LetterSpacing="2"
                                        VerticalAlignment="Center"/>
                             <Button Grid.Column="1" x:Name="PollNowButton"
                                     Content="⟳" Width="26" Height="26"
@@ -91,13 +92,14 @@
                                     ToolTip.Tip="Добавить узел"/>
                             <TextBlock Grid.Row="1" Grid.ColumnSpan="3"
                                        x:Name="NodeSummaryText"
-                                       Text="0 узлов" Foreground="#656d76"
+                                       Text="0 узлов" Foreground="{StaticResource BrushMuted}"
                                        FontSize="11" Margin="0,3,0,0"/>
                         </Grid>
                     </Border>
 
                     <Border DockPanel.Dock="Bottom"
-                            BorderBrush="#d0d7de" BorderThickness="0,1,0,0"
+                            Background="{StaticResource BrushPanelAlt}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0"
                             Padding="8,6">
                         <Grid ColumnDefinitions="*,72">
                             <TextBox Grid.Column="0" x:Name="NodeIdBox"
@@ -127,8 +129,8 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border Padding="8" CornerRadius="6"
-                                        Background="#ffffff"
-                                        BorderBrush="#d0d7de" BorderThickness="1"
+                                        Background="{StaticResource BrushPanel}"
+                                        BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
                                         Margin="0,0,0,4">
                                     <Grid ColumnDefinitions="6,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
                                         <Rectangle Grid.Column="0" Grid.RowSpan="5"
@@ -140,16 +142,16 @@
                                               ColumnDefinitions="*,Auto">
                                             <TextBlock Text="{Binding Title}"
                                                        FontWeight="SemiBold" FontSize="13"
-                                                       Foreground="#1f2328"/>
+                                                       Foreground="{StaticResource BrushText}"/>
                                             <TextBlock Grid.Column="1"
                                                        Text="{Binding AgeText}"
-                                                       FontSize="11" Foreground="#656d76"
+                                                       FontSize="11" Foreground="{StaticResource BrushMuted}"
                                                        VerticalAlignment="Center"/>
                                         </Grid>
 
                                         <TextBlock Grid.Column="1" Grid.Row="1"
                                                    Text="{Binding Subtitle}"
-                                                   FontSize="11" Foreground="#656d76"
+                                                   FontSize="11" Foreground="{StaticResource BrushMuted}"
                                                    Margin="0,2,0,4"/>
 
                                         <Grid Grid.Column="1" Grid.Row="2"
@@ -163,10 +165,10 @@
                                                         Spacing="6" Margin="8,0,0,0"
                                                         VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding AText}"
-                                                           FontSize="11" Foreground="#0969da"
+                                                           FontSize="11" Foreground="{StaticResource BrushAccentA}"
                                                            FontFamily="Cascadia Code, Consolas, monospace"/>
                                                 <TextBlock Text="{Binding BText}"
-                                                           FontSize="11" Foreground="#8250df"
+                                                           FontSize="11" Foreground="{StaticResource BrushAccentB}"
                                                            FontFamily="Cascadia Code, Consolas, monospace"/>
                                             </StackPanel>
                                         </Grid>
@@ -174,7 +176,7 @@
                                         <TextBlock Grid.Column="1" Grid.Row="3"
                                                    Text="{Binding ZeroText}"
                                                    IsVisible="{Binding HasZero}"
-                                                   FontSize="10" Foreground="#1a7f37"
+                                                   FontSize="10" Foreground="{StaticResource BrushSuccess}"
                                                    FontFamily="Cascadia Code, Consolas, monospace"
                                                    Margin="0,4,0,0"/>
 
@@ -205,19 +207,19 @@
             <Grid Grid.Column="1" RowDefinitions="5*,2*" Margin="12,10,12,10" RowSpacing="10">
 
                 <!-- Графики A и B -->
-                <Border Grid.Row="0" Background="#f6f8fa"
-                        BorderBrush="#d0d7de" BorderThickness="1" CornerRadius="8">
+                <Border Grid.Row="0" Background="{StaticResource BrushPanel}"
+                        BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8">
                     <Grid RowDefinitions="34,*,*" RowSpacing="4">
                         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="12,6,12,0">
                             <TextBlock Text="ГРАФИКИ" FontSize="11" FontWeight="SemiBold"
-                                       LetterSpacing="2" Foreground="#656d76"
+                                       LetterSpacing="2" Foreground="{StaticResource BrushMuted}"
                                        VerticalAlignment="Center"/>
                             <StackPanel Grid.Column="2"
                                         Orientation="Horizontal"
                                         Spacing="6"
                                         VerticalAlignment="Center">
                                 <TextBlock x:Name="PlotMetaText"
-                                           Text="" Foreground="#656d76" FontSize="11"
+                                           Text="" Foreground="{StaticResource BrushMuted}" FontSize="11"
                                            VerticalAlignment="Center" Margin="0,0,4,0"
                                            MaxWidth="300"
                                            TextTrimming="CharacterEllipsis"/>
@@ -257,39 +259,39 @@
                 </Border>
 
                 <!-- Таблица измерений -->
-                <Border Grid.Row="1" Background="#f6f8fa"
-                        BorderBrush="#d0d7de" BorderThickness="1" CornerRadius="8"
+                <Border Grid.Row="1" Background="{StaticResource BrushPanel}"
+                        BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="8"
                         Padding="10,8">
                     <Grid RowDefinitions="Auto,Auto,*">
                         <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
                             <TextBlock Text="ПОСЛЕДНИЕ ИЗМЕРЕНИЯ" FontSize="11"
                                        FontWeight="SemiBold" LetterSpacing="2"
-                                       Foreground="#656d76"/>
+                                       Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="1" x:Name="RowsMetaText"
-                                       Text="" Foreground="#656d76" FontSize="11"/>
+                                       Text="" Foreground="{StaticResource BrushMuted}" FontSize="11"/>
                         </Grid>
 
                         <Grid Grid.Row="1"
                               ColumnDefinitions="150,62,76,76,76,76,82,82,*"
                               Margin="0,6,0,2">
                             <TextBlock Text="Время" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="#656d76"/>
+                                       Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="1" Text="T (°C)" FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="2" Text="A (°)" FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="3" Text="B (°)" FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="4" Text="A-вар" FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="5" Text="B-вар" FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="6" Text="A откл." FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="7" Text="B откл." FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                             <TextBlock Grid.Column="8" Text="Флаги" FontSize="11"
-                                       FontWeight="SemiBold" Foreground="#656d76"/>
+                                       FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
                         </Grid>
 
                         <ListBox Grid.Row="2" x:Name="RowsList"
@@ -300,23 +302,23 @@
                                     <Grid ColumnDefinitions="150,62,76,76,76,76,82,82,*"
                                           MinHeight="22">
                                         <TextBlock Text="{Binding Time}"
-                                                   Foreground="#656d76" FontSize="11"/>
+                                                   Foreground="{StaticResource BrushMuted}" FontSize="11"/>
                                         <TextBlock Grid.Column="1" Text="{Binding Temperature}"
-                                                   Foreground="#1f2328"/>
+                                                   Foreground="{StaticResource BrushText}"/>
                                         <TextBlock Grid.Column="2" Text="{Binding AAxis}"
-                                                   Foreground="#0969da"/>
+                                                   Foreground="{StaticResource BrushAccentA}"/>
                                         <TextBlock Grid.Column="3" Text="{Binding BAxis}"
-                                                   Foreground="#8250df"/>
+                                                   Foreground="{StaticResource BrushAccentB}"/>
                                         <TextBlock Grid.Column="4" Text="{Binding AVariation}"
-                                                   Foreground="#656d76"/>
+                                                   Foreground="{StaticResource BrushMuted}"/>
                                         <TextBlock Grid.Column="5" Text="{Binding BVariation}"
-                                                   Foreground="#656d76"/>
+                                                   Foreground="{StaticResource BrushMuted}"/>
                                         <TextBlock Grid.Column="6" Text="{Binding ADeviation}"
-                                                   Foreground="#0969da"/>
+                                                   Foreground="{StaticResource BrushAccentA}"/>
                                         <TextBlock Grid.Column="7" Text="{Binding BDeviation}"
-                                                   Foreground="#8250df"/>
+                                                   Foreground="{StaticResource BrushAccentB}"/>
                                         <TextBlock Grid.Column="8" Text="{Binding Flags}"
-                                                   Foreground="#cf222e"/>
+                                                   Foreground="{StaticResource BrushDanger}"/>
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
@@ -327,21 +329,21 @@
         </Grid>
 
         <!-- ── Статус-бар ─────────────────────────────────────────────── -->
-        <Border Grid.Row="3" Background="#f6f8fa"
-                BorderBrush="#d0d7de" BorderThickness="0,1,0,0"
+        <Border Grid.Row="3" Background="{StaticResource BrushPanel}"
+                BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0"
                 Padding="12,4" Height="26">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto">
                 <TextBlock x:Name="StatusText" Text="Ожидание"
-                           Foreground="#656d76" FontSize="11"
+                           Foreground="{StaticResource BrushMuted}" FontSize="11"
                            VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="1" x:Name="SamplingRateLabel"
-                           Text="" Foreground="#656d76" FontSize="11"
+                           Text="" Foreground="{StaticResource BrushMuted}" FontSize="11"
                            VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <TextBlock Grid.Column="2" x:Name="LastSampleLabel"
-                           Text="" Foreground="#656d76" FontSize="11"
+                           Text="" Foreground="{StaticResource BrushMuted}" FontSize="11"
                            VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <TextBlock Grid.Column="3" x:Name="SourceText"
-                           Text="CSV" Foreground="#656d76" FontSize="11"
+                           Text="CSV" Foreground="{StaticResource BrushMuted}" FontSize="11"
                            VerticalAlignment="Center"/>
             </Grid>
         </Border>

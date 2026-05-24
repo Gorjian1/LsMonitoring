@@ -125,11 +125,13 @@ public sealed class TrendPlot : Control
 
     public event EventHandler<DateTime>? CutoffTimePicked;
 
-    // Светлая палитра
-    private static readonly Color BgCanvas = Color.FromRgb(0xff, 0xff, 0xff);
+    // Светлая палитра приложения.
+    private const string TextHex = "#182230";
+    private const string TextMutedHex = "#667085";
+    private const string AccentAHex = "#1769E0";
+    private const string AccentBHex = "#7A3FB7";
     private static readonly Color BgSurface = Color.FromRgb(0xff, 0xff, 0xff);
-    private static readonly Color BorderSubtle = Color.FromRgb(0xd0, 0xd7, 0xde);
-    private static readonly Color TextMuted = Color.FromRgb(0x65, 0x6d, 0x76);
+    private static readonly Color BorderSubtle = Color.FromRgb(0xd8, 0xe0, 0xe7);
 
     public override void Render(DrawingContext context)
     {
@@ -234,14 +236,14 @@ public sealed class TrendPlot : Control
 
     private static void DrawNoData(DrawingContext context, Rect plot)
     {
-        DrawText(context, "Нет данных", new Point(plot.Left + plot.Width / 2 - 36, plot.Top + plot.Height / 2 - 8), 13, "#656d76");
+        DrawText(context, "Нет данных", new Point(plot.Left + plot.Width / 2 - 36, plot.Top + plot.Height / 2 - 8), 13, TextMutedHex);
     }
 
     private static void DrawThresholdBands(DrawingContext context, Rect plot, double minY, double maxY, double warn, double crit)
     {
         // Warning band: ±warn to ±crit (amber, very translucent)
-        var warnBrush = new SolidColorBrush(Color.FromArgb(30, 0xd2, 0x99, 0x22));
-        var critBrush = new SolidColorBrush(Color.FromArgb(30, 0xf8, 0x51, 0x49));
+        var warnBrush = new SolidColorBrush(Color.FromArgb(32, 0xc4, 0x7f, 0x17));
+        var critBrush = new SolidColorBrush(Color.FromArgb(32, 0xd9, 0x2d, 0x20));
 
         void FillBand(double lo, double hi, IBrush brush)
         {
@@ -266,8 +268,8 @@ public sealed class TrendPlot : Control
         FillBand(-crit, -warn, warnBrush);
 
         // Threshold lines
-        var warnPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 0xd2, 0x99, 0x22)), 1) { DashStyle = DashStyle.Dash };
-        var critPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 0xf8, 0x51, 0x49)), 1) { DashStyle = DashStyle.Dash };
+        var warnPen = new Pen(new SolidColorBrush(Color.FromArgb(88, 0xc4, 0x7f, 0x17)), 1) { DashStyle = DashStyle.Dash };
+        var critPen = new Pen(new SolidColorBrush(Color.FromArgb(88, 0xd9, 0x2d, 0x20)), 1) { DashStyle = DashStyle.Dash };
 
         void DrawLine(double value, Pen pen)
         {
@@ -290,8 +292,8 @@ public sealed class TrendPlot : Control
         DateTime minTime, DateTime maxTime, Rect plot, double gapThresholdSeconds)
     {
         var totalSeconds = Math.Max(1, (maxTime - minTime).TotalSeconds);
-        var brush = new SolidColorBrush(Color.FromArgb(45, 0x76, 0x83, 0x90));
-        var dashPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 0x76, 0x83, 0x90)), 1) { DashStyle = DashStyle.Dash };
+        var brush = new SolidColorBrush(Color.FromArgb(42, 0x66, 0x70, 0x85));
+        var dashPen = new Pen(new SolidColorBrush(Color.FromArgb(78, 0x66, 0x70, 0x85)), 1) { DashStyle = DashStyle.Dash };
 
         DateTime? invalidStart = null;
 
@@ -323,7 +325,7 @@ public sealed class TrendPlot : Control
                 // Gap zone
                 var xS = MapX(prev.Value, minTime, maxTime, plot);
                 var xE = MapX(r.Timestamp, minTime, maxTime, plot);
-                context.FillRectangle(new SolidColorBrush(Color.FromArgb(25, 0x76, 0x83, 0x90)),
+                context.FillRectangle(new SolidColorBrush(Color.FromArgb(24, 0x66, 0x70, 0x85)),
                     new Rect(xS, plot.Top, xE - xS, plot.Height));
             }
 
@@ -347,8 +349,8 @@ public sealed class TrendPlot : Control
 
     private static void DrawGrid(DrawingContext context, Rect plot, DateTime minTime, DateTime maxTime)
     {
-        var pen = new Pen(new SolidColorBrush(Color.FromArgb(40, 0x30, 0x36, 0x3d)), 1);
-        var timePen = new Pen(new SolidColorBrush(Color.FromArgb(62, 0x30, 0x36, 0x3d)), 1);
+        var pen = new Pen(new SolidColorBrush(Color.FromArgb(90, 0xd8, 0xe0, 0xe7)), 1);
+        var timePen = new Pen(new SolidColorBrush(Color.FromArgb(120, 0xd8, 0xe0, 0xe7)), 1);
         for (var i = 1; i < 5; i++)
         {
             var y = plot.Top + plot.Height * i / 5.0;
@@ -368,7 +370,7 @@ public sealed class TrendPlot : Control
         {
             context.DrawRectangle(
                 null,
-                new Pen(new SolidColorBrush(Color.FromArgb(160, 0x09, 0x69, 0xda)), 1.5),
+                new Pen(new SolidColorBrush(Color.FromArgb(160, 0x17, 0x69, 0xe0)), 1.5),
                 plot);
         }
 
@@ -378,7 +380,7 @@ public sealed class TrendPlot : Control
         }
 
         var x = MapX(cutoff, minTime, maxTime, plot);
-        var pen = new Pen(new SolidColorBrush(Color.FromArgb(180, 0x1a, 0x7f, 0x37)), 1.5)
+        var pen = new Pen(new SolidColorBrush(Color.FromArgb(180, 0x08, 0x74, 0x43)), 1.5)
         {
             DashStyle = DashStyle.Dash
         };
@@ -410,10 +412,10 @@ public sealed class TrendPlot : Control
 
     private static void DrawAxisLabels(DrawingContext context, Rect plot, double minY, double maxY)
     {
-        DrawText(context, maxY.ToString("F1"), new Point(4, plot.Top - 7), 10, "#656d76");
+        DrawText(context, maxY.ToString("F1"), new Point(4, plot.Top - 7), 10, TextMutedHex);
         var midY = (minY + maxY) / 2;
-        DrawText(context, midY.ToString("F1"), new Point(4, plot.Top + plot.Height / 2 - 7), 10, "#656d76");
-        DrawText(context, minY.ToString("F1"), new Point(4, plot.Bottom - 12), 10, "#656d76");
+        DrawText(context, midY.ToString("F1"), new Point(4, plot.Top + plot.Height / 2 - 7), 10, TextMutedHex);
+        DrawText(context, minY.ToString("F1"), new Point(4, plot.Bottom - 12), 10, TextMutedHex);
     }
 
     private static void DrawTimeLabels(DrawingContext context, Rect plot, DateTime minTime, DateTime maxTime)
@@ -431,7 +433,7 @@ public sealed class TrendPlot : Control
             var x = MapX(tick, minTime, maxTime, plot);
             var estimatedWidth = label.Length * 5.8;
             var labelX = Math.Clamp(x - estimatedWidth / 2, plot.Left, plot.Right - estimatedWidth);
-            DrawText(context, label, new Point(labelX, plot.Bottom + 6), 10, "#656d76");
+            DrawText(context, label, new Point(labelX, plot.Bottom + 6), 10, TextMutedHex);
         }
     }
 
@@ -439,7 +441,7 @@ public sealed class TrendPlot : Control
     {
         var brush = new SolidColorBrush(Color.Parse(color));
         context.FillRectangle(brush, new Rect(x, y + 5, 24, 2));
-        DrawText(context, label, new Point(x + 30, y), 11, "#1f2328");
+        DrawText(context, label, new Point(x + 30, y), 11, TextHex);
     }
 
     private static void DrawSeries(
@@ -633,7 +635,7 @@ public sealed class TrendPlot : Control
 
     private string SeriesColor()
     {
-        return string.Equals(Series, "B", StringComparison.OrdinalIgnoreCase) ? "#8250df" : "#0969da";
+        return string.Equals(Series, "B", StringComparison.OrdinalIgnoreCase) ? AccentBHex : AccentAHex;
     }
 
     private string SeriesLabel()

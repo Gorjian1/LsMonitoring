@@ -184,7 +184,7 @@ public partial class MainWindow : Window
             ConnectionLabel.Text = "Ожидание";
         }
 
-        SetStatusDot("#8c959f");
+        SetStatusDot("#94A3B8");
     }
 
     private async Task PollOnceAsync()
@@ -606,13 +606,13 @@ public partial class MainWindow : Window
         {
             ConnectionLabel.Text = "Подключено";
             GatewayLabel.Text = message;
-            SetStatusDot("#1a7f37");
+            SetStatusDot("#087443");
         }
         else
         {
             ConnectionLabel.Text = "Нет связи";
             StatusText.Text = message;
-            SetStatusDot("#cf222e");
+            SetStatusDot("#D92D20");
         }
     }
 

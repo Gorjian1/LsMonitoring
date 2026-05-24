@@ -4,20 +4,20 @@
         Title="Ограничить график"
         Width="380" Height="250"
         WindowStartupLocation="CenterOwner"
-        Background="#ffffff"
+        Background="{StaticResource BrushAppBackground}"
         CanResize="False">
     <StackPanel Margin="20" Spacing="14">
-        <TextBlock Text="Ограничить график" FontSize="18" FontWeight="SemiBold" Foreground="#1f2328"/>
+        <TextBlock Text="Ограничить график" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource BrushText}"/>
         <TextBlock Text="На графиках останутся только измерения после указанного момента."
                    TextWrapping="Wrap"
-                   Foreground="#656d76"
+                   Foreground="{StaticResource BrushMuted}"
                    FontSize="12"/>
 
         <Grid ColumnDefinitions="96,*" RowDefinitions="Auto,Auto" RowSpacing="10">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Text="Дата:"
                        VerticalAlignment="Center"
-                       Foreground="#656d76"/>
+                       Foreground="{StaticResource BrushMuted}"/>
             <TextBox Grid.Row="0" Grid.Column="1"
                      x:Name="DateBox"
                      PlaceholderText="20.05.2026"/>
@@ -25,7 +25,7 @@
             <TextBlock Grid.Row="1" Grid.Column="0"
                        Text="Время:"
                        VerticalAlignment="Center"
-                       Foreground="#656d76"/>
+                       Foreground="{StaticResource BrushMuted}"/>
             <TextBox Grid.Row="1" Grid.Column="1"
                      x:Name="TimeBox"
                      PlaceholderText="14:30:00"/>
@@ -33,7 +33,7 @@
 
         <TextBlock x:Name="ErrorText"
                    Text=""
-                   Foreground="#cf222e"
+                   Foreground="{StaticResource BrushDanger}"
                    FontSize="11"
                    MinHeight="16"/>
 
@@ -46,8 +46,9 @@
             <Button x:Name="ApplyButton"
                     Content="Применить"
                     Padding="12,6"
-                    Background="#1f883d"
-                    Foreground="White"/>
+                    Background="{StaticResource BrushPrimary}"
+                    Foreground="White"
+                    BorderBrush="{StaticResource BrushPrimaryHover}"/>
         </StackPanel>
     </StackPanel>
 </Window>
