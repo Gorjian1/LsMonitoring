@@ -2,35 +2,31 @@
 config.json
 data/
 logs/
+.local/
 *.log
 
-# Python legacy app
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.venv/
-venv/
+# Local build output
 build/*
 !build/installer/
 !build/installer/**
 dist/
-*.spec
 
 # .NET / Avalonia
 .dotnet-cli-home/
-dotnet/**/bin/
-dotnet/**/obj/
-dotnet/**/TestResults/
-dotnet/LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs
-TestResults/
+**/bin/
+**/obj/
+**/TestResults/
+LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs
 artifacts/
 publish/
 *.user
 *.suo
 *.nupkg
 *.snupkg
+
+# Android mobile client
+LsMonitoring.MobileAlerts/.gradle/
+LsMonitoring.MobileAlerts/**/build/
 
 # IDE and OS noise
 .vs/

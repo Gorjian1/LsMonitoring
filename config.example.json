@@ -21,6 +21,35 @@
     "invalid_behavior": "mark",
     "invalid_alarm_minutes": 5
   },
+  "telegram": {
+    "enabled": false,
+    "bot_token": "",
+    "chat_ids": []
+  },
+  "email": {
+    "enabled": false,
+    "delivery_mode": "relay",
+    "relay_url": "",
+    "relay_token_b64": "",
+    "installation_id": "",
+    "smtp_host": "",
+    "smtp_port": 587,
+    "use_ssl": true,
+    "username": "",
+    "password_b64": "",
+    "from": "",
+    "recipients": []
+  },
+  "push": {
+    "enabled": false,
+    "provider": "Gotify",
+    "server_url": "",
+    "app_token": "",
+    "client_token": "",
+    "app_download_url": "",
+    "target": "",
+    "priority": 5
+  },
   "nodes": [
     6989
   ],

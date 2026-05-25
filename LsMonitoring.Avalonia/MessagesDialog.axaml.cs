@@ -1,0 +1,390 @@
+using System.Diagnostics;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
+using LsMonitoring.Core.Alarms;
+using LsMonitoring.Core.Configuration;
+using QRCoder;
+
+namespace LsMonitoring.Avalonia;
+
+public partial class MessagesDialog : Window
+{
+    private AppConfig _config = null!;
+
+    public MessagesDialog()
+    {
+        InitializeComponent();
+        SaveButton.Click += OnSaveClick;
+        CancelButton.Click += OnCancelClick;
+        BotLinkButton.Click += OnBotLinkClick;
+        TestTelegramButton.Click += OnTestTelegramClick;
+        TestEmailButton.Click += OnTestEmailClick;
+        PushDownloadButton.Click += OnPushDownloadClick;
+        PushConnectButton.Click += OnPushConnectClick;
+        TestPushButton.Click += OnTestPushClick;
+        PushServerUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
+        PushClientTokenBox.TextChanged += (_, _) => RefreshPushQrCode();
+        PushAppDownloadUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
+    }
+
+    public void LoadConfig(AppConfig config)
+    {
+        _config = config;
+        EnableTelegramBox.IsChecked = config.Telegram.Enabled;
+        TelegramChatIdsBox.Text = string.Join(", ", config.Telegram.ChatIds);
+
+        EnableEmailBox.IsChecked = config.Email.Enabled;
+        EmailRecipientsBox.Text = string.Join(", ", config.Email.Recipients);
+        EmailRelayUrlBox.Text = config.Email.RelayUrl;
+        EmailRelayTokenBox.Text = config.Email.RelayToken;
+        UseOwnSmtpBox.IsChecked = !config.Email.UsesRelay;
+        EmailFromBox.Text = config.Email.From;
+        EmailPasswordBox.Text = config.Email.Password;
+        EmailSmtpHostBox.Text = config.Email.SmtpHost;
+        EmailSmtpPortBox.Text = config.Email.SmtpPort.ToString();
+        EmailUsernameBox.Text = string.Equals(config.Email.Username, config.Email.From, StringComparison.OrdinalIgnoreCase)
+            ? ""
+            : config.Email.Username;
+        EmailUseSslBox.IsChecked = config.Email.UseSsl;
+
+        EnableSmsBox.IsChecked = config.Sms.Enabled;
+        SmsPhonesBox.Text = string.Join(", ", config.Sms.PhoneNumbers);
+
+        EnablePushBox.IsChecked = config.Push.Enabled;
+        PushServerUrlBox.Text = config.Push.ServerUrl;
+        PushAppTokenBox.Text = config.Push.AppToken;
+        PushClientTokenBox.Text = config.Push.ClientToken;
+        PushAppDownloadUrlBox.Text = config.Push.AppDownloadUrl;
+        PushPriorityBox.Text = config.Push.Priority.ToString();
+        RefreshPushQrCode();
+
+        EnableWebhookBox.IsChecked = config.Webhook.Enabled;
+        WebhookUrlBox.Text = config.Webhook.Url;
+        WebhookSecretBox.Text = config.Webhook.Secret;
+    }
+
+    private void OnSaveClick(object? sender, RoutedEventArgs e)
+    {
+        _config.Telegram.Enabled = EnableTelegramBox.IsChecked ?? false;
+        _config.Telegram.ChatIds = ParseTelegramChatIds(TelegramChatIdsBox.Text ?? "");
+
+        _config.Email = BuildEmailConfigFromUi();
+
+        _config.Sms.Enabled = EnableSmsBox.IsChecked ?? false;
+        _config.Sms.PhoneNumbers = ParseStringList(SmsPhonesBox.Text ?? "");
+
+        _config.Push.Enabled = EnablePushBox.IsChecked ?? false;
+        _config.Push.Provider = "Gotify";
+        _config.Push.ServerUrl = PushServerUrlBox.Text ?? "";
+        _config.Push.AppToken = PushAppTokenBox.Text ?? "";
+        _config.Push.ClientToken = PushClientTokenBox.Text ?? "";
+        _config.Push.AppDownloadUrl = PushAppDownloadUrlBox.Text ?? "";
+        _config.Push.Priority = ParsePositiveInt(PushPriorityBox.Text, 5);
+
+        _config.Webhook.Enabled = EnableWebhookBox.IsChecked ?? false;
+        _config.Webhook.Url = WebhookUrlBox.Text ?? "";
+        _config.Webhook.Method = "POST";
+        _config.Webhook.Secret = WebhookSecretBox.Text ?? "";
+
+        Close(true);
+    }
+
+    private void OnCancelClick(object? sender, RoutedEventArgs e)
+    {
+        Close(false);
+    }
+
+    private static void OnBotLinkClick(object? sender, RoutedEventArgs e)
+    {
+        OpenUrl("https://t.me/ls_monitoringbot");
+    }
+
+    private async void OnTestTelegramClick(object? sender, RoutedEventArgs e)
+    {
+        var token = _config.Telegram.EffectiveBotToken;
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            await FlashTestButtonAsync("Нет бота");
+            return;
+        }
+
+        var chatIds = ParseTelegramChatIds(TelegramChatIdsBox.Text ?? "");
+        var service = new TelegramAlertService(token, chatIds, startPolling: false);
+
+        TestTelegramButton.IsEnabled = false;
+        try
+        {
+            if (chatIds.Count == 0)
+            {
+                TestTelegramButton.Content = "Нажмите /start";
+                await service.DiscoverChatIdsAsync(TimeSpan.FromSeconds(30));
+                TelegramChatIdsBox.Text = string.Join(", ", chatIds.Distinct());
+            }
+
+            if (chatIds.Count == 0)
+            {
+                await FlashTestButtonAsync(service.LastError is null ? "Нет чатов" : "Ошибка");
+                return;
+            }
+
+            TestTelegramButton.Content = "Отправка...";
+            var success = await service.SendTestMessageAsync();
+            if (success)
+            {
+                EnableTelegramBox.IsChecked = true;
+            }
+
+            await FlashTestButtonAsync(success ? "Отправлено!" : "Ошибка");
+        }
+        finally
+        {
+            service.Stop();
+            TestTelegramButton.Content = "Тест";
+            TestTelegramButton.IsEnabled = true;
+        }
+    }
+
+    private async void OnTestEmailClick(object? sender, RoutedEventArgs e)
+    {
+        var emailConfig = BuildEmailConfigFromUi();
+        var service = new EmailAlertService(emailConfig);
+
+        TestEmailButton.IsEnabled = false;
+        EmailStatusText.Text = "";
+
+        try
+        {
+            TestEmailButton.Content = "Отправка...";
+            var success = await service.SendTestMessageAsync();
+            if (success)
+            {
+                EnableEmailBox.IsChecked = true;
+                EmailStatusText.Text = "Тестовое письмо отправлено.";
+            }
+            else
+            {
+                EmailStatusText.Text = service.LastError ?? "Не удалось отправить тестовое письмо.";
+            }
+
+            await FlashEmailButtonAsync(success ? "Отправлено!" : "Ошибка");
+        }
+        finally
+        {
+            TestEmailButton.Content = "Тест";
+            TestEmailButton.IsEnabled = true;
+        }
+    }
+
+    private void OnPushDownloadClick(object? sender, RoutedEventArgs e)
+    {
+        var downloadUrl = BuildPushDownloadTarget();
+        if (string.IsNullOrWhiteSpace(downloadUrl))
+        {
+            PushStatusText.Text = "Укажите страницу APK в сервисной настройке.";
+            return;
+        }
+
+        OpenUrl(downloadUrl);
+    }
+
+    private void OnPushConnectClick(object? sender, RoutedEventArgs e)
+    {
+        var serverUrl = (PushServerUrlBox.Text ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(serverUrl))
+        {
+            PushStatusText.Text = "Сначала укажите сервер Gotify.";
+            return;
+        }
+
+        var clientToken = (PushClientTokenBox.Text ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(clientToken))
+        {
+            PushStatusText.Text = "Для мобильного приложения нужен client token.";
+            return;
+        }
+
+        OpenUrl(BuildPushConnectUri(serverUrl, clientToken));
+    }
+
+    private void RefreshPushQrCode()
+    {
+        var downloadTarget = BuildPushDownloadTarget();
+        PushDownloadQrText.Text = string.IsNullOrWhiteSpace(downloadTarget) ? "нет APK" : "APK";
+        SetQrCode(PushDownloadQrImage, downloadTarget);
+
+        var connectTarget = BuildPushConnectTarget();
+        PushConnectQrText.Text = string.IsNullOrWhiteSpace(connectTarget) ? "нет данных" : "коннект";
+        SetQrCode(PushConnectQrImage, connectTarget);
+    }
+
+    private static void SetQrCode(Image image, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            image.Source = null;
+            return;
+        }
+
+        try
+        {
+            using var generator = new QRCodeGenerator();
+            using var data = generator.CreateQrCode(value, QRCodeGenerator.ECCLevel.Q);
+            var pngBytes = new PngByteQRCode(data).GetGraphic(8);
+            image.Source = new Bitmap(new MemoryStream(pngBytes));
+        }
+        catch
+        {
+            image.Source = null;
+        }
+    }
+
+    private async void OnTestPushClick(object? sender, RoutedEventArgs e)
+    {
+        var pushConfig = new PushConfig
+        {
+            Enabled = EnablePushBox.IsChecked ?? false,
+            Provider = "Gotify",
+            ServerUrl = PushServerUrlBox.Text ?? "",
+            AppToken = PushAppTokenBox.Text ?? "",
+            ClientToken = PushClientTokenBox.Text ?? "",
+            AppDownloadUrl = PushAppDownloadUrlBox.Text ?? "",
+            Priority = ParsePositiveInt(PushPriorityBox.Text, 5)
+        };
+        var service = new GotifyAlertService(pushConfig);
+
+        TestPushButton.IsEnabled = false;
+        PushStatusText.Text = "";
+
+        try
+        {
+            TestPushButton.Content = "Отправка...";
+            var success = await service.SendTestMessageAsync();
+            if (success)
+            {
+                EnablePushBox.IsChecked = true;
+                PushStatusText.Text = "Push отправлен.";
+            }
+            else
+            {
+                PushStatusText.Text = service.LastError ?? "Не удалось отправить push.";
+            }
+
+            await FlashPushButtonAsync(success ? "Отправлено!" : "Ошибка");
+        }
+        finally
+        {
+            TestPushButton.Content = "Тест";
+            TestPushButton.IsEnabled = true;
+        }
+    }
+
+    private static List<long> ParseTelegramChatIds(string value)
+    {
+        var chatIds = new List<long>();
+        var parts = value.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+        {
+            if (long.TryParse(part, out var id) && !chatIds.Contains(id))
+            {
+                chatIds.Add(id);
+            }
+        }
+
+        return chatIds;
+    }
+
+    private static List<string> ParseStringList(string value)
+    {
+        return value
+            .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => x.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private EmailConfig BuildEmailConfigFromUi()
+    {
+        var config = new EmailConfig
+        {
+            Enabled = EnableEmailBox.IsChecked ?? false,
+            DeliveryMode = UseOwnSmtpBox.IsChecked == true ? EmailDeliveryMode.Smtp : EmailDeliveryMode.Relay,
+            InstallationId = _config.Email.InstallationId,
+            Recipients = ParseStringList(EmailRecipientsBox.Text ?? ""),
+            RelayUrl = (EmailRelayUrlBox.Text ?? "").Trim(),
+            From = (EmailFromBox.Text ?? "").Trim(),
+            SmtpHost = (EmailSmtpHostBox.Text ?? "").Trim(),
+            SmtpPort = ParsePositiveInt(EmailSmtpPortBox.Text, 587),
+            UseSsl = EmailUseSslBox.IsChecked ?? true,
+            Username = (EmailUsernameBox.Text ?? "").Trim()
+        };
+
+        config.RelayToken = EmailRelayTokenBox.Text ?? "";
+        config.Password = EmailPasswordBox.Text ?? "";
+        return config;
+    }
+
+    private static int ParsePositiveInt(string? value, int fallback)
+    {
+        return int.TryParse(value, out var parsed) && parsed > 0 ? parsed : fallback;
+    }
+
+    private string BuildPushDownloadTarget()
+    {
+        return (PushAppDownloadUrlBox.Text ?? "").Trim();
+    }
+
+    private string BuildPushConnectTarget()
+    {
+        var serverUrl = (PushServerUrlBox.Text ?? "").Trim();
+        var clientToken = (PushClientTokenBox.Text ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(serverUrl) || string.IsNullOrWhiteSpace(clientToken))
+        {
+            return "";
+        }
+
+        return BuildPushConnectUri(serverUrl, clientToken);
+    }
+
+    private static string BuildPushConnectUri(string serverUrl, string clientToken)
+    {
+        return $"lsmonitoring://connect?server={Uri.EscapeDataString(serverUrl)}&token={Uri.EscapeDataString(clientToken)}";
+    }
+
+    private static void OpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(url)
+            {
+                UseShellExecute = true
+            });
+        }
+        catch
+        {
+            // Link opening is a UI convenience and should not block the dialog.
+        }
+    }
+
+    private async Task FlashTestButtonAsync(string content)
+    {
+        TestTelegramButton.Content = content;
+        await Task.Delay(2000);
+        TestTelegramButton.Content = "Тест";
+    }
+
+    private async Task FlashEmailButtonAsync(string content)
+    {
+        TestEmailButton.Content = content;
+        await Task.Delay(2000);
+        TestEmailButton.Content = "Тест";
+    }
+
+    private async Task FlashPushButtonAsync(string content)
+    {
+        TestPushButton.Content = content;
+        await Task.Delay(2000);
+        TestPushButton.Content = "Тест";
+    }
+}

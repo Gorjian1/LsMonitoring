@@ -1,0 +1,320 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LsMonitoring.Avalonia.MessagesDialog"
+        Title="Оповещения"
+        Width="680" Height="450"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BrushAppBackground}"
+        CanResize="False">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20" RowSpacing="14">
+        <TextBlock Grid.Row="0" Text="Оповещения" FontSize="18" FontWeight="SemiBold"
+                   Foreground="{StaticResource BrushText}" Margin="0,0,0,4"/>
+
+        <TabControl Grid.Row="1">
+            <TabItem Header="Telegram">
+                <StackPanel Margin="0,14,0,0" Spacing="12">
+                    <Border Background="{StaticResource BrushPanelAlt}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                            CornerRadius="8" Padding="12">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Откройте бота, нажмите /start, затем вернитесь сюда и нажмите Тест. Если ID чата пустой, приложение попробует найти его автоматически."
+                                       TextWrapping="Wrap" Foreground="{StaticResource BrushMuted}" FontSize="12"/>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="Бот:" Foreground="{StaticResource BrushMuted}" FontSize="12"
+                                           VerticalAlignment="Center"/>
+                                <Button x:Name="BotLinkButton"
+                                        Content="@ls_monitoringbot"
+                                        Padding="0"
+                                        MinHeight="22"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Foreground="{StaticResource BrushAccentA}"
+                                        ToolTip.Tip="Открыть Telegram-бота"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Канал:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableTelegramBox"
+                                  Content="Включить Telegram"
+                                  Foreground="{StaticResource BrushText}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Куда слать:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto">
+                            <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox"
+                                     PlaceholderText="ID чатов: 1234567, 9876543"/>
+                            <Button Grid.Column="1" x:Name="TestTelegramButton"
+                                    Content="Тест" Margin="8,0,0,0" Padding="12,4"/>
+                        </Grid>
+                    </Grid>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="Почта">
+                <ScrollViewer Margin="0,14,0,0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="12">
+                        <Border Background="{StaticResource BrushPanelAlt}"
+                                BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                                CornerRadius="8" Padding="12">
+                            <TextBlock Text="По умолчанию приложение отправляет письма через техническую почту LS Monitoring. Пользователю достаточно указать получателей; сервисные ключи можно заранее положить в конфиг сборки."
+                                       TextWrapping="Wrap" Foreground="{StaticResource BrushMuted}" FontSize="12"/>
+                        </Border>
+
+                        <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Канал:" VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}"/>
+                            <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableEmailBox"
+                                      Content="Включить почту"
+                                      Foreground="{StaticResource BrushText}"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Куда слать:" VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}"/>
+                            <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0" x:Name="EmailRecipientsBox"
+                                         PlaceholderText="boss@example.com, engineer@example.com"/>
+                                <Button Grid.Column="1" x:Name="TestEmailButton"
+                                        Content="Тест" Margin="8,0,0,0" Padding="12,4"/>
+                            </Grid>
+
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="EmailStatusText"
+                                       Foreground="{StaticResource BrushMuted}" FontSize="12"
+                                       TextWrapping="Wrap"/>
+                        </Grid>
+
+                        <Expander Header="Сервисная почта LS Monitoring" IsExpanded="False">
+                            <Grid Margin="0,8,0,0" ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Relay URL:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="EmailRelayUrlBox"
+                                         PlaceholderText="https://alerts.example.com/api/alerts/email"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Ключ:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="EmailRelayTokenBox"
+                                         PasswordChar="*" PlaceholderText="ключ установки"/>
+                            </Grid>
+                        </Expander>
+
+                        <Expander Header="Свой SMTP" IsExpanded="False">
+                            <Grid Margin="0,8,0,0" ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Режим:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="UseOwnSmtpBox"
+                                          Content="Отправлять через свой SMTP"
+                                          Foreground="{StaticResource BrushText}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Отправитель:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="EmailFromBox"
+                                         PlaceholderText="monitoring@example.com"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Пароль:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="EmailPasswordBox"
+                                         PasswordChar="*" PlaceholderText="пароль приложения"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Сервер:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" x:Name="EmailSmtpHostBox"
+                                         PlaceholderText="авто: smtp.example.com"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Порт:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" x:Name="EmailSmtpPortBox"
+                                         PlaceholderText="587"/>
+
+                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Логин:" VerticalAlignment="Center"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <Grid Grid.Row="5" Grid.Column="1" ColumnDefinitions="*,Auto">
+                                    <TextBox Grid.Column="0" x:Name="EmailUsernameBox"
+                                             PlaceholderText="если отличается от отправителя"/>
+                                    <CheckBox Grid.Column="1" x:Name="EmailUseSslBox"
+                                              Content="TLS" Margin="10,0,0,0"
+                                              Foreground="{StaticResource BrushText}"/>
+                                </Grid>
+                            </Grid>
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="SMS">
+                <StackPanel Margin="0,14,0,0" Spacing="12">
+                    <Border Background="{StaticResource BrushPanelAlt}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                            CornerRadius="8" Padding="12">
+                        <TextBlock Text="SMS лучше использовать как эскалацию: например, если критика держится несколько минут. Пока отправка не подключена, телефоны сохраняются."
+                                   TextWrapping="Wrap" Foreground="{StaticResource BrushMuted}" FontSize="12"/>
+                    </Border>
+
+                    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Канал:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableSmsBox"
+                                  Content="Включить SMS"
+                                  Foreground="{StaticResource BrushText}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Куда слать:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" x:Name="SmsPhonesBox"
+                                 PlaceholderText="+79990000000, +79991111111"/>
+                    </Grid>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="Gotify">
+                <StackPanel Margin="0,14,0,0" Spacing="12">
+                    <Border Background="{StaticResource BrushPanelAlt}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                            CornerRadius="8" Padding="12">
+                        <Grid ColumnDefinitions="*,112,112" ColumnSpacing="12">
+                            <StackPanel Grid.Column="0" Spacing="10">
+                                <TextBlock Text="Gotify — простой push: сначала скачайте LS Alerts, потом отсканируйте QR подключения и получайте тревоги на телефон."
+                                           TextWrapping="Wrap" Foreground="{StaticResource BrushMuted}" FontSize="12"/>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button x:Name="PushDownloadButton"
+                                            Content="Скачать приложение"
+                                            Padding="12,4"/>
+                                    <Button x:Name="PushConnectButton"
+                                            Content="Коннект"
+                                            Padding="12,4"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Width="112" Spacing="5">
+                                <TextBlock Text="Скачать"
+                                           TextAlignment="Center"
+                                           FontSize="11"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <Border Background="White"
+                                        BorderBrush="{StaticResource BrushBorderStrong}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="6"
+                                        HorizontalAlignment="Center">
+                                    <Image x:Name="PushDownloadQrImage"
+                                           Width="92"
+                                           Height="92"
+                                           Stretch="Uniform"/>
+                                </Border>
+                                <TextBlock x:Name="PushDownloadQrText"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           FontSize="10"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Width="112" Spacing="5">
+                                <TextBlock Text="Подключить"
+                                           TextAlignment="Center"
+                                           FontSize="11"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                                <Border Background="White"
+                                        BorderBrush="{StaticResource BrushBorderStrong}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="6"
+                                        HorizontalAlignment="Center">
+                                    <Image x:Name="PushConnectQrImage"
+                                           Width="92"
+                                           Height="92"
+                                           Stretch="Uniform"/>
+                                </Border>
+                                <TextBlock x:Name="PushConnectQrText"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           FontSize="10"
+                                           Foreground="{StaticResource BrushMuted}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Канал:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnablePushBox"
+                                  Content="Включить Gotify"
+                                  Foreground="{StaticResource BrushText}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Проверка:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*">
+                            <Button Grid.Column="0" x:Name="TestPushButton"
+                                    Content="Тест" Padding="12,4"/>
+                            <TextBlock Grid.Column="1" x:Name="PushStatusText"
+                                       Margin="10,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}" FontSize="12"
+                                       TextWrapping="Wrap"/>
+                        </Grid>
+                    </Grid>
+
+                    <Expander Header="Сервисная настройка Gotify" IsExpanded="False">
+                        <Grid Margin="0,8,0,0" ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Сервер:" VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" x:Name="PushServerUrlBox"
+                                     PlaceholderText="https://push.example.com"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="App token:" VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="PushAppTokenBox" PasswordChar="*"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Client token:" VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" x:Name="PushClientTokenBox" PasswordChar="*"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Страница APK:" VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" x:Name="PushAppDownloadUrlBox"
+                                     PlaceholderText="https://example.com/ls-alerts"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Приоритет:" VerticalAlignment="Center"
+                                       Foreground="{StaticResource BrushMuted}"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" x:Name="PushPriorityBox"
+                                     PlaceholderText="5"/>
+                        </Grid>
+                    </Expander>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="Webhook">
+                <StackPanel Margin="0,14,0,0" Spacing="12">
+                    <Border Background="{StaticResource BrushPanelAlt}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                            CornerRadius="8" Padding="12">
+                        <TextBlock Text="Self-host вариант для тех, кто сам настроит приёмник: n8n, Node-RED, свой API или внутренний сервер. В обычном случае достаточно одного URL."
+                                   TextWrapping="Wrap" Foreground="{StaticResource BrushMuted}" FontSize="12"/>
+                    </Border>
+
+                    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Канал:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableWebhookBox"
+                                  Content="Включить Webhook"
+                                  Foreground="{StaticResource BrushText}"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Куда слать:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" x:Name="WebhookUrlBox"
+                                 PlaceholderText="https://example.com/hooks/ls-monitoring"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Секрет:" VerticalAlignment="Center"
+                                   Foreground="{StaticResource BrushMuted}"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" x:Name="WebhookSecretBox"
+                                 PasswordChar="*"
+                                 PlaceholderText="опционально"/>
+                    </Grid>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button x:Name="CancelButton" Content="Отмена" Padding="15,6"/>
+            <Button x:Name="SaveButton" Content="Сохранить" Padding="15,6"
+                    Background="{StaticResource BrushPrimary}" Foreground="White"
+                    BorderBrush="{StaticResource BrushPrimaryHover}"/>
+        </StackPanel>
+    </Grid>
+</Window>

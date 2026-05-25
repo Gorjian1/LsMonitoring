@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'ru.lsmonitoring.alerts'
+    compileSdk 35
+
+    signingConfigs {
+        release {
+            def storeFilePath = System.getenv('LS_ALERTS_KEYSTORE_FILE')
+            def storePasswordValue = System.getenv('LS_ALERTS_KEYSTORE_PASSWORD')
+            def keyAliasValue = System.getenv('LS_ALERTS_KEY_ALIAS')
+            def keyPasswordValue = System.getenv('LS_ALERTS_KEY_PASSWORD')
+
+            if (storeFilePath && storePasswordValue && keyAliasValue && keyPasswordValue) {
+                storeFile file(storeFilePath)
+                storePassword storePasswordValue
+                keyAlias keyAliasValue
+                keyPassword keyPasswordValue
+            }
+        }
+    }
+
+    defaultConfig {
+        applicationId 'ru.lsmonitoring.alerts'
+        minSdk 26
+        targetSdk 35
+        versionCode project.findProperty('versionCode')?.toString()?.toInteger() ?: 4
+        versionName project.findProperty('versionName')?.toString() ?: '1.0.3'
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}

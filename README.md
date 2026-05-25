@@ -84,7 +84,7 @@
 
 ### Удобство эксплуатации
 
-- тёмный интерфейс для длительного мониторинга;
+- спокойный светлый интерфейс для длительного мониторинга;
 - компактная панель управления;
 - добавление узлов вручную;
 - сохранение настроек подключения и списка узлов;
@@ -154,7 +154,7 @@ LS Monitoring рассчитан на локальную работу с gateway
 
 Проект находится в активной разработке.
 
-Основное направление — **десктопное приложение на C#/.NET и Avalonia**. Python-версия сохранена как референс поведения на период миграции.
+Основное направление — **десктопное приложение на C#/.NET и Avalonia**.
 
 Уже реализовано:
 
@@ -205,26 +205,26 @@ LS Monitoring рассчитан на локальную работу с gateway
 ### Запуск Avalonia-приложения
 
 ```powershell
-dotnet restore .\dotnet\LsMonitoring.sln
-dotnet run --project .\dotnet\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj
+dotnet restore .\LsMonitoring.sln
+dotnet run --project .\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj
 ```
 
 ### Тесты
 
 ```powershell
-dotnet test .\dotnet\LsMonitoring.sln
+dotnet test .\LsMonitoring.sln
 ```
 
 ### Сборка
 
 ```powershell
-dotnet build .\dotnet\LsMonitoring.sln
+dotnet build .\LsMonitoring.sln
 ```
 
 ### Публикация Windows-сборки
 
 ```powershell
-dotnet publish .\dotnet\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish .\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
 </details>
@@ -234,12 +234,12 @@ dotnet publish .\dotnet\LsMonitoring.Avalonia\LsMonitoring.Avalonia.csproj -c Re
 ## Структура проекта
 
 ```text
-dotnet/
-  LsMonitoring.Core/        # ядро: gateway, CSV, буферы, пороги, экспорт
-  LsMonitoring.Avalonia/    # desktop UI на Avalonia
-  LsMonitoring.Core.Tests/  # тесты ядра
-src/                        # legacy Python-версия как референс
-fixtures/                   # тестовые CSV-данные
+LsMonitoring.Core/        # ядро: gateway, CSV, буферы, пороги, экспорт
+LsMonitoring.Avalonia/    # desktop UI на Avalonia
+LsMonitoring.Core.Tests/  # тесты ядра
+LsMonitoring.AlertRelay/  # HTTP relay для технической почты
+build/installer/          # Inno Setup installer script
+.github/workflows/        # CI и release workflows
 ```
 
 ---

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LS Alerts</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f8fa;
+      color: #17202a;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+    }
+
+    main {
+      width: min(420px, calc(100vw - 32px));
+      display: grid;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.1;
+    }
+
+    p {
+      margin: 0;
+      color: #5f6b76;
+      line-height: 1.45;
+    }
+
+    a, button {
+      min-height: 46px;
+      border-radius: 8px;
+      border: 1px solid #2f7d8c;
+      background: #2f7d8c;
+      color: white;
+      display: inline-grid;
+      place-items: center;
+      text-decoration: none;
+      font: inherit;
+      font-weight: 650;
+    }
+
+    .secondary {
+      background: white;
+      color: #2f7d8c;
+    }
+
+    .hint {
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>LS Alerts</h1>
+    <p>Приложение для push-тревог LS Monitoring. Версия 1.0.3.</p>
+    <a id="download" href="./ls-alerts-1.0.3.apk">Скачать Android APK</a>
+    <a id="connect" class="secondary" href="#">Подключить к LS Monitoring</a>
+    <p class="hint">Если приложение ещё не установлено, сначала скачайте APK, затем вернитесь на эту страницу и нажмите подключение.</p>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const server = params.get("server") || "";
+    const token = params.get("token") || "";
+    const connect = document.getElementById("connect");
+
+    if (server && token) {
+      connect.href = `lsmonitoring://connect?server=${encodeURIComponent(server)}&token=${encodeURIComponent(token)}`;
+    } else {
+      connect.removeAttribute("href");
+      connect.textContent = "Нет параметров подключения";
+    }
+  </script>
+</body>
+</html>
