@@ -313,11 +313,14 @@ public static class EmailSmtpProfile
 
 public sealed class SmsConfig
 {
+    public const string SmsRuProvider = "sms.ru";
+    public const int DefaultMaxMessagesPerHour = 20;
+
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = false;
 
     [JsonPropertyName("provider")]
-    public string Provider { get; set; } = "";
+    public string Provider { get; set; } = SmsRuProvider;
 
     [JsonPropertyName("api_url")]
     public string ApiUrl { get; set; } = "";
@@ -330,6 +333,30 @@ public sealed class SmsConfig
 
     [JsonPropertyName("phone_numbers")]
     public List<string> PhoneNumbers { get; set; } = [];
+
+    [JsonPropertyName("max_messages_per_hour")]
+    public int MaxMessagesPerHour { get; set; } = DefaultMaxMessagesPerHour;
+
+    [JsonIgnore]
+    public string EffectiveProvider => string.IsNullOrWhiteSpace(Provider)
+        ? SmsRuProvider
+        : Provider.Trim().ToLowerInvariant();
+
+    [JsonIgnore]
+    public string EffectiveApiUrl => string.IsNullOrWhiteSpace(ApiUrl)
+        ? "https://sms.ru/sms/send"
+        : ApiUrl.Trim();
+
+    [JsonIgnore]
+    public int EffectiveMaxMessagesPerHour => MaxMessagesPerHour > 0
+        ? MaxMessagesPerHour
+        : DefaultMaxMessagesPerHour;
+
+    [JsonIgnore]
+    public bool HasDeliverySettings =>
+        PhoneNumbers.Count > 0 &&
+        !string.IsNullOrWhiteSpace(ApiKey) &&
+        !string.IsNullOrWhiteSpace(EffectiveApiUrl);
 }
 
 public sealed class PushConfig

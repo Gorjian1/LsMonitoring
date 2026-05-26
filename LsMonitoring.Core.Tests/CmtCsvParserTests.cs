@@ -3,7 +3,6 @@ using LsMonitoring.Core.Monitoring;
 using LsMonitoring.Core.Parsing;
 using LsMonitoring.Core.Alarms;
 using LsMonitoring.Core.Configuration;
-using LsMonitoring.Core.Export;
 
 namespace LsMonitoring.Core.Tests;
 
@@ -14,7 +13,7 @@ public sealed class CmtCsvParserTests
         "..", "..", "..", "..", "..",
         "fixtures", "sample_readings.csv"));
 
-    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway exports can contain private sensor data.")]
+    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway CSV files can contain private sensor data.")]
     public void ParsesRealGatewayCsv()
     {
         var parsed = CmtCsvParser.ParseFile(SampleCsvPath);
@@ -34,7 +33,7 @@ public sealed class CmtCsvParserTests
         Assert.False(first.Invalid);
     }
 
-    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway exports can contain private sensor data.")]
+    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway CSV files can contain private sensor data.")]
     public void MarksOutOfRangeAxesInvalidButKeepsRawValues()
     {
         var parsed = CmtCsvParser.ParseFile(SampleCsvPath);
@@ -50,7 +49,7 @@ public sealed class CmtCsvParserTests
         });
     }
 
-    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway exports can contain private sensor data.")]
+    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway CSV files can contain private sensor data.")]
     public void EstimatesSamplingInterval()
     {
         var parsed = CmtCsvParser.ParseFile(SampleCsvPath);
@@ -58,7 +57,7 @@ public sealed class CmtCsvParserTests
         Assert.Equal(30.0, CmtCsvParser.EstimateSamplingIntervalSeconds(parsed.Readings));
     }
 
-    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway exports can contain private sensor data.")]
+    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway CSV files can contain private sensor data.")]
     public void ReadingBufferMergesByTimestampAndTrims()
     {
         var parsed = CmtCsvParser.ParseFile(SampleCsvPath);
@@ -72,7 +71,7 @@ public sealed class CmtCsvParserTests
         Assert.Equal(parsed.Readings[^1].Timestamp, buffer.Latest?.Timestamp);
     }
 
-    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway exports can contain private sensor data.")]
+    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway CSV files can contain private sensor data.")]
     public void EvaluatesThresholdsWhileKeepingInvalidRawValues()
     {
         var parsed = CmtCsvParser.ParseFile(SampleCsvPath);
@@ -144,26 +143,4 @@ public sealed class CmtCsvParserTests
         Assert.Equal(-0.30, variation.BValue.Value, precision: 10);
     }
 
-    [Fact(Skip = "Requires fixtures/sample_readings.csv, which is not committed because gateway exports can contain private sensor data.")]
-    public void ExportsExcelCompatibleCsv()
-    {
-        var parsed = CmtCsvParser.ParseFile(SampleCsvPath);
-        var path = Path.Combine(Path.GetTempPath(), $"ls-monitoring-{Guid.NewGuid():N}.csv");
-
-        try
-        {
-            ReadingsCsvExporter.Export(path, parsed.Readings.Take(3), new Thresholds(), new AlarmConfig());
-            var text = File.ReadAllText(path);
-
-            Assert.Contains("Date-and-time,Temperature,A-axis,B-axis", text);
-            Assert.Contains("2026-05-05 10:02:30", text);
-        }
-        finally
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-    }
 }

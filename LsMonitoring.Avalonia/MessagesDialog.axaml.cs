@@ -10,6 +10,8 @@ namespace LsMonitoring.Avalonia;
 
 public partial class MessagesDialog : Window
 {
+    private const string SendTestText = "Отправить тест";
+
     private AppConfig _config = null!;
 
     public MessagesDialog()
@@ -20,6 +22,7 @@ public partial class MessagesDialog : Window
         BotLinkButton.Click += OnBotLinkClick;
         TestTelegramButton.Click += OnTestTelegramClick;
         TestEmailButton.Click += OnTestEmailClick;
+        TestSmsButton.Click += OnTestSmsClick;
         PushDownloadButton.Click += OnPushDownloadClick;
         PushConnectButton.Click += OnPushConnectClick;
         TestPushButton.Click += OnTestPushClick;
@@ -50,6 +53,11 @@ public partial class MessagesDialog : Window
 
         EnableSmsBox.IsChecked = config.Sms.Enabled;
         SmsPhonesBox.Text = string.Join(", ", config.Sms.PhoneNumbers);
+        SmsProviderBox.Text = string.IsNullOrWhiteSpace(config.Sms.Provider) ? SmsConfig.SmsRuProvider : config.Sms.Provider;
+        SmsApiUrlBox.Text = config.Sms.EffectiveApiUrl;
+        SmsApiKeyBox.Text = config.Sms.ApiKey;
+        SmsSenderBox.Text = config.Sms.Sender;
+        SmsMaxPerHourBox.Text = config.Sms.EffectiveMaxMessagesPerHour.ToString();
 
         EnablePushBox.IsChecked = config.Push.Enabled;
         PushServerUrlBox.Text = config.Push.ServerUrl;
@@ -73,6 +81,11 @@ public partial class MessagesDialog : Window
 
         _config.Sms.Enabled = EnableSmsBox.IsChecked ?? false;
         _config.Sms.PhoneNumbers = ParseStringList(SmsPhonesBox.Text ?? "");
+        _config.Sms.Provider = (SmsProviderBox.Text ?? "").Trim();
+        _config.Sms.ApiUrl = (SmsApiUrlBox.Text ?? "").Trim();
+        _config.Sms.ApiKey = SmsApiKeyBox.Text ?? "";
+        _config.Sms.Sender = (SmsSenderBox.Text ?? "").Trim();
+        _config.Sms.MaxMessagesPerHour = ParsePositiveInt(SmsMaxPerHourBox.Text, SmsConfig.DefaultMaxMessagesPerHour);
 
         _config.Push.Enabled = EnablePushBox.IsChecked ?? false;
         _config.Push.Provider = "Gotify";
@@ -140,7 +153,7 @@ public partial class MessagesDialog : Window
         finally
         {
             service.Stop();
-            TestTelegramButton.Content = "Тест";
+            TestTelegramButton.Content = SendTestText;
             TestTelegramButton.IsEnabled = true;
         }
     }
@@ -171,7 +184,7 @@ public partial class MessagesDialog : Window
         }
         finally
         {
-            TestEmailButton.Content = "Тест";
+            TestEmailButton.Content = SendTestText;
             TestEmailButton.IsEnabled = true;
         }
     }
@@ -186,6 +199,37 @@ public partial class MessagesDialog : Window
         }
 
         OpenUrl(downloadUrl);
+    }
+
+    private async void OnTestSmsClick(object? sender, RoutedEventArgs e)
+    {
+        var smsConfig = BuildSmsConfigFromUi();
+        var service = new SmsAlertService(smsConfig);
+
+        TestSmsButton.IsEnabled = false;
+        SmsStatusText.Text = "";
+
+        try
+        {
+            TestSmsButton.Content = "Отправка...";
+            var success = await service.SendTestMessageAsync();
+            if (success)
+            {
+                EnableSmsBox.IsChecked = true;
+                SmsStatusText.Text = "Тестовая SMS отправлена.";
+            }
+            else
+            {
+                SmsStatusText.Text = service.LastError ?? "Не удалось отправить SMS.";
+            }
+
+            await FlashSmsButtonAsync(success ? "Отправлено!" : "Ошибка");
+        }
+        finally
+        {
+            TestSmsButton.Content = SendTestText;
+            TestSmsButton.IsEnabled = true;
+        }
     }
 
     private void OnPushConnectClick(object? sender, RoutedEventArgs e)
@@ -210,11 +254,11 @@ public partial class MessagesDialog : Window
     private void RefreshPushQrCode()
     {
         var downloadTarget = BuildPushDownloadTarget();
-        PushDownloadQrText.Text = string.IsNullOrWhiteSpace(downloadTarget) ? "нет APK" : "APK";
+        PushDownloadQrText.Text = string.IsNullOrWhiteSpace(downloadTarget) ? "нет ссылки APK" : "готово";
         SetQrCode(PushDownloadQrImage, downloadTarget);
 
         var connectTarget = BuildPushConnectTarget();
-        PushConnectQrText.Text = string.IsNullOrWhiteSpace(connectTarget) ? "нет данных" : "коннект";
+        PushConnectQrText.Text = string.IsNullOrWhiteSpace(connectTarget) ? "нет сервера/token" : "готово";
         SetQrCode(PushConnectQrImage, connectTarget);
     }
 
@@ -274,7 +318,7 @@ public partial class MessagesDialog : Window
         }
         finally
         {
-            TestPushButton.Content = "Тест";
+            TestPushButton.Content = SendTestText;
             TestPushButton.IsEnabled = true;
         }
     }
@@ -325,6 +369,20 @@ public partial class MessagesDialog : Window
         return config;
     }
 
+    private SmsConfig BuildSmsConfigFromUi()
+    {
+        return new SmsConfig
+        {
+            Enabled = EnableSmsBox.IsChecked ?? false,
+            Provider = (SmsProviderBox.Text ?? "").Trim(),
+            ApiUrl = (SmsApiUrlBox.Text ?? "").Trim(),
+            ApiKey = SmsApiKeyBox.Text ?? "",
+            Sender = (SmsSenderBox.Text ?? "").Trim(),
+            PhoneNumbers = ParseStringList(SmsPhonesBox.Text ?? ""),
+            MaxMessagesPerHour = ParsePositiveInt(SmsMaxPerHourBox.Text, SmsConfig.DefaultMaxMessagesPerHour)
+        };
+    }
+
     private static int ParsePositiveInt(string? value, int fallback)
     {
         return int.TryParse(value, out var parsed) && parsed > 0 ? parsed : fallback;
@@ -371,20 +429,27 @@ public partial class MessagesDialog : Window
     {
         TestTelegramButton.Content = content;
         await Task.Delay(2000);
-        TestTelegramButton.Content = "Тест";
+        TestTelegramButton.Content = SendTestText;
     }
 
     private async Task FlashEmailButtonAsync(string content)
     {
         TestEmailButton.Content = content;
         await Task.Delay(2000);
-        TestEmailButton.Content = "Тест";
+        TestEmailButton.Content = SendTestText;
+    }
+
+    private async Task FlashSmsButtonAsync(string content)
+    {
+        TestSmsButton.Content = content;
+        await Task.Delay(2000);
+        TestSmsButton.Content = SendTestText;
     }
 
     private async Task FlashPushButtonAsync(string content)
     {
         TestPushButton.Content = content;
         await Task.Delay(2000);
-        TestPushButton.Content = "Тест";
+        TestPushButton.Content = SendTestText;
     }
 }

@@ -1,4 +1,4 @@
-name: dotnet
+name: LS Monitoring CI/CD
 
 on:
   push:
@@ -17,12 +17,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 9.0.x
+          global-json-file: ./global.json
 
       - name: Restore
         run: dotnet restore LsMonitoring.sln
@@ -44,12 +44,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 9.0.x
+          global-json-file: ./global.json
 
       - name: Resolve version
         id: version
@@ -151,6 +151,45 @@ jobs:
           Copy-Item `
             LsMonitoring.MobileAlerts/app/build/outputs/apk/release/app-release.apk `
             artifacts/release/ls-alerts-$version.apk
+
+      - name: Verify release artifacts
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          $expected = @(
+            "artifacts/release/LsMonitoring-$env:RUNTIME_ID.exe",
+            "artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip",
+            "artifacts/release/LsMonitoringSetup-$env:RUNTIME_ID.exe",
+            "artifacts/release/ls-alerts-$version.apk"
+          )
+
+          foreach ($path in $expected) {
+            if (!(Test-Path $path)) {
+              throw "Missing release artifact: $path"
+            }
+
+            $item = Get-Item $path
+            if ($item.Length -le 0) {
+              throw "Empty release artifact: $path"
+            }
+          }
+
+          $exe = Get-Item "artifacts/release/LsMonitoring-$env:RUNTIME_ID.exe"
+          $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName)
+          if ($fileVersion.ProductVersion -notlike "$version*") {
+            throw "Desktop version mismatch: expected $version, got $($fileVersion.ProductVersion)"
+          }
+
+          $apk = "artifacts/release/ls-alerts-$version.apk"
+          $apksigner = Get-Command apksigner.bat -ErrorAction SilentlyContinue
+          if ($null -eq $apksigner) {
+            $apksigner = Get-Command apksigner -ErrorAction SilentlyContinue
+          }
+          if ($null -eq $apksigner) {
+            throw "apksigner was not found in PATH"
+          }
+
+          & $apksigner.Source verify --print-certs $apk
 
       - name: Create GitHub Release
         shell: pwsh

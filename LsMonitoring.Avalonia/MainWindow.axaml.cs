@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using LsMonitoring.Core.Export;
 using LsMonitoring.Core.Configuration;
 using LsMonitoring.Core.Models;
 using LsMonitoring.Core.Monitoring;
@@ -17,14 +17,26 @@ namespace LsMonitoring.Avalonia;
 
 public partial class MainWindow : Window
 {
+    private const int MaxDeviationHistoryItems = 500;
+    private static readonly JsonSerializerOptions DeviationHistoryJsonOptions = new()
+    {
+        WriteIndented = true
+    };
+
     private readonly ObservableCollection<NodeListItem> _nodes = [];
     private readonly ObservableCollection<ReadingRow> _rows = [];
+    private readonly ObservableCollection<DeviationHistoryRow> _deviationHistory = [];
     private readonly Dictionary<int, NodeListItem> _nodeItemsById = [];
     private readonly Dictionary<int, ReadingBuffer> _buffersByNode = [];
+    private readonly Dictionary<(int NodeId, string Axis), DeviationHistoryEntry> _activeDeviationHistory = [];
+    private readonly Dictionary<string, DeviationHistoryRow> _deviationHistoryRowsById = [];
+    private readonly AlertStateTracker _alertState = new();
     private readonly string _configPath;
+    private readonly string _deviationHistoryPath;
     private AppConfig _config;
     private TelegramAlertService? _telegramAlertService;
     private EmailAlertService? _emailAlertService;
+    private SmsAlertService? _smsAlertService;
     private GotifyAlertService? _gotifyAlertService;
     private CsvGatewaySource? _source;
     private PollingService? _poller;
@@ -41,11 +53,14 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _configPath = AppConfig.ResolveDefaultPath();
+        _deviationHistoryPath = ResolveDeviationHistoryPath();
         _config = AppConfig.Load(_configPath);
 
         NodeList.ItemsSource = _nodes;
         RowsList.ItemsSource = _rows;
+        DeviationHistoryList.ItemsSource = _deviationHistory;
 
+        LoadDeviationHistory();
         LoadConfigToUi();
         ReconfigureAlertServices();
         WireEvents();
@@ -72,12 +87,13 @@ public partial class MainWindow : Window
         MessagesButton.Click += async (_, _) => await ShowMessagesDialogAsync();
         DiscoverButton.Click += async (_, _) => await DiscoverNodesAsync();
         LoadSampleButton.Click += async (_, _) => await LoadCsvAsync();
-        ExportButton.Click += async (_, _) => await ExportCurrentNodeAsync();
+        DiagnosticsButton.Click += async (_, _) => await ShowDiagnosticsDialogAsync();
         AddNodeButton.Click += AddNode;
         AddNodeButton2.Click += AddNode;
         LimitPlotButton.Click += async (_, _) => await ShowPlotLimitDialogAsync();
         PickPlotLimitButton.Click += (_, _) => TogglePlotLimitPicker();
         ClearPlotLimitButton.Click += (_, _) => SetPlotCutoff(null);
+        ClearDeviationHistoryButton.Click += (_, _) => ClearDeviationHistory();
         PlotA.CutoffTimePicked += OnPlotCutoffPicked;
         PlotB.CutoffTimePicked += OnPlotCutoffPicked;
         TimeWindowBox.SelectionChanged += (_, _) =>
@@ -111,6 +127,7 @@ public partial class MainWindow : Window
 
             RefreshStatusBar();
             RefreshCountdown();
+            RefreshDeviationHistoryDurations();
         };
         _heartbeat.Start();
     }
@@ -261,10 +278,64 @@ public partial class MainWindow : Window
         }
     }
 
+    private async Task ShowDiagnosticsDialogAsync()
+    {
+        var dialog = new DiagnosticsDialog();
+        dialog.Load(BuildDiagnosticsSnapshot());
+        await dialog.ShowDialog(this);
+    }
+
+    private DiagnosticsSnapshot BuildDiagnosticsSnapshot()
+    {
+        return new DiagnosticsSnapshot
+        {
+            ConfigPath = _configPath,
+            DeviationHistoryPath = _deviationHistoryPath,
+            GatewayIp = _config.Connection.GatewayIp,
+            GatewayState = ConnectionLabel.Text ?? "Ожидание",
+            StatusLine = StatusText.Text ?? "",
+            IsPolling = _isPolling,
+            NodeCount = _nodes.Count,
+            TotalMessages = _totalMessages,
+            ActiveDeviationCount = _activeDeviationHistory.Count,
+            PublicPushUrl = _config.Push.EffectiveServerUrl,
+            Channels =
+            [
+                new ChannelDiagnostics(
+                    "Telegram",
+                    _config.Telegram.Enabled,
+                    _telegramAlertService is not null,
+                    true,
+                    _telegramAlertService?.LastError),
+                new ChannelDiagnostics(
+                    "Почта",
+                    _config.Email.Enabled,
+                    _emailAlertService is not null && (_config.Email.UsesRelay
+                        ? _config.Email.HasRelaySettings
+                        : _config.Email.HasDeliverySettings),
+                    false,
+                    _emailAlertService?.LastError),
+                new ChannelDiagnostics(
+                    "SMS",
+                    _config.Sms.Enabled,
+                    _smsAlertService is not null && _config.Sms.HasDeliverySettings,
+                    false,
+                    _smsAlertService?.LastError),
+                new ChannelDiagnostics(
+                    "Push",
+                    _config.Push.Enabled,
+                    _gotifyAlertService is not null && _config.Push.HasDeliverySettings,
+                    true,
+                    _gotifyAlertService?.LastError)
+            ]
+        };
+    }
+
     private void ReconfigureAlertServices()
     {
         ReconfigureTelegramAlerts();
         ReconfigureEmailAlerts();
+        ReconfigureSmsAlerts();
         ReconfigureGotifyAlerts();
     }
 
@@ -301,6 +372,11 @@ public partial class MainWindow : Window
     private void ReconfigureEmailAlerts()
     {
         _emailAlertService = _config.Email.Enabled ? new EmailAlertService(_config.Email) : null;
+    }
+
+    private void ReconfigureSmsAlerts()
+    {
+        _smsAlertService = _config.Sms.Enabled ? new SmsAlertService(_config.Sms) : null;
     }
 
     private void ReconfigureGotifyAlerts()
@@ -378,41 +454,6 @@ public partial class MainWindow : Window
 
         OnReadingsReady(nodeId, NodeReadings.FromParsedCsv(nodeId, parsed));
         StatusText.Text = $"CSV загружен — узел {nodeId}";
-    }
-
-    private async Task ExportCurrentNodeAsync()
-    {
-        if (_currentNode is not { } nodeId || !_buffersByNode.TryGetValue(nodeId, out var buffer) || buffer.Count == 0)
-        {
-            StatusText.Text = "Нет данных по текущему узлу для экспорта";
-            return;
-        }
-
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = "Экспорт CSV по текущему узлу",
-            SuggestedFileName = $"Узел-{nodeId}-измерения.csv",
-            FileTypeChoices =
-            [
-                new FilePickerFileType("CSV") { Patterns = ["*.csv"] },
-                FilePickerFileTypes.All
-            ]
-        });
-
-        if (file is null)
-        {
-            return;
-        }
-
-        var readingsToExport = ApplyPlotCutoff(buffer.Readings).ToList();
-        if (readingsToExport.Count == 0)
-        {
-            StatusText.Text = "Нет видимых данных для экспорта";
-            return;
-        }
-
-        ReadingsCsvExporter.Export(file.Path.LocalPath, readingsToExport, _config.Thresholds, _config.Alarm, _config.GetCalibration(nodeId));
-        StatusText.Text = $"Экспортирован узел {nodeId}";
     }
 
     private void AddNode(object? sender, RoutedEventArgs e)
@@ -512,59 +553,261 @@ public partial class MainWindow : Window
             $"thA={criticalA} thB={criticalB} zeroA={effZeroA} zeroB={effZeroB} " +
             $"critA={isACritical} critB={isBCritical} invalid={latest.Invalid}");
 
+        ProcessAlertStateChange(_alertState.Update(nodeId, "A", isACritical, aDeviation ?? 0, criticalA, latest.Timestamp));
+        ProcessAlertStateChange(_alertState.Update(nodeId, "B", isBCritical, bDeviation ?? 0, criticalB, latest.Timestamp));
+    }
+
+    private void ProcessAlertStateChange(AlertStateChange? change)
+    {
+        if (change is null)
+        {
+            return;
+        }
+
+        TrackDeviationHistory(change);
+        DispatchAlertNotifications(change);
+    }
+
+    private void DispatchAlertNotifications(AlertStateChange change)
+    {
+        var channels = EnabledAlertChannels().ToList();
+        foreach (var channel in channels)
+        {
+            switch (change.Kind)
+            {
+                case AlertStateChangeKind.Started:
+                    _ = SafeNotifyAlertAsync(channel, change, x => x.NotifyStartedAsync(change.Event));
+                    break;
+                case AlertStateChangeKind.Active when channel is IUpdatableAlertChannel updatable:
+                    _ = SafeNotifyAlertAsync(channel, change, _ => updatable.NotifyActiveAsync(change.Event));
+                    break;
+                case AlertStateChangeKind.Resolved:
+                    _ = SafeNotifyAlertAsync(channel, change, x => x.NotifyResolvedAsync(change.Event));
+                    break;
+            }
+        }
+    }
+
+    private IEnumerable<IAlertChannel> EnabledAlertChannels()
+    {
         if (_telegramAlertService is { } telegram)
         {
-            _ = SafeUpdateTelegramAlarmAsync(telegram, nodeId, "A", isACritical, aDeviation ?? 0, latest.Timestamp);
-            _ = SafeUpdateTelegramAlarmAsync(telegram, nodeId, "B", isBCritical, bDeviation ?? 0, latest.Timestamp);
+            yield return telegram;
         }
 
         if (_emailAlertService is { } email)
         {
-            _ = SafeUpdateEmailAlarmAsync(email, nodeId, "A", isACritical, aDeviation ?? 0, latest.Timestamp);
-            _ = SafeUpdateEmailAlarmAsync(email, nodeId, "B", isBCritical, bDeviation ?? 0, latest.Timestamp);
+            yield return email;
+        }
+
+        if (_smsAlertService is { } sms)
+        {
+            yield return sms;
         }
 
         if (_gotifyAlertService is { } gotify)
         {
-            _ = SafeUpdateGotifyAlarmAsync(gotify, nodeId, "A", isACritical, aDeviation ?? 0, latest.Timestamp);
-            _ = SafeUpdateGotifyAlarmAsync(gotify, nodeId, "B", isBCritical, bDeviation ?? 0, latest.Timestamp);
+            yield return gotify;
         }
     }
 
-    private static async Task SafeUpdateTelegramAlarmAsync(TelegramAlertService service, int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
+    private static async Task SafeNotifyAlertAsync(
+        IAlertChannel channel,
+        AlertStateChange change,
+        Func<IAlertChannel, Task> notify)
     {
         try
         {
-            await service.UpdateAlarmAsync(nodeId, axis, isCritical, value, timestamp);
+            await notify(channel);
         }
         catch (Exception ex)
         {
-            TelegramAlertService.LogDiagnostic($"alarm-exception node={nodeId} axis={axis}: {ex.Message}");
+            TelegramAlertService.LogDiagnostic(
+                $"alarm-channel-exception channel={channel.ChannelName} kind={change.Kind} node={change.Event.NodeId} axis={change.Event.Axis}: {ex.Message}");
         }
     }
 
-    private static async Task SafeUpdateEmailAlarmAsync(EmailAlertService service, int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
+    private void TrackDeviationHistory(AlertStateChange change)
     {
-        try
+        var alertEvent = change.Event;
+        var key = (alertEvent.NodeId, alertEvent.Axis);
+
+        if (change.Kind is AlertStateChangeKind.Started)
         {
-            await service.UpdateAlarmAsync(nodeId, axis, isCritical, value, timestamp);
+            var entry = new DeviationHistoryEntry
+            {
+                NodeId = alertEvent.NodeId,
+                Axis = alertEvent.Axis,
+                StartedAt = alertEvent.StartedAt,
+                UpdatedAt = alertEvent.UpdatedAt,
+                StartValue = alertEvent.CurrentValue,
+                LastValue = alertEvent.CurrentValue,
+                PeakAbsValue = alertEvent.PeakAbsValue,
+                Threshold = alertEvent.Threshold
+            };
+            _activeDeviationHistory[key] = entry;
+            InsertDeviationHistoryEntry(entry);
+            TrimDeviationHistory();
+            SaveDeviationHistory();
+            return;
         }
-        catch (Exception ex)
+
+        if (!_activeDeviationHistory.TryGetValue(key, out var active))
         {
-            EmailAlertService.LogDiagnostic($"alarm-exception node={nodeId} axis={axis}: {ex.Message}");
+            return;
+        }
+
+        active.LastValue = alertEvent.CurrentValue;
+        active.UpdatedAt = alertEvent.UpdatedAt;
+        active.Threshold = alertEvent.Threshold;
+        active.PeakAbsValue = alertEvent.PeakAbsValue;
+
+        if (change.Kind is AlertStateChangeKind.Resolved)
+        {
+            _activeDeviationHistory.Remove(key);
+            active.EndedAt = alertEvent.ResolvedAt ?? alertEvent.UpdatedAt;
+            active.UpdatedAt = active.EndedAt.Value;
+        }
+
+        RefreshDeviationHistoryRow(active);
+        SaveDeviationHistory();
+    }
+
+    private void InsertDeviationHistoryEntry(DeviationHistoryEntry entry)
+    {
+        if (string.IsNullOrWhiteSpace(entry.Id))
+        {
+            entry.Id = Guid.NewGuid().ToString("N");
+        }
+
+        var row = new DeviationHistoryRow(entry);
+        _deviationHistoryRowsById[entry.Id] = row;
+        _deviationHistory.Insert(0, row);
+        UpdateDeviationHistoryEmptyState();
+    }
+
+    private void RefreshDeviationHistoryRow(DeviationHistoryEntry entry)
+    {
+        if (_deviationHistoryRowsById.TryGetValue(entry.Id, out var row))
+        {
+            row.Refresh();
         }
     }
 
-    private static async Task SafeUpdateGotifyAlarmAsync(GotifyAlertService service, int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
+    private void RefreshDeviationHistoryDurations()
+    {
+        if (_deviationHistory.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var row in _deviationHistory)
+        {
+            if (row.Entry.EndedAt is null)
+            {
+                row.Refresh();
+            }
+        }
+    }
+
+    private void LoadDeviationHistory()
     {
         try
         {
-            await service.UpdateAlarmAsync(nodeId, axis, isCritical, value, timestamp);
+            if (!File.Exists(_deviationHistoryPath))
+            {
+                UpdateDeviationHistoryEmptyState();
+                return;
+            }
+
+            var entries = JsonSerializer.Deserialize<List<DeviationHistoryEntry>>(
+                File.ReadAllText(_deviationHistoryPath),
+                DeviationHistoryJsonOptions) ?? [];
+
+            foreach (var entry in entries
+                         .Where(x => x.NodeId > 0 && !string.IsNullOrWhiteSpace(x.Axis))
+                         .OrderByDescending(x => x.StartedAt)
+                         .Take(MaxDeviationHistoryItems)
+                         .Reverse())
+            {
+                InsertDeviationHistoryEntry(entry);
+                if (entry.EndedAt is null)
+                {
+                    _activeDeviationHistory[(entry.NodeId, entry.Axis)] = entry;
+                }
+            }
+
+            UpdateDeviationHistoryEmptyState();
         }
-        catch (Exception ex)
+        catch
         {
-            GotifyAlertService.LogDiagnostic($"alarm-exception node={nodeId} axis={axis}: {ex.Message}");
+            _deviationHistory.Clear();
+            _deviationHistoryRowsById.Clear();
+            _activeDeviationHistory.Clear();
+            UpdateDeviationHistoryEmptyState();
         }
+    }
+
+    private void SaveDeviationHistory()
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(_deviationHistoryPath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            var entries = _deviationHistory
+                .Select(x => x.Entry)
+                .OrderByDescending(x => x.StartedAt)
+                .Take(MaxDeviationHistoryItems)
+                .ToList();
+            File.WriteAllText(_deviationHistoryPath, JsonSerializer.Serialize(entries, DeviationHistoryJsonOptions));
+        }
+        catch
+        {
+            StatusText.Text = "Не удалось сохранить историю отклонений";
+        }
+    }
+
+    private void TrimDeviationHistory()
+    {
+        while (_deviationHistory.Count > MaxDeviationHistoryItems)
+        {
+            var last = _deviationHistory[^1];
+            if (last.Entry.EndedAt is null)
+            {
+                break;
+            }
+
+            _deviationHistoryRowsById.Remove(last.Entry.Id);
+            _deviationHistory.RemoveAt(_deviationHistory.Count - 1);
+        }
+    }
+
+    private void ClearDeviationHistory()
+    {
+        _deviationHistory.Clear();
+        _deviationHistoryRowsById.Clear();
+        _activeDeviationHistory.Clear();
+        UpdateDeviationHistoryEmptyState();
+        SaveDeviationHistory();
+    }
+
+    private void UpdateDeviationHistoryEmptyState()
+    {
+        DeviationHistoryEmptyText.IsVisible = _deviationHistory.Count == 0;
+        DeviationHistoryList.IsVisible = _deviationHistory.Count > 0;
+    }
+
+    private static string ResolveDeviationHistoryPath()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var baseDir = string.IsNullOrWhiteSpace(localAppData)
+            ? AppContext.BaseDirectory
+            : Path.Combine(localAppData, "LS Monitoring");
+        return Path.Combine(baseDir, "deviation-history.json");
     }
 
     private void RefreshCurrentNode(Reading? previousLatest = null)
@@ -581,7 +824,6 @@ public partial class MainWindow : Window
             AlarmBanner.IsVisible = false;
             ResetDashboardSummary();
             ApplyPlotLimitStateToControls();
-            ExportButton.IsEnabled = false;
             return;
         }
 
@@ -641,8 +883,6 @@ public partial class MainWindow : Window
         PlotMetaText.Text = $"Узел {nodeId} · {PlotPointCountLabel(visibleReadings.Count, readings.Count)} · {PlotWindowLabel()} · {ThresholdModeLabel()}{PlotCutoffLabel()}";
         RowsMetaText.Text = $"{Math.Min(200, visibleReadings.Count)} строк";
         ApplyPlotLimitStateToControls();
-
-        ExportButton.IsEnabled = _currentNode is not null;
     }
 
     private void ResetDashboardSummary()
@@ -781,7 +1021,6 @@ public partial class MainWindow : Window
         StartButton.IsEnabled = !_isPolling;
         StopButton.IsEnabled = _isPolling;
         PollNowButton.IsEnabled = _nodes.Count > 0;
-        ExportButton.IsEnabled = _currentNode is not null;
     }
 
     private void UpdatePlotWindowFromSelection()

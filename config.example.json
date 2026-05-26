@@ -40,6 +40,15 @@
     "from": "",
     "recipients": []
   },
+  "sms": {
+    "enabled": false,
+    "provider": "sms.ru",
+    "api_url": "https://sms.ru/sms/send",
+    "api_key": "",
+    "sender": "",
+    "phone_numbers": [],
+    "max_messages_per_hour": 20
+  },
   "push": {
     "enabled": false,
     "provider": "Gotify",

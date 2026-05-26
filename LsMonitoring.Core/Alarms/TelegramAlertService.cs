@@ -10,7 +10,7 @@ public class ActiveTelegramAlarm
     public double LastValue { get; set; }
 }
 
-public class TelegramAlertService
+public class TelegramAlertService : IUpdatableAlertChannel
 {
     private const string LogFilePath = "logs/telegram_debug.txt";
 
@@ -26,6 +26,7 @@ public class TelegramAlertService
     private readonly Dictionary<(int NodeId, string Axis), Dictionary<long, ActiveTelegramAlarm>> _activeAlarms = new();
 
     public string? LastError { get; private set; }
+    public string ChannelName => "Telegram";
 
     public TelegramAlertService(
         string botToken,
@@ -157,6 +158,31 @@ public class TelegramAlertService
                 allSuccess = false;
         }
         return allSuccess;
+    }
+
+    public Task<bool> SendTestAsync()
+    {
+        return SendTestMessageAsync();
+    }
+
+    public Task NotifyStartedAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(alertEvent.NodeId, alertEvent.Axis, true, alertEvent.CurrentValue, alertEvent.StartedAt);
+    }
+
+    public Task NotifyActiveAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(alertEvent.NodeId, alertEvent.Axis, true, alertEvent.CurrentValue, alertEvent.UpdatedAt);
+    }
+
+    public Task NotifyResolvedAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(
+            alertEvent.NodeId,
+            alertEvent.Axis,
+            false,
+            alertEvent.CurrentValue,
+            alertEvent.ResolvedAt ?? alertEvent.UpdatedAt);
     }
 
     public async Task UpdateAlarmAsync(int nodeId, string axis, bool isCritical, double value, DateTime timestamp)

@@ -13,7 +13,7 @@ public sealed class ActiveEmailAlarm
     public double LastValue { get; set; }
 }
 
-public sealed class EmailAlertService
+public sealed class EmailAlertService : IAlertChannel
 {
     private const string LogFilePath = "logs/email_debug.txt";
 
@@ -22,6 +22,7 @@ public sealed class EmailAlertService
     private readonly Dictionary<(int NodeId, string Axis), ActiveEmailAlarm> _activeAlarms = [];
 
     public string? LastError { get; private set; }
+    public string ChannelName => "Email";
 
     public EmailAlertService(EmailConfig config, HttpClient? httpClient = null)
     {
@@ -34,6 +35,26 @@ public sealed class EmailAlertService
         return await SendEmailAsync(
             "LS Monitoring: тестовое письмо",
             "Тестовое письмо от LS Monitoring.\n\nЕсли вы видите это сообщение, почтовые уведомления настроены.");
+    }
+
+    public Task<bool> SendTestAsync()
+    {
+        return SendTestMessageAsync();
+    }
+
+    public Task NotifyStartedAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(alertEvent.NodeId, alertEvent.Axis, true, alertEvent.CurrentValue, alertEvent.StartedAt);
+    }
+
+    public Task NotifyResolvedAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(
+            alertEvent.NodeId,
+            alertEvent.Axis,
+            false,
+            alertEvent.CurrentValue,
+            alertEvent.ResolvedAt ?? alertEvent.UpdatedAt);
     }
 
     public async Task UpdateAlarmAsync(int nodeId, string axis, bool isCritical, double value, DateTime timestamp)

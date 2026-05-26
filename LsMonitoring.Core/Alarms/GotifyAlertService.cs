@@ -17,7 +17,7 @@ public sealed class ActiveGotifyAlarm
     public double LastValue { get; set; }
 }
 
-public sealed class GotifyAlertService
+public sealed class GotifyAlertService : IUpdatableAlertChannel
 {
     private const string LogFilePath = "logs/gotify_debug.txt";
 
@@ -26,6 +26,7 @@ public sealed class GotifyAlertService
     private readonly Dictionary<(int NodeId, string Axis), ActiveGotifyAlarm> _activeAlarms = [];
 
     public string? LastError { get; private set; }
+    public string ChannelName => "Push";
 
     public GotifyAlertService(PushConfig config, HttpClient? httpClient = null)
     {
@@ -42,6 +43,31 @@ public sealed class GotifyAlertService
             BuildTestExtras());
     }
 
+    public Task<bool> SendTestAsync()
+    {
+        return SendTestMessageAsync();
+    }
+
+    public Task NotifyStartedAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(alertEvent.NodeId, alertEvent.Axis, true, alertEvent.CurrentValue, alertEvent.StartedAt);
+    }
+
+    public Task NotifyActiveAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(alertEvent.NodeId, alertEvent.Axis, true, alertEvent.CurrentValue, alertEvent.UpdatedAt);
+    }
+
+    public Task NotifyResolvedAsync(AlertEvent alertEvent)
+    {
+        return UpdateAlarmAsync(
+            alertEvent.NodeId,
+            alertEvent.Axis,
+            false,
+            alertEvent.CurrentValue,
+            alertEvent.ResolvedAt ?? alertEvent.UpdatedAt);
+    }
+
     public async Task UpdateAlarmAsync(int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
     {
         if (!_config.Enabled)
@@ -56,6 +82,11 @@ public sealed class GotifyAlertService
             if (_activeAlarms.TryGetValue(key, out var active))
             {
                 active.LastValue = value;
+                await SendMessageAsync(
+                    $"Тревога: узел {nodeId}, ось {axis}",
+                    FormatActiveUpdateMessage(nodeId, axis, value, active.StartTime, timestamp),
+                    _config.Priority,
+                    BuildActiveAlarmExtras(nodeId, axis, value, active.StartTime, timestamp));
                 return;
             }
 
@@ -143,6 +174,16 @@ public sealed class GotifyAlertService
             $"Узел {nodeId}, ось {axis}: отклонение вышло за заданный максимум.\n" +
             $"Отклонение: {value:F3}°\n" +
             $"Начало: {startTime:dd.MM.yyyy HH:mm:ss}";
+    }
+
+    private static string FormatActiveUpdateMessage(int nodeId, string axis, double value, DateTime startTime, DateTime updatedAt)
+    {
+        var duration = updatedAt - startTime;
+        return
+            $"Узел {nodeId}, ось {axis}: отклонение активно.\n" +
+            $"Отклонение: {value:F3}°\n" +
+            $"Начало: {startTime:dd.MM.yyyy HH:mm:ss}\n" +
+            $"Длительность: {duration:hh\\:mm\\:ss}";
     }
 
     private static string FormatResolvedMessage(int nodeId, string axis, DateTime startTime, DateTime resolveTime)
