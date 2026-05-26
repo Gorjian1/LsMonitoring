@@ -181,15 +181,36 @@ jobs:
           }
 
           $apk = "artifacts/release/ls-alerts-$version.apk"
-          $apksigner = Get-Command apksigner.bat -ErrorAction SilentlyContinue
-          if ($null -eq $apksigner) {
-            $apksigner = Get-Command apksigner -ErrorAction SilentlyContinue
-          }
-          if ($null -eq $apksigner) {
-            throw "apksigner was not found in PATH"
+          $apksignerCommand = Get-Command apksigner.bat -ErrorAction SilentlyContinue
+          if ($null -eq $apksignerCommand) {
+            $apksignerCommand = Get-Command apksigner -ErrorAction SilentlyContinue
           }
 
-          & $apksigner.Source verify --print-certs $apk
+          $apksignerPath = $apksignerCommand?.Source
+          if ([string]::IsNullOrWhiteSpace($apksignerPath)) {
+            $sdkRoots = @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT) |
+              Where-Object { ![string]::IsNullOrWhiteSpace($_) } |
+              Select-Object -Unique
+            foreach ($sdkRoot in $sdkRoots) {
+              $candidate = Get-ChildItem `
+                -Path (Join-Path $sdkRoot "build-tools") `
+                -Filter apksigner.bat `
+                -Recurse `
+                -ErrorAction SilentlyContinue |
+                Sort-Object FullName -Descending |
+                Select-Object -First 1
+              if ($candidate) {
+                $apksignerPath = $candidate.FullName
+                break
+              }
+            }
+          }
+
+          if ([string]::IsNullOrWhiteSpace($apksignerPath)) {
+            throw "apksigner was not found in PATH or Android SDK build-tools"
+          }
+
+          & $apksignerPath verify --print-certs $apk
 
       - name: Create GitHub Release
         shell: pwsh
