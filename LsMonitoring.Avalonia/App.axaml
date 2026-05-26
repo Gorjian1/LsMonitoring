@@ -1,0 +1,120 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="LsMonitoring.Avalonia.App"
+             RequestedThemeVariant="Light">
+             <!-- Светлая тема -->
+
+    <Application.Resources>
+        <SolidColorBrush x:Key="BrushAppBackground" Color="#F1F3F5"/>
+        <SolidColorBrush x:Key="BrushPanel" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BrushPanelAlt" Color="#FAFBFC"/>
+        <SolidColorBrush x:Key="BrushPanelSoft" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="BrushSidebar" Color="#FAFBFC"/>
+        <SolidColorBrush x:Key="BrushChrome" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BrushChromeMuted" Color="#4F5865"/>
+        <SolidColorBrush x:Key="BrushChromeLine" Color="#D9DEE5"/>
+        <SolidColorBrush x:Key="BrushBorder" Color="#D9DEE5"/>
+        <SolidColorBrush x:Key="BrushBorderStrong" Color="#C4CBD4"/>
+        <SolidColorBrush x:Key="BrushDivider" Color="#E1E5EA"/>
+        <SolidColorBrush x:Key="BrushText" Color="#1C1E21"/>
+        <SolidColorBrush x:Key="BrushMuted" Color="#4F5865"/>
+        <SolidColorBrush x:Key="BrushMutedSoft" Color="#7D8590"/>
+        <SolidColorBrush x:Key="BrushControl" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BrushControlHover" Color="#F0F2F5"/>
+        <SolidColorBrush x:Key="BrushControlPressed" Color="#E7EBEF"/>
+        <SolidColorBrush x:Key="BrushControlHoverBorder" Color="#B8C0CA"/>
+        <SolidColorBrush x:Key="BrushPrimary" Color="#0EA5E9"/>
+        <SolidColorBrush x:Key="BrushPrimaryHover" Color="#0284C7"/>
+        <SolidColorBrush x:Key="BrushPrimaryPressed" Color="#0369A1"/>
+        <SolidColorBrush x:Key="BrushAccentA" Color="#0EA5E9"/>
+        <SolidColorBrush x:Key="BrushAccentB" Color="#7C3AED"/>
+        <SolidColorBrush x:Key="BrushAccentTint" Color="#E0F2FE"/>
+        <SolidColorBrush x:Key="BrushSuccess" Color="#16A34A"/>
+        <SolidColorBrush x:Key="BrushSuccessTint" Color="#DCFCE7"/>
+        <SolidColorBrush x:Key="BrushWarning" Color="#D97706"/>
+        <SolidColorBrush x:Key="BrushWarningTint" Color="#FEF3C7"/>
+        <SolidColorBrush x:Key="BrushDanger" Color="#DC2626"/>
+        <SolidColorBrush x:Key="BrushDangerDark" Color="#B91C1C"/>
+        <SolidColorBrush x:Key="BrushDangerTint" Color="#FEE2E2"/>
+        <SolidColorBrush x:Key="BrushStatusIdle" Color="#B0B4BB"/>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <Style Selector="Window">
+            <Setter Property="FontFamily" Value="Inter, Segoe UI, Arial"/>
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{StaticResource BrushControl}"/>
+            <Setter Property="Foreground" Value="{StaticResource BrushText}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="MinHeight" Value="28"/>
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="{StaticResource BrushControlHover}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushControlHoverBorder}"/>
+        </Style>
+        <Style Selector="Button:pressed">
+            <Setter Property="Background" Value="{StaticResource BrushControlPressed}"/>
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Foreground" Value="{StaticResource BrushStatusIdle}"/>
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}"/>
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{StaticResource BrushPrimary}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushPrimary}"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover">
+            <Setter Property="Background" Value="{StaticResource BrushPrimaryHover}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushPrimaryHover}"/>
+        </Style>
+        <Style Selector="Button.primary:pressed">
+            <Setter Property="Background" Value="{StaticResource BrushPrimaryPressed}"/>
+        </Style>
+        <Style Selector="Button.subtle">
+            <Setter Property="Background" Value="{StaticResource BrushPanelAlt}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}"/>
+        </Style>
+        <Style Selector="Button.subtle:pointerover">
+            <Setter Property="Background" Value="{StaticResource BrushControlHover}"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{StaticResource BrushControl}"/>
+            <Setter Property="Foreground" Value="{StaticResource BrushText}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="{StaticResource BrushAccentA}"/>
+        </Style>
+
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="{StaticResource BrushControl}"/>
+            <Setter Property="Foreground" Value="{StaticResource BrushText}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+        <Style Selector="ComboBox:pointerover">
+            <Setter Property="Background" Value="{StaticResource BrushControlHover}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushControlHoverBorder}"/>
+        </Style>
+
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource BrushText}"/>
+        </Style>
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+    </Application.Styles>
+</Application>

@@ -1,0 +1,150 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LsMonitoring.Avalonia.DiagnosticsDialog"
+        Title="Диагностика"
+        Width="720" Height="580"
+        MinWidth="640" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BrushAppBackground}"
+        CanResize="True">
+    <Window.Styles>
+        <Style Selector="Border.section-card">
+            <Setter Property="Background" Value="{StaticResource BrushPanel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BrushBorderStrong}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+        <Style Selector="TextBlock.section-title">
+            <Setter Property="Foreground" Value="{StaticResource BrushMuted}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="LetterSpacing" Value="2"/>
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="{StaticResource BrushMuted}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style Selector="TextBlock.value">
+            <Setter Property="Foreground" Value="{StaticResource BrushText}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{StaticResource BrushMutedSoft}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20" RowSpacing="14">
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="Диагностика"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource BrushText}"/>
+            <TextBlock Text="Версия, конфиг, gateway, каналы оповещений и проверка релиза."
+                       Classes="muted"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="12" Margin="0,0,8,0">
+                <Border Classes="section-card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="ПРИЛОЖЕНИЕ" Classes="section-title"/>
+                        <Grid ColumnDefinitions="150,*"
+                              RowDefinitions="Auto,Auto,Auto"
+                              RowSpacing="8">
+                            <TextBlock Grid.Row="0" Classes="label" Text="Версия:"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="AppVersionText" Classes="value"/>
+                            <TextBlock Grid.Row="1" Classes="label" Text="Конфиг:"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ConfigPathText" Classes="value"/>
+                            <TextBlock Grid.Row="2" Classes="label" Text="История:"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="HistoryPathText" Classes="value"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="section-card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="МОНИТОРИНГ" Classes="section-title"/>
+                        <Grid ColumnDefinitions="150,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto"
+                              RowSpacing="8">
+                            <TextBlock Grid.Row="0" Classes="label" Text="Gateway:"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="GatewayText" Classes="value"/>
+                            <TextBlock Grid.Row="1" Classes="label" Text="Состояние:"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="GatewayStateText" Classes="value"/>
+                            <TextBlock Grid.Row="2" Classes="label" Text="Опрос:"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="PollingText" Classes="value"/>
+                            <TextBlock Grid.Row="3" Classes="label" Text="Статус:"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="StatusLineText" Classes="value"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="section-card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="ОПОВЕЩЕНИЯ" Classes="section-title"/>
+                        <Grid ColumnDefinitions="150,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                              RowSpacing="8">
+                            <TextBlock Grid.Row="0" Classes="label" Text="Telegram:"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TelegramChannelText" Classes="value"/>
+                            <TextBlock Grid.Row="1" Classes="label" Text="Почта:"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="EmailChannelText" Classes="value"/>
+                            <TextBlock Grid.Row="2" Classes="label" Text="SMS:"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SmsChannelText" Classes="value"/>
+                            <TextBlock Grid.Row="3" Classes="label" Text="Push:"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="PushChannelText" Classes="value"/>
+                            <TextBlock Grid.Row="4" Classes="label" Text="Ошибки:"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="ChannelErrorsText" Classes="value"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="section-card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="PUSH / TUNNEL" Classes="section-title"/>
+                        <Grid ColumnDefinitions="150,*"
+                              RowDefinitions="Auto,Auto,Auto"
+                              RowSpacing="8">
+                            <TextBlock Grid.Row="0" Classes="label" Text="Публичный URL:"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="PublicPushUrlText" Classes="value"/>
+                            <TextBlock Grid.Row="1" Classes="label" Text="Tunnel:"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TunnelStatusText" Classes="value"/>
+                            <TextBlock Grid.Row="2" Classes="label" Text="Gotify:"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="GotifyStatusText" Classes="value"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="section-card">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="ОБНОВЛЕНИЯ" Classes="section-title"/>
+                        <TextBlock x:Name="UpdateStatusText"
+                                   Classes="value"
+                                   Text="Проверка ещё не запускалась."/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10">
+            <Button Grid.Column="1" x:Name="CheckUpdateButton"
+                    Content="Проверить обновление"
+                    Padding="14,6"/>
+            <Button Grid.Column="2" x:Name="OpenReleaseButton"
+                    Content="Открыть релиз"
+                    Padding="14,6"
+                    IsEnabled="False"/>
+            <Button Grid.Column="3" x:Name="CloseButton"
+                    Classes="primary"
+                    Content="Закрыть"
+                    Padding="14,6"/>
+        </Grid>
+    </Grid>
+</Window>

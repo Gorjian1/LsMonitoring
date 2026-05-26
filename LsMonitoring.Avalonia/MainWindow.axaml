@@ -1,0 +1,579 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="using:LsMonitoring.Avalonia.Controls"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
+        x:Class="LsMonitoring.Avalonia.MainWindow"
+        Width="1280" Height="800"
+        MinWidth="1180" MinHeight="620"
+        Title="LS-G6 Мониторинг"
+        Background="{StaticResource BrushAppBackground}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <Border x:Name="AlarmBanner" Grid.Row="0"
+                Background="{StaticResource BrushDangerDark}" IsVisible="False" Padding="16,8">
+            <Grid ColumnDefinitions="Auto,*">
+                <Border Grid.Column="0" Background="{StaticResource BrushDangerTint}"
+                        CornerRadius="12" Padding="8,2" Margin="0,0,10,0">
+                    <TextBlock Text="ТРЕВОГА" FontSize="10" FontWeight="Bold"
+                               Foreground="{StaticResource BrushDangerDark}"/>
+                </Border>
+                <TextBlock Grid.Column="1" x:Name="AlarmBannerText"
+                           Text="Уведомление" FontSize="13" FontWeight="SemiBold"
+                           Foreground="White" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Background="{StaticResource BrushChrome}"
+                BorderBrush="{StaticResource BrushChromeLine}" BorderThickness="0,0,0,1"
+                Padding="14,0" Height="52">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                  ColumnSpacing="8">
+                <Grid Grid.Column="0" ColumnDefinitions="34,Auto" VerticalAlignment="Center"
+                      Margin="0,0,8,0">
+                    <Border Width="34" Height="34" CornerRadius="8"
+                            Background="{StaticResource BrushAccentTint}"
+                            BorderBrush="#BAE6FD" BorderThickness="1">
+                        <TextBlock Text="LS" FontSize="12" FontWeight="Bold"
+                                   Foreground="{StaticResource BrushAccentA}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="LS Monitoring" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrushText}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Column="1" Background="{StaticResource BrushPanelAlt}"
+                        BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                        CornerRadius="14" Padding="9,4" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <Ellipse x:Name="StatusDot" Width="8" Height="8"
+                                 Fill="{StaticResource BrushStatusIdle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="GatewayLabel" Text="169.254.0.1"
+                                   Foreground="{StaticResource BrushChromeMuted}"
+                                   FontSize="12" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" Background="{StaticResource BrushPanelAlt}"
+                        BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                        CornerRadius="14" Padding="9,4" VerticalAlignment="Center">
+                    <TextBlock x:Name="ConnectionLabel" Text="Ожидание"
+                               Foreground="{StaticResource BrushChromeMuted}"
+                               FontSize="12" VerticalAlignment="Center"/>
+                </Border>
+
+                <TextBlock Grid.Column="3" x:Name="CountdownLabel"
+                           Text="" Foreground="{StaticResource BrushMutedSoft}"
+                           FontSize="12" VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+
+                <Button Grid.Column="4" x:Name="SettingsButton" Classes="subtle"
+                        Content="⚙ Настройки" Padding="11,4" FontSize="12"
+                        BorderBrush="{StaticResource BrushBorderStrong}" BorderThickness="1.5"/>
+                <Button Grid.Column="5" x:Name="MessagesButton" Classes="subtle"
+                        Content="🔔 Оповещения" Padding="11,4" FontSize="12"
+                        BorderBrush="{StaticResource BrushBorderStrong}" BorderThickness="1.5"/>
+                <Button Grid.Column="6" x:Name="DiscoverButton" Classes="subtle"
+                        Content="🔎 Поиск" Padding="11,4" FontSize="12"/>
+                <Button Grid.Column="7" x:Name="LoadSampleButton" Classes="subtle"
+                        Content="📄 CSV" Padding="11,4" FontSize="12"/>
+                <Button Grid.Column="8" x:Name="DiagnosticsButton" Classes="subtle"
+                        Content="🩺 Диагн." Padding="11,4" FontSize="12"/>
+                <Button Grid.Column="9" x:Name="StartButton" Classes="primary"
+                        Content="▶ Старт" Padding="13,4" FontSize="12"/>
+                <Button Grid.Column="10" x:Name="StopButton" Classes="subtle"
+                        Content="■ Стоп" Padding="13,4" FontSize="12"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="252,*">
+
+            <Border Grid.Column="0" Background="{StaticResource BrushSidebar}"
+                    BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top"
+                            Background="{StaticResource BrushPanel}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,0,0,1"
+                            Padding="12,10">
+                        <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                            <TextBlock Text="УЗЛЫ"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushMuted}" LetterSpacing="2"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" x:Name="PollNowButton"
+                                    Content="Обновить" Padding="9,3" FontSize="11"
+                                    Margin="4,0"
+                                    ToolTip.Tip="Опросить сейчас"/>
+                            <Button Grid.Column="2" x:Name="AddNodeButton2"
+                                    Content="+" Width="28" Height="28"
+                                    Padding="0" FontSize="16"
+                                    ToolTip.Tip="Добавить узел"/>
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="3"
+                                       x:Name="NodeSummaryText"
+                                       Text="0 узлов" Foreground="{StaticResource BrushMutedSoft}"
+                                       FontSize="11" Margin="0,5,0,0"/>
+                        </Grid>
+                    </Border>
+
+                    <Border DockPanel.Dock="Bottom"
+                            Background="{StaticResource BrushPanel}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0"
+                            Padding="10,8">
+                        <Grid ColumnDefinitions="*,76">
+                            <TextBox Grid.Column="0" x:Name="NodeIdBox"
+                                     PlaceholderText="ID узла" FontSize="12"
+                                     Margin="0,0,6,0"/>
+                            <Button Grid.Column="1" x:Name="AddNodeButton"
+                                    Classes="primary" Content="Добавить" FontSize="12"/>
+                        </Grid>
+                    </Border>
+
+                    <ListBox x:Name="NodeList" SelectionMode="Single"
+                             Padding="8,8">
+                        <ListBox.ItemContainerTheme>
+                            <ControlTheme TargetType="ListBoxItem" x:DataType="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,0,0,7"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <ControlTemplate>
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                                    </ControlTemplate>
+                                </Setter>
+                            </ControlTheme>
+                        </ListBox.ItemContainerTheme>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="9" CornerRadius="8"
+                                        Background="{Binding CardBackground}"
+                                        BorderBrush="{Binding CardBorder}" BorderThickness="1">
+                                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                        <Grid Grid.Row="0"
+                                              ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       Foreground="{StaticResource BrushText}"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding AgeText}"
+                                                       FontSize="10" Foreground="{StaticResource BrushMutedSoft}"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding Subtitle}"
+                                                   FontSize="11" Foreground="{StaticResource BrushMuted}"
+                                                   Margin="0,2,0,5"
+                                                   TextTrimming="CharacterEllipsis"/>
+
+                                        <Grid Grid.Row="2"
+                                              ColumnDefinitions="78,*">
+                                            <controls:Sparkline
+                                                Points="{Binding SparklineData}"
+                                                LineColor="{Binding StatusColor}"
+                                                Width="78" Height="21"/>
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Horizontal"
+                                                        Spacing="7" Margin="8,0,0,0"
+                                                        VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding AText}"
+                                                           FontSize="11" Foreground="{StaticResource BrushAccentA}"
+                                                           FontFamily="Cascadia Code, Consolas, monospace"/>
+                                                <TextBlock Text="{Binding BText}"
+                                                           FontSize="11" Foreground="{StaticResource BrushAccentB}"
+                                                           FontFamily="Cascadia Code, Consolas, monospace"/>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <TextBlock Grid.Row="3"
+                                                   Text="{Binding ZeroText}"
+                                                   IsVisible="{Binding HasZero}"
+                                                   FontSize="10" Foreground="{StaticResource BrushSuccess}"
+                                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                                   Margin="0,5,0,0"/>
+
+                                        <StackPanel Grid.Row="4"
+                                                    Orientation="Horizontal" Spacing="5"
+                                                    Margin="0,7,0,0">
+                                            <Button Content="Ноль"
+                                                    Tag="{Binding NodeId}"
+                                                    Click="OnSetZeroClick"
+                                                    FontSize="10" Padding="7,2"
+                                                    ToolTip.Tip="Зафиксировать текущее значение как ноль"/>
+                                            <Button Content="Сброс"
+                                                    Tag="{Binding NodeId}"
+                                                    Click="OnClearZeroClick"
+                                                    IsVisible="{Binding HasZero}"
+                                                    FontSize="10" Padding="7,2"
+                                                    ToolTip.Tip="Убрать ноль"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="1" RowDefinitions="*"
+                  Margin="14,12,14,12">
+
+                <Grid Grid.Row="0" ColumnDefinitions="*,300" ColumnSpacing="12">
+                    <Grid Grid.Column="0" RowDefinitions="*,190" RowSpacing="12">
+                        <Border Grid.Row="0" Background="{StaticResource BrushPanel}"
+                                BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                                CornerRadius="10" ClipToBounds="True">
+                            <Grid RowDefinitions="44,*,*" RowSpacing="2">
+                                <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto"
+                                      Margin="14,8,14,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="ГРАФИКИ" FontSize="11" FontWeight="SemiBold"
+                                                   LetterSpacing="2" Foreground="{StaticResource BrushMuted}"
+                                                   VerticalAlignment="Center"/>
+                                        <Border Background="{StaticResource BrushPanelAlt}"
+                                                BorderBrush="{StaticResource BrushBorder}"
+                                                BorderThickness="1" CornerRadius="12" Padding="7,2">
+                                            <TextBlock Text="A / B" FontSize="10"
+                                                       Foreground="{StaticResource BrushMuted}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" x:Name="PlotMetaText"
+                                               Text="" Foreground="{StaticResource BrushMutedSoft}" FontSize="11"
+                                               VerticalAlignment="Center" Margin="10,0"
+                                               TextAlignment="Right"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <StackPanel Grid.Column="2"
+                                                Orientation="Horizontal"
+                                                Spacing="6"
+                                                VerticalAlignment="Center">
+                                        <ComboBox x:Name="TimeWindowBox"
+                                                  Width="88" SelectedIndex="1" FontSize="11">
+                                            <ComboBoxItem Content="15 мин" Tag="900"/>
+                                            <ComboBoxItem Content="1 час" Tag="3600"/>
+                                            <ComboBoxItem Content="6 часов" Tag="21600"/>
+                                            <ComboBoxItem Content="Всё" Tag="0"/>
+                                        </ComboBox>
+                                        <Button x:Name="LimitPlotButton"
+                                                Content="С даты"
+                                                Padding="9,4"
+                                                FontSize="11"
+                                                ToolTip.Tip="Показывать только данные после выбранной даты и времени"/>
+                                        <Button x:Name="PickPlotLimitButton"
+                                                Content="Выбрать"
+                                                Padding="9,4"
+                                                FontSize="11"
+                                                ToolTip.Tip="Выбрать начало ограничения кликом по графику"/>
+                                        <Button x:Name="ClearPlotLimitButton"
+                                                Content="Сброс"
+                                                Padding="9,4"
+                                                FontSize="11"
+                                                ToolTip.Tip="Сбросить ограничение графика"/>
+                                    </StackPanel>
+                                </Grid>
+                                <controls:TrendPlot Grid.Row="1" x:Name="PlotA"
+                                                    Series="A"
+                                                    Margin="8,0,12,2"/>
+                                <controls:TrendPlot Grid.Row="2" x:Name="PlotB"
+                                                    Series="B"
+                                                    Margin="8,0,12,8"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="1" Background="{StaticResource BrushPanel}"
+                                BorderBrush="{StaticResource BrushBorder}" BorderThickness="1" CornerRadius="10"
+                                Padding="10,8" ClipToBounds="True">
+                            <Grid RowDefinitions="Auto,Auto,*">
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="ПОСЛЕДНИЕ ИЗМЕРЕНИЯ" FontSize="11"
+                                               FontWeight="SemiBold" LetterSpacing="2"
+                                               Foreground="{StaticResource BrushMuted}"/>
+                                    <TextBlock Grid.Column="1" x:Name="RowsMetaText"
+                                               Text="" Foreground="{StaticResource BrushMutedSoft}" FontSize="11"/>
+                                </Grid>
+
+                                <Border Grid.Row="1" Background="{StaticResource BrushPanelAlt}"
+                                        CornerRadius="6" Padding="8,5" Margin="0,7,0,2">
+                                    <Grid ColumnDefinitions="126,50,60,60,64,64,70,70,*">
+                                        <TextBlock Text="Время" FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" Text="T" FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="2" Text="A" FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="3" Text="B" FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="4" Text="A-вар" FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="5" Text="B-вар" FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="6" Text="A откл." FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="7" Text="B откл." FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="8" Text="Флаги" FontSize="10"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource BrushMuted}"/>
+                                    </Grid>
+                                </Border>
+
+                                <ListBox Grid.Row="2" x:Name="RowsList"
+                                         FontFamily="Cascadia Code, JetBrains Mono, Consolas, monospace"
+                                         FontSize="11">
+                                    <ListBox.ItemContainerTheme>
+                                        <ControlTheme TargetType="ListBoxItem" x:DataType="ListBoxItem">
+                                            <Setter Property="Padding" Value="0"/>
+                                            <Setter Property="Margin" Value="0"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="Template">
+                                                <ControlTemplate>
+                                                    <ContentPresenter Content="{TemplateBinding Content}"
+                                                                      ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                                                </ControlTemplate>
+                                            </Setter>
+                                        </ControlTheme>
+                                    </ListBox.ItemContainerTheme>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="8,4"
+                                                    BorderBrush="{StaticResource BrushDivider}"
+                                                    BorderThickness="0,0,0,1">
+                                                <Grid ColumnDefinitions="126,50,60,60,64,64,70,70,*"
+                                                      MinHeight="20">
+                                                    <TextBlock Text="{Binding Time}"
+                                                               Foreground="{StaticResource BrushMuted}" FontSize="10"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Temperature}"
+                                                               Foreground="{StaticResource BrushText}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding AAxis}"
+                                                               Foreground="{StaticResource BrushAccentA}"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding BAxis}"
+                                                               Foreground="{StaticResource BrushAccentB}"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding AVariation}"
+                                                               Foreground="{StaticResource BrushMuted}"/>
+                                                    <TextBlock Grid.Column="5" Text="{Binding BVariation}"
+                                                               Foreground="{StaticResource BrushMuted}"/>
+                                                    <TextBlock Grid.Column="6" Text="{Binding ADeviation}"
+                                                               Foreground="{StaticResource BrushAccentA}"/>
+                                                    <TextBlock Grid.Column="7" Text="{Binding BDeviation}"
+                                                               Foreground="{StaticResource BrushAccentB}"/>
+                                                    <TextBlock Grid.Column="8" Text="{Binding Flags}"
+                                                               Foreground="{StaticResource BrushDanger}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Column="1" Background="{StaticResource BrushPanel}"
+                            BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                            CornerRadius="10" Padding="14,12">
+                        <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="14">
+                            <Grid Grid.Row="0" RowDefinitions="Auto,Auto">
+                                <TextBlock Text="СВОДКА" FontSize="11" FontWeight="SemiBold"
+                                           LetterSpacing="2" Foreground="{StaticResource BrushMuted}"/>
+                                <TextBlock Grid.Row="1" Text="Параметры выбранного узла"
+                                           FontSize="11" Foreground="{StaticResource BrushMutedSoft}"
+                                           Margin="0,3,0,0"/>
+                            </Grid>
+
+                            <Border Grid.Row="1" Background="{StaticResource BrushPanelAlt}"
+                                    BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                                    CornerRadius="8" Padding="10">
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="ID" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" x:Name="RailNodeIdText" Text="-"
+                                                   FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BrushText}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Модель" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" x:Name="RailModelText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushText}"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="145"/>
+                                    </Grid>
+                                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Точки" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" x:Name="RailPointsText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushText}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Интервал" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" x:Name="RailSamplingText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushText}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="4" ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Последнее" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" x:Name="RailLastText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushText}"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="145"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Row="2" Background="{StaticResource BrushPanelAlt}"
+                                    BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                                    CornerRadius="8" Padding="10">
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Режим" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" x:Name="RailModeText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushText}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto">
+                                        <TextBlock Text="A предупреждение" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="2" x:Name="RailWarningAText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushWarning}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto">
+                                        <TextBlock Text="A критично" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="2" x:Name="RailCriticalAText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushDanger}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto">
+                                        <TextBlock Text="B предупреждение" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="2" x:Name="RailWarningBText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushWarning}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto">
+                                        <TextBlock Text="B критично" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="2" x:Name="RailCriticalBText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushDanger}"/>
+                                    </Grid>
+                                    <Grid Grid.Row="5" ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Ограничение" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                        <TextBlock Grid.Column="1" x:Name="RailCutoffText" Text="-"
+                                                   FontSize="12" Foreground="{StaticResource BrushText}"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="145"/>
+                                    </Grid>
+                                </Grid>
+                            </Border>
+
+                            <Grid Grid.Row="3" RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="КАЛИБРОВКА" FontSize="11" FontWeight="SemiBold"
+                                               LetterSpacing="2" Foreground="{StaticResource BrushMuted}"/>
+                                </Grid>
+                                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Ноль A" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                    <TextBlock Grid.Column="1" x:Name="RailZeroAText" Text="-"
+                                               FontSize="12" Foreground="{StaticResource BrushText}"/>
+                                </Grid>
+                                <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Ноль B" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                    <TextBlock Grid.Column="1" x:Name="RailZeroBText" Text="-"
+                                               FontSize="12" Foreground="{StaticResource BrushText}"/>
+                                </Grid>
+                                <Grid Grid.Row="3" ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Gateway" FontSize="11" Foreground="{StaticResource BrushMuted}"/>
+                                    <TextBlock Grid.Column="1" x:Name="RailGatewayText" Text="-"
+                                               FontSize="12" Foreground="{StaticResource BrushText}"/>
+                                </Grid>
+
+                                <Border Grid.Row="4" Background="{StaticResource BrushPanelAlt}"
+                                        BorderBrush="{StaticResource BrushBorder}" BorderThickness="1"
+                                        CornerRadius="8" Padding="10" Margin="0,6,0,0">
+                                    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+                                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="ИСТОРИЯ ОТКЛОНЕНИЙ"
+                                                       FontSize="11" FontWeight="SemiBold"
+                                                       LetterSpacing="2"
+                                                       Foreground="{StaticResource BrushMuted}"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1" x:Name="ClearDeviationHistoryButton"
+                                                    Content="Очистить"
+                                                    Padding="8,3"
+                                                    FontSize="11"/>
+                                        </Grid>
+
+                                        <TextBlock Grid.Row="1" x:Name="DeviationHistoryEmptyText"
+                                                   Text="Отклонений пока нет"
+                                                   FontSize="11"
+                                                   Foreground="{StaticResource BrushMutedSoft}"/>
+
+                                        <ListBox Grid.Row="2" x:Name="DeviationHistoryList"
+                                                 FontSize="11">
+                                            <ListBox.ItemContainerTheme>
+                                                <ControlTheme TargetType="ListBoxItem" x:DataType="ListBoxItem">
+                                                    <Setter Property="Padding" Value="0"/>
+                                                    <Setter Property="Margin" Value="0,0,0,6"/>
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="Template">
+                                                        <ControlTemplate>
+                                                            <ContentPresenter Content="{TemplateBinding Content}"
+                                                                              ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                                                        </ControlTemplate>
+                                                    </Setter>
+                                                </ControlTheme>
+                                            </ListBox.ItemContainerTheme>
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{StaticResource BrushPanel}"
+                                                            BorderBrush="{StaticResource BrushBorder}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="7"
+                                                            Padding="8">
+                                                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="3">
+                                                            <Grid ColumnDefinitions="*,Auto">
+                                                                <TextBlock Text="{Binding Header}"
+                                                                           FontSize="12"
+                                                                           FontWeight="SemiBold"
+                                                                           Foreground="{StaticResource BrushText}"
+                                                                           TextTrimming="CharacterEllipsis"/>
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{Binding StatusText}"
+                                                                           FontSize="10"
+                                                                           Foreground="{Binding StatusBrush}"
+                                                                           Margin="8,0,0,0"/>
+                                                            </Grid>
+                                                            <TextBlock Grid.Row="1"
+                                                                       Text="{Binding StartedText}"
+                                                                       Foreground="{StaticResource BrushMuted}"
+                                                                       FontSize="10"/>
+                                                            <TextBlock Grid.Row="2"
+                                                                       Text="{Binding Details}"
+                                                                       Foreground="{StaticResource BrushMutedSoft}"
+                                                                       FontSize="10"
+                                                                       TextWrapping="Wrap"/>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="3" Background="{StaticResource BrushPanel}"
+                BorderBrush="{StaticResource BrushBorder}" BorderThickness="0,1,0,0"
+                Padding="12,4" Height="28">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                <TextBlock x:Name="StatusText" Text="Ожидание"
+                           Foreground="{StaticResource BrushMuted}" FontSize="11"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" x:Name="SamplingRateLabel"
+                           Text="" Foreground="{StaticResource BrushMuted}" FontSize="11"
+                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <TextBlock Grid.Column="2" x:Name="LastSampleLabel"
+                           Text="" Foreground="{StaticResource BrushMuted}" FontSize="11"
+                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <TextBlock Grid.Column="3" x:Name="SourceText"
+                           Text="CSV" Foreground="{StaticResource BrushMuted}" FontSize="11"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>
