@@ -1,4 +1,5 @@
 # Local secrets and runtime state
+**/secrets.ps1
 config.json
 data/
 logs/
