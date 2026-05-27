@@ -122,9 +122,20 @@ public sealed class LocalGotifyService
 
     private async Task<(bool Success, string Message)> EnsureGotifyRunningAsync(CancellationToken cancellationToken)
     {
-        if (await IsHealthyAsync(cancellationToken))
+        // If the database file is present the process that owns it should still be running.
+        // If it is absent (fresh install or user wiped the data dir) any stale gotify-server.exe
+        // on our port must be killed first because it was initialised with a different password.
+        var dbPath = Path.Combine(_dataDirectory, "gotify.db");
+        var freshDataDir = !File.Exists(dbPath);
+
+        if (!freshDataDir && await IsHealthyAsync(cancellationToken))
         {
             return (true, "Уже запущен.");
+        }
+
+        if (freshDataDir)
+        {
+            KillAnyGotifyProcess();
         }
 
         var path = await ResolveGotifyExeAsync(cancellationToken);
@@ -299,6 +310,23 @@ pluginsdir: plugins
         });
 
         return process;
+    }
+
+    /// <summary>Kills every running gotify-server process regardless of how it was started.</summary>
+    private static void KillAnyGotifyProcess()
+    {
+        try
+        {
+            foreach (var proc in Process.GetProcessesByName("gotify-server"))
+            {
+                try { proc.Kill(entireProcessTree: true); } catch { }
+                finally { proc.Dispose(); }
+            }
+        }
+        catch
+        {
+            // Best effort — port contention will surface as a startup failure.
+        }
     }
 
     private void StopOwnedProcess()
