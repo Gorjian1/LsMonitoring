@@ -24,7 +24,7 @@ public sealed record LocalGotifyBootstrapResult(
 public sealed class LocalGotifyService
 {
     public const string GotifyDownloadUrl =
-        "https://github.com/gotify/server/releases/latest/download/gotify-windows-amd64.zip";
+        "https://github.com/gotify/server/releases/latest/download/gotify-windows-amd64.exe.zip";
 
     private const string ApplicationName = "LS Monitoring";
     private const string ClientName = "LS Monitoring Desktop";
@@ -138,10 +138,18 @@ public sealed class LocalGotifyService
             KillAnyGotifyProcess();
         }
 
-        var path = await ResolveGotifyExeAsync(cancellationToken);
+        string path;
+        try
+        {
+            path = await ResolveGotifyExeAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Не удалось скачать gotify-server.exe: {ex.Message}");
+        }
         if (string.IsNullOrWhiteSpace(path))
         {
-            return (false, "Не удалось скачать gotify-server.exe.");
+            return (false, "В архиве Gotify не найден .exe-файл.");
         }
 
         StopOwnedProcess();
@@ -229,10 +237,6 @@ public sealed class LocalGotifyService
             }
 
             return _gotifyExePath;
-        }
-        catch
-        {
-            return "";
         }
         finally
         {
