@@ -424,9 +424,12 @@ public sealed class PushConfig
         }
     }
 
+    /// <summary>
+    /// Auto-start logic intentionally does NOT require <see cref="Enabled"/>: the tunnel + local Gotify
+    /// bootstrap so the Connect QR is ready before the user toggles the channel on.
+    /// </summary>
     [JsonIgnore]
     public bool ShouldAutoStartTemporaryTunnel =>
-        Enabled &&
         AutoStartTemporaryTunnel &&
         (string.IsNullOrWhiteSpace(EffectiveServerUrl) || UsesTryCloudflareTunnel);
 

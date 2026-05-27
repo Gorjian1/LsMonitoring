@@ -15,6 +15,7 @@ public partial class MessagesDialog : Window
     private const string TelegramBotUrl = "https://t.me/ls_monitoringbot";
 
     private readonly CloudflareQuickTunnelService _quickTunnelService = CloudflareQuickTunnelService.CreateDefault();
+    private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
 
     private AppConfig _config = null!;
 
@@ -263,17 +264,31 @@ public partial class MessagesDialog : Window
     private async void OnStartPushTunnelClick(object? sender, RoutedEventArgs e)
     {
         StartPushTunnelButton.IsEnabled = false;
-        PushTunnelStatusText.Text = "Проверяю локальный Gotify и запускаю tunnel...";
+        PushTunnelStatusText.Text = "Запуск локального Gotify...";
 
         try
         {
-            var result = await _quickTunnelService.EnsureStartedAsync(PushLocalServerUrlBox.Text);
+            var gotify = await _localGotifyService.EnsureRunningAndBootstrapAsync(
+                PushAppTokenBox.Text,
+                PushClientTokenBox.Text);
+            if (!gotify.Success)
+            {
+                PushTunnelStatusText.Text = $"Gotify: {gotify.Message}";
+                return;
+            }
+
+            PushLocalServerUrlBox.Text = gotify.ServerUrl;
+            PushAppTokenBox.Text = gotify.AppToken;
+            PushClientTokenBox.Text = gotify.ClientToken;
+
+            PushTunnelStatusText.Text = "Запуск временного Cloudflare Tunnel...";
+            var result = await _quickTunnelService.EnsureStartedAsync(gotify.ServerUrl);
             if (result.Success)
             {
                 PushServerUrlBox.Text = result.PublicUrl;
                 EnablePushBox.IsChecked = true;
                 PushAutoTunnelBox.IsChecked = true;
-                PushTunnelStatusText.Text = "Tunnel запущен. После перезагрузки компьютера URL нужно создать заново.";
+                PushTunnelStatusText.Text = "Готово. После перезагрузки компьютера URL пересоздастся автоматически.";
                 PushStatusText.Text = result.PublicUrl;
                 RefreshPushQrCode();
                 return;

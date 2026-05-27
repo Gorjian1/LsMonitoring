@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, DeviationHistoryRow> _deviationHistoryRowsById = [];
     private readonly AlertStateTracker _alertState = new();
     private readonly CloudflareQuickTunnelService _quickTunnelService = CloudflareQuickTunnelService.CreateDefault();
+    private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
     private readonly string _configPath;
     private readonly string _deviationHistoryPath;
     private AppConfig _config;
@@ -406,18 +407,67 @@ public partial class MainWindow : Window
     private async Task EnsureConfiguredPushTunnelAsync()
     {
         _pushTunnelStartInProgress = true;
+        var configChanged = false;
         try
         {
+            StatusText.Text = "Запуск локального Gotify...";
+            var gotify = await _localGotifyService.EnsureRunningAndBootstrapAsync(
+                _config.Push.AppToken,
+                _config.Push.ClientToken);
+            if (!gotify.Success)
+            {
+                StatusText.Text = $"Push: {gotify.Message}";
+                return;
+            }
+
+            if (!string.Equals(_config.Push.LocalServerUrl, gotify.ServerUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                _config.Push.LocalServerUrl = gotify.ServerUrl;
+                configChanged = true;
+            }
+            if (!string.Equals(_config.Push.AppToken, gotify.AppToken, StringComparison.Ordinal))
+            {
+                _config.Push.AppToken = gotify.AppToken;
+                configChanged = true;
+            }
+            if (!string.Equals(_config.Push.ClientToken, gotify.ClientToken, StringComparison.Ordinal))
+            {
+                _config.Push.ClientToken = gotify.ClientToken;
+                configChanged = true;
+            }
+
             StatusText.Text = "Запуск временного Push tunnel...";
             var result = await _quickTunnelService.EnsureStartedAsync(_config.Push.EffectiveLocalServerUrl);
             if (!result.Success)
             {
+                if (configChanged)
+                {
+                    _config.Save(_configPath);
+                    ReconfigureGotifyAlerts();
+                }
                 StatusText.Text = $"Push tunnel: {result.Message}";
                 return;
             }
 
-            _config.Push.ServerUrl = result.PublicUrl;
-            _config.Save(_configPath);
+            if (!string.Equals(_config.Push.ServerUrl, result.PublicUrl, StringComparison.Ordinal))
+            {
+                _config.Push.ServerUrl = result.PublicUrl;
+                configChanged = true;
+            }
+
+            // First-run convenience: once we have a working stack, enable the channel so the user can
+            // immediately see push notifications without flipping the switch manually.
+            if (!_config.Push.Enabled)
+            {
+                _config.Push.Enabled = true;
+                configChanged = true;
+            }
+
+            if (configChanged)
+            {
+                _config.Save(_configPath);
+            }
+
             ReconfigureGotifyAlerts();
             StatusText.Text = $"Push tunnel запущен: {result.PublicUrl}";
         }
