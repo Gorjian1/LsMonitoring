@@ -74,6 +74,20 @@ jobs:
             -o artifacts/publish/$env:RUNTIME_ID
           Get-ChildItem artifacts/publish/$env:RUNTIME_ID -Filter *.pdb -File | Remove-Item -Force
 
+      - name: Bundle gotify-server.exe with the app
+        shell: pwsh
+        run: |
+          $url = "https://github.com/gotify/server/releases/latest/download/gotify-windows-amd64.exe.zip"
+          $zip = "artifacts/gotify-download.zip"
+          $extract = "artifacts/gotify-extracted"
+          Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+          New-Item -ItemType Directory -Force $extract | Out-Null
+          Expand-Archive -Path $zip -DestinationPath $extract -Force
+          $exe = Get-ChildItem $extract -Filter "*.exe" -Recurse | Select-Object -First 1
+          if (-not $exe) { throw "No .exe found inside Gotify zip" }
+          Copy-Item $exe.FullName "artifacts/publish/$env:RUNTIME_ID/gotify-server.exe" -Force
+          Remove-Item $zip, $extract -Recurse -Force
+
       - name: Create portable zip
         shell: pwsh
         run: |

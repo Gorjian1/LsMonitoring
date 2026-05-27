@@ -201,11 +201,23 @@ public sealed class LocalGotifyService
 
     private async Task<string> ResolveGotifyExeAsync(CancellationToken cancellationToken)
     {
+        // 1. Bundled binary next to the app. CI ships this so end users never
+        //    hit a runtime download — Windows Defender treats fresh downloads
+        //    of Go binaries as PUA and quarantines mid-write.
+        var bundled = Path.Combine(AppContext.BaseDirectory, "gotify-server.exe");
+        if (File.Exists(bundled))
+        {
+            return bundled;
+        }
+
+        // 2. Previously downloaded copy in the per-user data dir.
         if (File.Exists(_gotifyExePath))
         {
             return _gotifyExePath;
         }
 
+        // 3. Live download — dev fallback. Will likely trigger Defender on a
+        //    clean machine; the real fix is to ship the binary with the app.
         var zipPath = Path.Combine(_toolDirectory, "gotify-download.zip");
         try
         {
