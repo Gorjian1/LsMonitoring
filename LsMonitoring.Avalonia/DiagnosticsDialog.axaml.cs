@@ -190,9 +190,10 @@ public partial class DiagnosticsDialog : Window
             return "локальный адрес, вне этой сети push не заработает";
         }
 
-        if (uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase))
+        if (uri.Host.EndsWith(".lhr.life", StringComparison.OrdinalIgnoreCase) ||
+            uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase))
         {
-            return "временный Cloudflare Tunnel; после перезагрузки URL нужно создать заново";
+            return "временный tunnel (localhost.run); после перезагрузки URL нужно создать заново";
         }
 
         return string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)

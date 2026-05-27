@@ -64,17 +64,23 @@ public class PushConfigTests
     }
 
     [Fact]
-    public void ShouldAutoStartTemporaryTunnel_AllowsEmptyOrTryCloudflareUrl()
+    public void ShouldAutoStartTemporaryTunnel_AllowsEmptyOrTemporaryTunnelUrl()
     {
         var emptyConfig = new PushConfig { Enabled = true, ServerUrl = "" };
-        var temporaryConfig = new PushConfig
+        var localhostRunConfig = new PushConfig
+        {
+            Enabled = true,
+            ServerUrl = "https://abc123-something.lhr.life"
+        };
+        var legacyCloudflareConfig = new PushConfig
         {
             Enabled = true,
             ServerUrl = "https://throwing-expense-asin-cycles.trycloudflare.com"
         };
 
         Assert.True(emptyConfig.ShouldAutoStartTemporaryTunnel);
-        Assert.True(temporaryConfig.ShouldAutoStartTemporaryTunnel);
+        Assert.True(localhostRunConfig.ShouldAutoStartTemporaryTunnel);
+        Assert.True(legacyCloudflareConfig.ShouldAutoStartTemporaryTunnel);
     }
 
     [Fact]

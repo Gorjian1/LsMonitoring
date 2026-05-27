@@ -88,12 +88,6 @@ jobs:
           Copy-Item $exe.FullName "artifacts/publish/$env:RUNTIME_ID/gotify-server.exe" -Force
           Remove-Item $zip, $extract -Recurse -Force
 
-      - name: Bundle cloudflared.exe with the app
-        shell: pwsh
-        run: |
-          $url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
-          Invoke-WebRequest -Uri $url -OutFile "artifacts/publish/$env:RUNTIME_ID/cloudflared.exe" -UseBasicParsing
-
       - name: Create portable zip
         shell: pwsh
         run: |

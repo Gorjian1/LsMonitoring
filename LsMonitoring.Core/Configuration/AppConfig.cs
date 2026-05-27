@@ -410,8 +410,13 @@ public sealed class PushConfig
         ? DefaultLocalServerUrl
         : LocalServerUrl.Trim().TrimEnd('/');
 
+    /// <summary>
+    /// True when the configured server URL looks like an ephemeral tunnel that we created
+    /// ourselves (localhost.run today, trycloudflare.com previously). Such URLs change on
+    /// every restart, so we recreate them automatically on startup.
+    /// </summary>
     [JsonIgnore]
-    public bool UsesTryCloudflareTunnel
+    public bool UsesTemporaryTunnel
     {
         get
         {
@@ -420,7 +425,8 @@ public sealed class PushConfig
                 return false;
             }
 
-            return uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase);
+            return uri.Host.EndsWith(".lhr.life", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -431,7 +437,7 @@ public sealed class PushConfig
     [JsonIgnore]
     public bool ShouldAutoStartTemporaryTunnel =>
         AutoStartTemporaryTunnel &&
-        (string.IsNullOrWhiteSpace(EffectiveServerUrl) || UsesTryCloudflareTunnel);
+        (string.IsNullOrWhiteSpace(EffectiveServerUrl) || UsesTemporaryTunnel);
 
     [JsonIgnore]
     public bool HasDeliverySettings =>

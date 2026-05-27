@@ -14,7 +14,7 @@ public partial class MessagesDialog : Window
     private const string SendTestText = "Отправить тест";
     private const string TelegramBotUrl = "https://t.me/ls_monitoringbot";
 
-    private readonly CloudflareQuickTunnelService _quickTunnelService = CloudflareQuickTunnelService.CreateDefault();
+    private readonly LocalhostRunTunnelService _quickTunnelService = LocalhostRunTunnelService.CreateDefault();
     private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
 
     private AppConfig _config = null!;
@@ -281,7 +281,7 @@ public partial class MessagesDialog : Window
             PushAppTokenBox.Text = gotify.AppToken;
             PushClientTokenBox.Text = gotify.ClientToken;
 
-            PushTunnelStatusText.Text = "Запуск временного Cloudflare Tunnel...";
+            PushTunnelStatusText.Text = "Запуск временного tunnel (localhost.run)...";
             var result = await _quickTunnelService.EnsureStartedAsync(gotify.ServerUrl);
             if (result.Success)
             {
@@ -478,9 +478,10 @@ public partial class MessagesDialog : Window
         }
 
         if (Uri.TryCreate(serverUrl.Trim(), UriKind.Absolute, out var uri) &&
-            uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase))
+            (uri.Host.EndsWith(".lhr.life", StringComparison.OrdinalIgnoreCase) ||
+             uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase)))
         {
-            return "Используется временный Cloudflare Tunnel. После перезагрузки компьютера URL меняется.";
+            return "Используется временный tunnel (localhost.run). После перезагрузки компьютера URL меняется.";
         }
 
         return "Задан постоянный публичный URL; временный tunnel не будет заменять его автоматически.";

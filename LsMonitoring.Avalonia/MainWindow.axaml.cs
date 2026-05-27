@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<(int NodeId, string Axis), DeviationHistoryEntry> _activeDeviationHistory = [];
     private readonly Dictionary<string, DeviationHistoryRow> _deviationHistoryRowsById = [];
     private readonly AlertStateTracker _alertState = new();
-    private readonly CloudflareQuickTunnelService _quickTunnelService = CloudflareQuickTunnelService.CreateDefault();
+    private readonly LocalhostRunTunnelService _quickTunnelService = LocalhostRunTunnelService.CreateDefault();
     private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
     private readonly UpdateService _updateService = new();
     private readonly string _configPath;

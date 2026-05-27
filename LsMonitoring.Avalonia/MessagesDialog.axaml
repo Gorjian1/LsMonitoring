@@ -287,7 +287,7 @@
                                 <StackPanel Grid.Column="0" Spacing="10">
                                     <TextBlock Classes="card-title" Text="Push на Android"/>
                                     <TextBlock Classes="card-text"
-                                               Text="Push приходит через локальный Gotify и временный Cloudflare Tunnel. Cloudflared скачается при первом запуске."/>
+                                               Text="Push приходит через локальный Gotify и временный tunnel localhost.run (по SSH, встроен в Windows)."/>
                                     <StackPanel Spacing="7">
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
