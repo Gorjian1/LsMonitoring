@@ -1,5 +1,6 @@
 using Avalonia;
 using System;
+using Velopack;
 
 namespace LsMonitoring.Avalonia;
 
@@ -9,8 +10,14 @@ class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args) => BuildAvaloniaApp()
-        .StartWithClassicDesktopLifetime(args);
+    public static void Main(string[] args)
+    {
+        // Must be the very first call — Velopack needs to intercept update hooks
+        // before Avalonia or any other subsystem initialises.
+        VelopackApp.Build().Run();
+
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()

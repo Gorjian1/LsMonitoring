@@ -58,15 +58,13 @@ jobs:
           $version = "${{ github.ref_name }}".TrimStart("v")
           "value=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Publish self-contained app
+      - name: Publish app
         shell: pwsh
         run: |
           dotnet publish $env:PROJECT_PATH `
             -c Release `
             -r $env:RUNTIME_ID `
             --self-contained true `
-            -p:PublishSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:DebugType=None `
             -p:DebugSymbols=false `
             -p:Version=${{ steps.version.outputs.value }} `
@@ -77,26 +75,43 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/release | Out-Null
-          Copy-Item `
-            artifacts/publish/$env:RUNTIME_ID/LsMonitoring.Avalonia.exe `
-            artifacts/release/LsMonitoring-$env:RUNTIME_ID.exe
           Compress-Archive `
             -Path artifacts/publish/$env:RUNTIME_ID/* `
             -DestinationPath artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip `
             -Force
 
-      - name: Install Inno Setup
-        shell: pwsh
-        run: choco install innosetup --no-progress -y
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
 
-      - name: Build installer
+      - name: Download previous release for delta packages
+        shell: pwsh
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force artifacts/previous | Out-Null
+          vpk download github `
+            --repoUrl https://github.com/Gorjian1/LsMonitoring `
+            --token ${{ github.token }} `
+            --outputDir artifacts/previous
+
+      - name: Pack with Velopack
         shell: pwsh
         run: |
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
-            build/installer/LsMonitoring.iss `
-            /DAppVersion=${{ steps.version.outputs.value }} `
-            /DPublishDir="${{ github.workspace }}\artifacts\publish\$env:RUNTIME_ID" `
-            /DOutputDir="${{ github.workspace }}\artifacts\release"
+          $previousDir = if (Test-Path artifacts/previous/RELEASES-win) { "artifacts/previous" } else { $null }
+          $packArgs = @(
+            "pack",
+            "--packId", "LsMonitoring",
+            "--packVersion", "${{ steps.version.outputs.value }}",
+            "--packDir", "artifacts/publish/$env:RUNTIME_ID",
+            "--mainExe", "LsMonitoring.Avalonia.exe",
+            "--outputDir", "artifacts/release",
+            "--packTitle", "LS Monitoring"
+          )
+          if ($previousDir) {
+            $packArgs += "--previousDir", $previousDir
+          }
+          vpk @packArgs
 
       - name: Setup Java for Android
         uses: actions/setup-java@v4
@@ -160,9 +175,9 @@ jobs:
         run: |
           $version = "${{ steps.version.outputs.value }}"
           $expected = @(
-            "artifacts/release/LsMonitoring-$env:RUNTIME_ID.exe",
+            "artifacts/release/LsMonitoring-Setup.exe",
+            "artifacts/release/LsMonitoring-$version-full.nupkg",
             "artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip",
-            "artifacts/release/LsMonitoringSetup-$env:RUNTIME_ID.exe",
             "artifacts/release/ls-alerts-$version.apk",
             "artifacts/release/ls-alerts-latest.apk"
           )
@@ -176,12 +191,6 @@ jobs:
             if ($item.Length -le 0) {
               throw "Empty release artifact: $path"
             }
-          }
-
-          $exe = Get-Item "artifacts/release/LsMonitoring-$env:RUNTIME_ID.exe"
-          $fileVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName)
-          if ($fileVersion.ProductVersion -notlike "$version*") {
-            throw "Desktop version mismatch: expected $version, got $($fileVersion.ProductVersion)"
           }
 
           $apk = "artifacts/release/ls-alerts-$version.apk"
@@ -216,12 +225,25 @@ jobs:
 
           & $apksignerPath verify --print-certs $apk
 
-      - name: Create GitHub Release
+      - name: Publish release via Velopack
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" `
-            artifacts/release/* `
-            --title "LS Monitoring ${{ github.ref_name }}" `
-            --notes "Автоматическая сборка LS Monitoring ${{ github.ref_name }}."
+          vpk upload github `
+            --repoUrl https://github.com/Gorjian1/LsMonitoring `
+            --token ${{ github.token }} `
+            --tag ${{ github.ref_name }} `
+            --outputDir artifacts/release `
+            --releaseName "LS Monitoring ${{ github.ref_name }}"
+
+      - name: Upload extra artifacts to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          gh release upload "${{ github.ref_name }}" `
+            "artifacts/release/ls-alerts-$version.apk" `
+            "artifacts/release/ls-alerts-latest.apk" `
+            "artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip"

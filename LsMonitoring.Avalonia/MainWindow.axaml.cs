@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private readonly AlertStateTracker _alertState = new();
     private readonly CloudflareQuickTunnelService _quickTunnelService = CloudflareQuickTunnelService.CreateDefault();
     private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
+    private readonly UpdateService _updateService = new();
     private readonly string _configPath;
     private readonly string _deviationHistoryPath;
     private AppConfig _config;
@@ -73,6 +74,7 @@ public partial class MainWindow : Window
         UpdatePollingButtons();
         RefreshCurrentNode();
         StartConfiguredPushTunnelInBackground();
+        CheckForUpdatesInBackground();
     }
 
     protected override async void OnClosed(EventArgs e)
@@ -99,6 +101,7 @@ public partial class MainWindow : Window
         PickPlotLimitButton.Click += (_, _) => TogglePlotLimitPicker();
         ClearPlotLimitButton.Click += (_, _) => SetPlotCutoff(null);
         ClearDeviationHistoryButton.Click += (_, _) => ClearDeviationHistory();
+        UpdateBannerButton.Click += (_, _) => _updateService.ApplyAndRestart();
         PlotA.CutoffTimePicked += OnPlotCutoffPicked;
         PlotB.CutoffTimePicked += OnPlotCutoffPicked;
         TimeWindowBox.SelectionChanged += (_, _) =>
@@ -402,6 +405,25 @@ public partial class MainWindow : Window
         }
 
         _ = EnsureConfiguredPushTunnelAsync();
+    }
+
+    private void CheckForUpdatesInBackground() => _ = CheckForUpdatesAsync();
+
+    private async Task CheckForUpdatesAsync()
+    {
+        // Only works when running as a Velopack-managed install (not portable).
+        var ready = await _updateService.CheckAndDownloadAsync();
+        if (!ready)
+        {
+            return;
+        }
+
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            UpdateBannerText.Text =
+                $"Доступно обновление {_updateService.PendingVersion} — скачано и готово к установке";
+            UpdateBanner.IsVisible = true;
+        });
     }
 
     private async Task EnsureConfiguredPushTunnelAsync()
