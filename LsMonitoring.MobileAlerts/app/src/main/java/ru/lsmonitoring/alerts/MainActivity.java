@@ -15,16 +15,22 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.text.InputType;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -42,6 +48,12 @@ public final class MainActivity extends Activity {
     private EditText clientTokenBox;
     private TextView statusText;
     private TextView diagnosticsText;
+    private LinearLayout updateBanner;
+    private TextView updateBannerText;
+    private Button updateBannerButton;
+    private String pendingApkUrl;
+    private String pendingApkVersion;
+    private boolean awaitingInstallPermission;
     private final OkHttpClient httpClient = new OkHttpClient();
 
     @Override
@@ -52,6 +64,7 @@ public final class MainActivity extends Activity {
         buildUi();
         loadSettings();
         applyDeepLink(getIntent());
+        checkForUpdateSilently();
     }
 
     @Override
@@ -66,6 +79,12 @@ public final class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         refreshDiagnostics();
+
+        // User returned from "Install unknown apps" settings — retry download if they granted it.
+        if (awaitingInstallPermission && canInstallPackages()) {
+            awaitingInstallPermission = false;
+            downloadAndInstall();
+        }
     }
 
     private void buildUi() {
@@ -74,6 +93,28 @@ public final class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(20, density), dp(20, density), dp(20, density), dp(20, density));
         root.setGravity(Gravity.CENTER_VERTICAL);
+
+        updateBanner = new LinearLayout(this);
+        updateBanner.setOrientation(LinearLayout.VERTICAL);
+        updateBanner.setPadding(
+            dp(14, density), dp(10, density), dp(14, density), dp(10, density));
+        updateBanner.setBackgroundColor(0xFF166534);
+        updateBanner.setVisibility(View.GONE);
+
+        updateBannerText = new TextView(this);
+        updateBannerText.setTextColor(0xFFFFFFFF);
+        updateBannerText.setTextSize(13);
+        updateBanner.addView(updateBannerText);
+
+        updateBannerButton = new Button(this);
+        updateBannerButton.setText("Скачать и установить");
+        updateBannerButton.setOnClickListener(v -> downloadAndInstall());
+        updateBanner.addView(updateBannerButton);
+
+        LinearLayout.LayoutParams bannerParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        bannerParams.bottomMargin = dp(14, density);
+        root.addView(updateBanner, bannerParams);
 
         TextView title = new TextView(this);
         title.setText("LS Alerts");
@@ -131,7 +172,7 @@ public final class MainActivity extends Activity {
 
         Button updateButton = new Button(this);
         updateButton.setText("Проверить обновление");
-        updateButton.setOnClickListener(v -> checkForUpdate());
+        updateButton.setOnClickListener(v -> checkForUpdateManual());
         root.addView(updateButton);
 
         diagnosticsText = new TextView(this);
@@ -245,14 +286,36 @@ public final class MainActivity extends Activity {
         startActivity(intent);
     }
 
-    private void checkForUpdate() {
-        statusText.setText("Проверка GitHub Releases...");
-        Request request = new Request.Builder()
-            .url(LATEST_RELEASE_URL)
-            .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "LS-Alerts-Android")
-            .build();
+    /**
+     * Silent background check on startup. Shows the green banner if a newer release exists.
+     * Never touches statusText so it doesn't trample other user-visible messages.
+     */
+    private void checkForUpdateSilently() {
+        Request request = githubReleaseRequest();
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                // Silent: network may be down on launch, no need to bother the user.
+            }
 
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String body = response.body() == null ? "" : response.body().string();
+                if (!response.isSuccessful()) {
+                    return;
+                }
+
+                processReleaseResponse(body, /*silent=*/true);
+            }
+        });
+    }
+
+    /**
+     * User-triggered check via the "Проверить обновление" button. Reports status to statusText.
+     */
+    private void checkForUpdateManual() {
+        statusText.setText("Проверка GitHub Releases...");
+        Request request = githubReleaseRequest();
         httpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -267,12 +330,20 @@ public final class MainActivity extends Activity {
                     return;
                 }
 
-                handleReleaseResponse(body);
+                processReleaseResponse(body, /*silent=*/false);
             }
         });
     }
 
-    private void handleReleaseResponse(String body) {
+    private Request githubReleaseRequest() {
+        return new Request.Builder()
+            .url(LATEST_RELEASE_URL)
+            .header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "LS-Alerts-Android")
+            .build();
+    }
+
+    private void processReleaseResponse(String body, boolean silent) {
         try {
             JSONObject release = new JSONObject(body);
             String latestVersion = normalizeVersion(release.optString("tag_name", ""));
@@ -280,27 +351,159 @@ public final class MainActivity extends Activity {
             String apkUrl = findApkAssetUrl(release.optJSONArray("assets"));
 
             if (latestVersion.isEmpty()) {
-                runOnUiThread(() -> statusText.setText("В latest release нет tag_name."));
+                if (!silent) {
+                    runOnUiThread(() -> statusText.setText("В latest release нет tag_name."));
+                }
                 return;
             }
 
             if (compareVersions(latestVersion, currentVersion) <= 0) {
-                runOnUiThread(() -> statusText.setText("Версия актуальна: " + appVersion()));
+                if (!silent) {
+                    runOnUiThread(() -> statusText.setText("Версия актуальна: " + appVersion()));
+                }
                 return;
             }
 
             if (apkUrl.isEmpty()) {
-                runOnUiThread(() -> statusText.setText("Есть версия " + latestVersion + ", но APK asset не найден."));
+                if (!silent) {
+                    runOnUiThread(() -> statusText.setText(
+                        "Есть версия " + latestVersion + ", но APK asset не найден."));
+                }
                 return;
             }
 
-            runOnUiThread(() -> {
-                statusText.setText("Найдена версия " + latestVersion + ". Открываю скачивание.");
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl)));
-            });
+            runOnUiThread(() -> showUpdateBanner(latestVersion, apkUrl));
         } catch (Exception ex) {
-            runOnUiThread(() -> statusText.setText("Ошибка проверки версии: " + ex.getMessage()));
+            if (!silent) {
+                runOnUiThread(() -> statusText.setText("Ошибка проверки версии: " + ex.getMessage()));
+            }
         }
+    }
+
+    private void showUpdateBanner(String version, String apkUrl) {
+        pendingApkVersion = version;
+        pendingApkUrl = apkUrl;
+        updateBannerText.setText("Доступна версия " + version + " — нажмите, чтобы обновить");
+        updateBannerButton.setText("Скачать и установить");
+        updateBannerButton.setEnabled(true);
+        updateBanner.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Downloads the APK into the app's private external dir and hands it to the system installer
+     * via FileProvider. The user sees one Android "Update?" dialog and can apply the update.
+     */
+    private void downloadAndInstall() {
+        if (pendingApkUrl == null || pendingApkUrl.isEmpty()) {
+            return;
+        }
+
+        if (!canInstallPackages()) {
+            // One-time per-app permission required since Android 8.
+            awaitingInstallPermission = true;
+            updateBannerText.setText(
+                "Разрешите установку из этого приложения в открывшихся настройках, затем вернитесь сюда.");
+            Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                .setData(Uri.parse("package:" + getPackageName()));
+            try {
+                startActivity(intent);
+            } catch (Exception ex) {
+                updateBannerText.setText("Не удалось открыть настройки: " + ex.getMessage());
+            }
+            return;
+        }
+
+        updateBannerText.setText("Скачивание " + pendingApkVersion + "...");
+        updateBannerButton.setEnabled(false);
+
+        Request request = new Request.Builder()
+            .url(pendingApkUrl)
+            .header("User-Agent", "LS-Alerts-Android")
+            .build();
+
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                runOnUiThread(() -> {
+                    updateBannerText.setText("Не удалось скачать: " + e.getMessage());
+                    updateBannerButton.setEnabled(true);
+                });
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                ResponseBody body = response.body();
+                if (!response.isSuccessful() || body == null) {
+                    int code = response.code();
+                    runOnUiThread(() -> {
+                        updateBannerText.setText("Сервер вернул HTTP " + code);
+                        updateBannerButton.setEnabled(true);
+                    });
+                    return;
+                }
+
+                File apk;
+                try {
+                    apk = writeApkToCache(body);
+                } catch (IOException ioe) {
+                    runOnUiThread(() -> {
+                        updateBannerText.setText("Ошибка записи APK: " + ioe.getMessage());
+                        updateBannerButton.setEnabled(true);
+                    });
+                    return;
+                } finally {
+                    body.close();
+                }
+
+                runOnUiThread(() -> launchInstaller(apk));
+            }
+        });
+    }
+
+    private File writeApkToCache(ResponseBody body) throws IOException {
+        File baseDir = getExternalFilesDir(null);
+        if (baseDir == null) {
+            throw new IOException("Внешнее хранилище недоступно.");
+        }
+
+        File dir = new File(baseDir, "updates");
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new IOException("Не удалось создать " + dir.getAbsolutePath());
+        }
+
+        File apk = new File(dir, "ls-alerts-" + pendingApkVersion + ".apk");
+        try (InputStream in = body.byteStream();
+             FileOutputStream out = new FileOutputStream(apk)) {
+            byte[] buffer = new byte[16 * 1024];
+            int n;
+            while ((n = in.read(buffer)) != -1) {
+                out.write(buffer, 0, n);
+            }
+        }
+        return apk;
+    }
+
+    private void launchInstaller(File apk) {
+        try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", apk);
+            Intent intent = new Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            updateBannerText.setText("Откройте системный диалог и подтвердите обновление.");
+            updateBannerButton.setEnabled(true);
+        } catch (Exception ex) {
+            updateBannerText.setText("Не удалось запустить установщик: " + ex.getMessage());
+            updateBannerButton.setEnabled(true);
+        }
+    }
+
+    private boolean canInstallPackages() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return true;
+        }
+
+        return getPackageManager().canRequestPackageInstalls();
     }
 
     private String findApkAssetUrl(JSONArray assets) {
