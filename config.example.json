@@ -56,6 +56,8 @@
     "app_token": "",
     "client_token": "",
     "app_download_url": "https://github.com/Gorjian1/LsMonitoring/releases/latest/download/ls-alerts-latest.apk",
+    "auto_start_temporary_tunnel": true,
+    "local_server_url": "http://localhost:8080",
     "target": "",
     "priority": 5
   },

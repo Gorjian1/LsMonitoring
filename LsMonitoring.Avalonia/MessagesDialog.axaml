@@ -79,7 +79,13 @@
         </StackPanel>
 
         <TabControl Grid.Row="1">
-            <TabItem Header="Telegram">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <CheckBox x:Name="EnableTelegramBox"/>
+                        <TextBlock Text="Telegram" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer Margin="0,14,0,0"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
@@ -87,50 +93,60 @@
                         <Border Classes="channel-card">
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                                 <StackPanel Spacing="10">
-                                    <TextBlock Classes="card-title" Text="Telegram-бот"/>
+                                    <TextBlock Classes="card-title" Text="Telegram"/>
                                     <TextBlock Classes="card-text"
-                                               Text="Приложение отправляет активную тревогу, обновляет сообщение и пишет завершение, когда значение вернулось в норму."/>
+                                               Text="Бот пишет в чат при начале тревоги и закрывает сообщение, когда значение вернулось в норму."/>
                                     <StackPanel Spacing="7">
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="1"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Откройте бота и нажмите Start."/>
+                                                       Text="Отсканируйте QR справа или откройте бота по ссылке и отправьте /start."/>
                                         </Grid>
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="2"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Вернитесь сюда и нажмите Отправить тест. Если поле ID пустое, приложение попробует найти чат автоматически."/>
+                                                       Text="Нажмите Отправить тест. Поле ID можно оставить пустым — чат подхватится автоматически."/>
                                         </Grid>
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="3"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Когда тест пришёл, оставьте канал включённым и сохраните настройки."/>
+                                                       Text="Когда тест дошёл — включите канал галочкой во вкладке и сохраните."/>
                                         </Grid>
                                     </StackPanel>
                                 </StackPanel>
 
                                 <Border Grid.Column="1"
-                                        Background="{StaticResource BrushAccentTint}"
-                                        BorderBrush="#BAE6FD"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="12"
-                                        MinWidth="170"
+                                        Classes="form-card"
+                                        Padding="10"
+                                        Width="148"
                                         VerticalAlignment="Top">
                                     <StackPanel Spacing="6">
                                         <TextBlock Text="Бот"
-                                                   FontSize="11"
-                                                   Foreground="{StaticResource BrushMuted}"/>
+                                                   TextAlignment="Center"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BrushText}"/>
+                                        <Border Background="White"
+                                                BorderBrush="{StaticResource BrushBorderStrong}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="7"
+                                                HorizontalAlignment="Center">
+                                            <Image x:Name="TelegramBotQrImage"
+                                                   Width="112"
+                                                   Height="112"
+                                                   Stretch="Uniform"/>
+                                        </Border>
                                         <Button x:Name="BotLinkButton"
                                                 Classes="link"
                                                 Content="@ls_monitoringbot"
-                                                HorizontalAlignment="Left"
+                                                HorizontalAlignment="Center"
                                                 ToolTip.Tip="Открыть Telegram-бота"/>
                                     </StackPanel>
                                 </Border>
@@ -138,13 +154,9 @@
                         </Border>
 
                         <Border Classes="form-card">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Канал:"/>
-                                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableTelegramBox"
-                                          Content="Включить Telegram"/>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
-                                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto">
+                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto" RowSpacing="10">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
+                                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto">
                                     <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox"
                                              PlaceholderText="ID чатов: 1234567, 9876543"/>
                                     <Button Grid.Column="1" x:Name="TestTelegramButton"
@@ -158,50 +170,52 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Почта">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <CheckBox x:Name="EnableEmailBox"/>
+                        <TextBlock Text="Почта" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer Margin="0,14,0,0"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="12" Margin="0,0,8,0">
                         <Border Classes="channel-card">
                             <StackPanel Spacing="10">
-                                <TextBlock Classes="card-title" Text="Email-уведомления"/>
+                                <TextBlock Classes="card-title" Text="Email"/>
                                 <TextBlock Classes="card-text"
-                                           Text="Укажите адреса получателей и отправьте тестовое письмо. При сервисной отправке дополнительные SMTP-поля не требуются."/>
+                                           Text="Письма уходят с адреса lsalerts@mail.ru. Получателей укажите ниже."/>
                                 <StackPanel Spacing="7">
                                     <Grid ColumnDefinitions="26,*">
                                         <Border Classes="step-index">
                                             <TextBlock Classes="step-number" Text="1"/>
                                         </Border>
                                         <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Введите один или несколько email через запятую."/>
+                                                   Text="Введите адреса получателей через запятую."/>
                                     </Grid>
                                     <Grid ColumnDefinitions="26,*">
                                         <Border Classes="step-index">
                                             <TextBlock Classes="step-number" Text="2"/>
                                         </Border>
                                         <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Нажмите Отправить тест и проверьте входящие, спам и корпоративный фильтр."/>
+                                                   Text="Нажмите Отправить тест. Проверьте входящие и папку Спам."/>
                                     </Grid>
                                     <Grid ColumnDefinitions="26,*">
                                         <Border Classes="step-index">
                                             <TextBlock Classes="step-number" Text="3"/>
                                         </Border>
                                         <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Если сервисная отправка не настроена, раскройте Свой SMTP и введите почту отправителя, пароль приложения и сервер."/>
+                                                   Text="Тест дошёл — включите канал галочкой во вкладке и сохраните. Если нужен свой ящик отправителя — раскройте блок Свой SMTP."/>
                                     </Grid>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
                         <Border Classes="form-card">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Канал:"/>
-                                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableEmailBox"
-                                          Content="Включить почту"/>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
-                                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto">
+                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
+                                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto">
                                     <TextBox Grid.Column="0" x:Name="EmailRecipientsBox"
                                              PlaceholderText="boss@example.com, engineer@example.com"/>
                                     <Button Grid.Column="1" x:Name="TestEmailButton"
@@ -210,24 +224,10 @@
                                             Padding="12,4"/>
                                 </Grid>
 
-                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="EmailStatusText"
+                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="EmailStatusText"
                                            Classes="card-text"/>
                             </Grid>
                         </Border>
-
-                        <Expander Header="Сервисная почта LS Monitoring" IsExpanded="False">
-                            <Border Classes="form-card" Margin="0,8,0,0">
-                                <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Relay URL:"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="EmailRelayUrlBox"
-                                             PlaceholderText="https://alerts.example.com/api/alerts/email"/>
-
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Ключ:"/>
-                                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="EmailRelayTokenBox"
-                                             PasswordChar="*" PlaceholderText="ключ установки"/>
-                                </Grid>
-                            </Border>
-                        </Expander>
 
                         <Expander Header="Свой SMTP" IsExpanded="False">
                             <Border Classes="form-card" Margin="0,8,0,0">
@@ -271,7 +271,13 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Push">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <CheckBox x:Name="EnablePushBox"/>
+                        <TextBlock Text="Push" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer Margin="0,14,0,0"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
@@ -279,32 +285,41 @@
                         <Border Classes="channel-card">
                             <Grid ColumnDefinitions="*,148,148" ColumnSpacing="14">
                                 <StackPanel Grid.Column="0" Spacing="10">
-                                    <TextBlock Classes="card-title" Text="Push на телефон через LS Alerts"/>
+                                    <TextBlock Classes="card-title" Text="Push на Android"/>
                                     <TextBlock Classes="card-text"
-                                               Text="Телефон получает push через интернет. Внутри используется Gotify-сервер и мобильное приложение LS Alerts."/>
+                                               Text="Push приходит через локальный Gotify и временный Cloudflare Tunnel. Cloudflared скачается при первом запуске."/>
                                     <StackPanel Spacing="7">
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="1"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="С телефона отсканируйте QR Скачать и установите LS Alerts."/>
+                                                       Text="Отсканируйте телефоном QR Скачать и установите LS Alerts."/>
                                         </Grid>
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="2"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Разрешите уведомления в Android, затем отсканируйте QR Подключить."/>
+                                                       Text="Нажмите Запустить tunnel — публичный URL подставится автоматически."/>
                                         </Grid>
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="3"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Нажмите Отправить тест. Если push пришёл, включите канал и сохраните настройки."/>
+                                                       Text="В приложении отсканируйте QR Подключить, разрешите уведомления и нажмите Отправить тест."/>
                                         </Grid>
                                     </StackPanel>
+                                    <Border Background="{StaticResource BrushWarningTint}"
+                                            BorderBrush="#FCD34D"
+                                            BorderThickness="1"
+                                            CornerRadius="8"
+                                            Padding="10">
+                                        <TextBlock Classes="card-text"
+                                                   Foreground="{StaticResource BrushWarning}"
+                                                   Text="URL временного tunnel меняется после перезагрузки компьютера. Включите Автостарт, чтобы tunnel поднимался вместе с программой."/>
+                                    </Border>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <Button x:Name="PushDownloadButton"
                                                 Content="Скачать APK"
@@ -379,16 +394,29 @@
 
                         <Border Classes="form-card">
                             <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Канал:"/>
-                                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnablePushBox"
-                                          Content="Включить push"/>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Проверка:"/>
-                                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Проверка:"/>
+                                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*">
                                     <Button Grid.Column="0" x:Name="TestPushButton"
                                             Content="Отправить тест"
                                             Padding="12,4"/>
                                     <TextBlock Grid.Column="1" x:Name="PushStatusText"
+                                               Margin="10,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{StaticResource BrushMuted}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"/>
+                                </Grid>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Tunnel:"/>
+                                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,Auto,*">
+                                    <Button Grid.Column="0" x:Name="StartPushTunnelButton"
+                                            Content="Запустить tunnel"
+                                            Padding="12,4"/>
+                                    <CheckBox Grid.Column="1" x:Name="PushAutoTunnelBox"
+                                              Content="Автостарт"
+                                              Margin="10,0,0,0"
+                                              VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" x:Name="PushTunnelStatusText"
                                                Margin="10,0,0,0"
                                                VerticalAlignment="Center"
                                                Foreground="{StaticResource BrushMuted}"
@@ -402,8 +430,8 @@
                             <Border Classes="form-card" Margin="0,8,0,0">
                                 <StackPanel Spacing="10">
                                     <TextBlock Classes="card-text"
-                                               Text="Поля подключения: публичный адрес Gotify, token приложения для отправки тревог, client token для телефона и ссылка на APK."/>
-                                    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                                               Text="Поля подключения: публичный адрес Gotify, token приложения для отправки тревог, client token для телефона, локальный адрес Gotify и ссылка на APK."/>
+                                    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
                                         <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Сервер:"/>
                                         <TextBox Grid.Row="0" Grid.Column="1" x:Name="PushServerUrlBox"
                                                  PlaceholderText="https://push.example.com"/>
@@ -421,6 +449,10 @@
                                         <TextBlock Grid.Row="4" Grid.Column="0" Classes="field-label" Text="Приоритет:"/>
                                         <TextBox Grid.Row="4" Grid.Column="1" x:Name="PushPriorityBox"
                                                  PlaceholderText="5"/>
+
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Classes="field-label" Text="Локальный Gotify:"/>
+                                        <TextBox Grid.Row="5" Grid.Column="1" x:Name="PushLocalServerUrlBox"
+                                                 PlaceholderText="http://localhost:8080"/>
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -429,56 +461,33 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="SMS">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <CheckBox x:Name="EnableSmsBox" IsEnabled="False" ToolTip.Tip="Канал в разработке"/>
+                        <TextBlock Text="SMS" VerticalAlignment="Center" Opacity="0.6"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer Margin="0,14,0,0"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="12" Margin="0,0,8,0">
                         <Border Classes="channel-card">
                             <StackPanel Spacing="10">
-                                <TextBlock Classes="card-title" Text="SMS-эскалация"/>
+                                <TextBlock Classes="card-title" Text="SMS — в разработке"/>
                                 <TextBlock Classes="card-text"
-                                           Text="Введите номера, на которые будут отправляться SMS после подключения провайдера."/>
-                                <Border Background="{StaticResource BrushWarningTint}"
-                                        BorderBrush="#FCD34D"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="10">
-                                    <TextBlock Classes="card-text"
-                                               Foreground="{StaticResource BrushWarning}"
-                                               Text="SMS отправляется только на начало и завершение тревоги. Обновления длительности в SMS не отправляются."/>
-                                </Border>
-                                <StackPanel Spacing="7">
-                                    <Grid ColumnDefinitions="26,*">
-                                        <Border Classes="step-index">
-                                            <TextBlock Classes="step-number" Text="1"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Введите номера в международном формате, через запятую."/>
-                                    </Grid>
-                                    <Grid ColumnDefinitions="26,*">
-                                        <Border Classes="step-index">
-                                            <TextBlock Classes="step-number" Text="2"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Введите API key провайдера и отправьте тестовую SMS."/>
-                                    </Grid>
-                                </StackPanel>
+                                           Text="Канал пока не подключён. Появится в одном из следующих обновлений вместе с готовой интеграцией SMS-провайдера."/>
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="form-card">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Канал:"/>
-                                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableSmsBox"
-                                          Content="Включить SMS"/>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="SmsPhonesBox"
+                        <Border Classes="form-card" IsVisible="False">
+                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="SmsPhonesBox"
                                          PlaceholderText="+79990000000, +79991111111"/>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Classes="field-label" Text="Проверка:"/>
-                                <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*">
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Проверка:"/>
+                                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*">
                                     <Button Grid.Column="0" x:Name="TestSmsButton"
                                             Content="Отправить тест"
                                             Padding="12,4"/>
@@ -492,7 +501,7 @@
                             </Grid>
                         </Border>
 
-                        <Expander Header="Настройка SMS-провайдера" IsExpanded="False">
+                        <Expander Header="Настройка SMS-провайдера" IsExpanded="False" IsVisible="False">
                             <Border Classes="form-card" Margin="0,8,0,0">
                                 <StackPanel Spacing="10">
                                     <TextBlock Classes="card-text"
@@ -525,56 +534,33 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="Webhook">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <CheckBox x:Name="EnableWebhookBox" IsEnabled="False" ToolTip.Tip="Канал в разработке"/>
+                        <TextBlock Text="Webhook" VerticalAlignment="Center" Opacity="0.6"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer Margin="0,14,0,0"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Spacing="12" Margin="0,0,8,0">
                         <Border Classes="channel-card">
                             <StackPanel Spacing="10">
-                                <TextBlock Classes="card-title" Text="Webhook для своих интеграций"/>
+                                <TextBlock Classes="card-title" Text="Webhook — в разработке"/>
                                 <TextBlock Classes="card-text"
-                                           Text="Укажите endpoint, который будет принимать события тревоги: n8n, Node-RED, свой API, CRM или внутренний сервер."/>
-                                <Border Background="{StaticResource BrushWarningTint}"
-                                        BorderBrush="#FCD34D"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Padding="10">
-                                    <TextBlock Classes="card-text"
-                                               Foreground="{StaticResource BrushWarning}"
-                                               Text="Пока здесь сохраняются данные подключения. Отправку webhook нужно подключить отдельным шагом в логике тревог."/>
-                                </Border>
-                                <StackPanel Spacing="7">
-                                    <Grid ColumnDefinitions="26,*">
-                                        <Border Classes="step-index">
-                                            <TextBlock Classes="step-number" Text="1"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Создайте endpoint, который принимает POST-запросы."/>
-                                    </Grid>
-                                    <Grid ColumnDefinitions="26,*">
-                                        <Border Classes="step-index">
-                                            <TextBlock Classes="step-number" Text="2"/>
-                                        </Border>
-                                        <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Вставьте URL. Секрет нужен, чтобы принимающая сторона могла проверить, что событие пришло от LS Monitoring."/>
-                                    </Grid>
-                                </StackPanel>
+                                           Text="Канал пока не подключён. Отправка событий тревоги во внешний endpoint появится в одном из следующих обновлений."/>
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="form-card">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Канал:"/>
-                                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableWebhookBox"
-                                          Content="Включить Webhook после подключения логики"/>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="WebhookUrlBox"
+                        <Border Classes="form-card" IsVisible="False">
+                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="WebhookUrlBox"
                                          PlaceholderText="https://example.com/hooks/ls-monitoring"/>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Classes="field-label" Text="Секрет:"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="WebhookSecretBox"
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Секрет:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="WebhookSecretBox"
                                          PasswordChar="*"
                                          PlaceholderText="опционально"/>
                             </Grid>

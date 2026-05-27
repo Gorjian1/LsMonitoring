@@ -362,6 +362,7 @@ public sealed class SmsConfig
 public sealed class PushConfig
 {
     public const string DefaultAppDownloadUrl = "https://github.com/Gorjian1/LsMonitoring/releases/latest/download/ls-alerts-latest.apk";
+    public const string DefaultLocalServerUrl = "http://localhost:8080";
 
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = false;
@@ -381,6 +382,12 @@ public sealed class PushConfig
     [JsonPropertyName("app_download_url")]
     public string AppDownloadUrl { get; set; } = "";
 
+    [JsonPropertyName("auto_start_temporary_tunnel")]
+    public bool AutoStartTemporaryTunnel { get; set; } = true;
+
+    [JsonPropertyName("local_server_url")]
+    public string LocalServerUrl { get; set; } = DefaultLocalServerUrl;
+
     [JsonPropertyName("target")]
     public string Target { get; set; } = "";
 
@@ -397,6 +404,31 @@ public sealed class PushConfig
     public string EffectiveAppDownloadUrl => string.IsNullOrWhiteSpace(AppDownloadUrl)
         ? DefaultAppDownloadUrl
         : AppDownloadUrl.Trim();
+
+    [JsonIgnore]
+    public string EffectiveLocalServerUrl => string.IsNullOrWhiteSpace(LocalServerUrl)
+        ? DefaultLocalServerUrl
+        : LocalServerUrl.Trim().TrimEnd('/');
+
+    [JsonIgnore]
+    public bool UsesTryCloudflareTunnel
+    {
+        get
+        {
+            if (!Uri.TryCreate(EffectiveServerUrl, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+
+            return uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [JsonIgnore]
+    public bool ShouldAutoStartTemporaryTunnel =>
+        Enabled &&
+        AutoStartTemporaryTunnel &&
+        (string.IsNullOrWhiteSpace(EffectiveServerUrl) || UsesTryCloudflareTunnel);
 
     [JsonIgnore]
     public bool HasDeliverySettings =>

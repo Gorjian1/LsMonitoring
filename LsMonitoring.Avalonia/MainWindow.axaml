@@ -8,7 +8,8 @@
         Width="1280" Height="800"
         MinWidth="1180" MinHeight="620"
         Title="LS-G6 Мониторинг"
-        Background="{StaticResource BrushAppBackground}">
+        Background="{StaticResource BrushAppBackground}"
+        WindowState="Maximized">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 

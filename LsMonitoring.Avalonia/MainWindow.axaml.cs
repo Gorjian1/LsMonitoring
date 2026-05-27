@@ -12,6 +12,7 @@ using LsMonitoring.Core.Parsing;
 using LsMonitoring.Core.Polling;
 using LsMonitoring.Core.Sources;
 using LsMonitoring.Core.Alarms;
+using LsMonitoring.Core.LocalServices;
 
 namespace LsMonitoring.Avalonia;
 
@@ -31,6 +32,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<(int NodeId, string Axis), DeviationHistoryEntry> _activeDeviationHistory = [];
     private readonly Dictionary<string, DeviationHistoryRow> _deviationHistoryRowsById = [];
     private readonly AlertStateTracker _alertState = new();
+    private readonly CloudflareQuickTunnelService _quickTunnelService = CloudflareQuickTunnelService.CreateDefault();
     private readonly string _configPath;
     private readonly string _deviationHistoryPath;
     private AppConfig _config;
@@ -48,6 +50,7 @@ public partial class MainWindow : Window
     private double _plotVisibleWindowSeconds = 3600;
     private DateTime? _plotCutoffTime;
     private bool _isPickingPlotCutoff;
+    private bool _pushTunnelStartInProgress;
 
     public MainWindow()
     {
@@ -68,6 +71,7 @@ public partial class MainWindow : Window
         StartHeartbeat();
         UpdatePollingButtons();
         RefreshCurrentNode();
+        StartConfiguredPushTunnelInBackground();
     }
 
     protected override async void OnClosed(EventArgs e)
@@ -262,10 +266,11 @@ public partial class MainWindow : Window
         await StopTelegramAlertsAsync();
         var dialog = new MessagesDialog();
         dialog.LoadConfig(_config);
+        var saved = false;
 
         try
         {
-            var saved = await dialog.ShowDialog<bool>(this);
+            saved = await dialog.ShowDialog<bool>(this);
             if (saved)
             {
                 _config.Save(_configPath);
@@ -275,6 +280,10 @@ public partial class MainWindow : Window
         finally
         {
             ReconfigureAlertServices();
+            if (saved)
+            {
+                StartConfiguredPushTunnelInBackground();
+            }
         }
     }
 
@@ -382,6 +391,44 @@ public partial class MainWindow : Window
     private void ReconfigureGotifyAlerts()
     {
         _gotifyAlertService = _config.Push.Enabled ? new GotifyAlertService(_config.Push) : null;
+    }
+
+    private void StartConfiguredPushTunnelInBackground()
+    {
+        if (!_config.Push.ShouldAutoStartTemporaryTunnel || _pushTunnelStartInProgress)
+        {
+            return;
+        }
+
+        _ = EnsureConfiguredPushTunnelAsync();
+    }
+
+    private async Task EnsureConfiguredPushTunnelAsync()
+    {
+        _pushTunnelStartInProgress = true;
+        try
+        {
+            StatusText.Text = "Запуск временного Push tunnel...";
+            var result = await _quickTunnelService.EnsureStartedAsync(_config.Push.EffectiveLocalServerUrl);
+            if (!result.Success)
+            {
+                StatusText.Text = $"Push tunnel: {result.Message}";
+                return;
+            }
+
+            _config.Push.ServerUrl = result.PublicUrl;
+            _config.Save(_configPath);
+            ReconfigureGotifyAlerts();
+            StatusText.Text = $"Push tunnel запущен: {result.PublicUrl}";
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Push tunnel: {ex.Message}";
+        }
+        finally
+        {
+            _pushTunnelStartInProgress = false;
+        }
     }
 
     private void OnNewChatIdDiscovered(long newChatId)

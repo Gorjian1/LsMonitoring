@@ -54,4 +54,38 @@ public class PushConfigTests
 
         Assert.Equal("https://example.org/ls-alerts.apk", config.EffectiveAppDownloadUrl);
     }
+
+    [Fact]
+    public void EffectiveLocalServerUrl_UsesGotifyLocalhostByDefault()
+    {
+        var config = new PushConfig();
+
+        Assert.Equal("http://localhost:8080", config.EffectiveLocalServerUrl);
+    }
+
+    [Fact]
+    public void ShouldAutoStartTemporaryTunnel_AllowsEmptyOrTryCloudflareUrl()
+    {
+        var emptyConfig = new PushConfig { Enabled = true, ServerUrl = "" };
+        var temporaryConfig = new PushConfig
+        {
+            Enabled = true,
+            ServerUrl = "https://throwing-expense-asin-cycles.trycloudflare.com"
+        };
+
+        Assert.True(emptyConfig.ShouldAutoStartTemporaryTunnel);
+        Assert.True(temporaryConfig.ShouldAutoStartTemporaryTunnel);
+    }
+
+    [Fact]
+    public void ShouldAutoStartTemporaryTunnel_DoesNotReplacePermanentUrl()
+    {
+        var config = new PushConfig
+        {
+            Enabled = true,
+            ServerUrl = "https://push.example.org"
+        };
+
+        Assert.False(config.ShouldAutoStartTemporaryTunnel);
+    }
 }

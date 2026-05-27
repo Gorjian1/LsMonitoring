@@ -4,6 +4,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using LsMonitoring.Core.Alarms;
 using LsMonitoring.Core.Configuration;
+using LsMonitoring.Core.LocalServices;
 using QRCoder;
 
 namespace LsMonitoring.Avalonia;
@@ -11,6 +12,9 @@ namespace LsMonitoring.Avalonia;
 public partial class MessagesDialog : Window
 {
     private const string SendTestText = "Отправить тест";
+    private const string TelegramBotUrl = "https://t.me/ls_monitoringbot";
+
+    private readonly CloudflareQuickTunnelService _quickTunnelService = CloudflareQuickTunnelService.CreateDefault();
 
     private AppConfig _config = null!;
 
@@ -25,10 +29,12 @@ public partial class MessagesDialog : Window
         TestSmsButton.Click += OnTestSmsClick;
         PushDownloadButton.Click += OnPushDownloadClick;
         PushConnectButton.Click += OnPushConnectClick;
+        StartPushTunnelButton.Click += OnStartPushTunnelClick;
         TestPushButton.Click += OnTestPushClick;
         PushServerUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
         PushClientTokenBox.TextChanged += (_, _) => RefreshPushQrCode();
         PushAppDownloadUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
+        SetQrCode(TelegramBotQrImage, TelegramBotUrl);
     }
 
     public void LoadConfig(AppConfig config)
@@ -39,8 +45,6 @@ public partial class MessagesDialog : Window
 
         EnableEmailBox.IsChecked = config.Email.Enabled;
         EmailRecipientsBox.Text = string.Join(", ", config.Email.Recipients);
-        EmailRelayUrlBox.Text = config.Email.RelayUrl;
-        EmailRelayTokenBox.Text = config.Email.RelayToken;
         UseOwnSmtpBox.IsChecked = !config.Email.UsesRelay;
         EmailFromBox.Text = config.Email.From;
         EmailPasswordBox.Text = config.Email.Password;
@@ -64,7 +68,10 @@ public partial class MessagesDialog : Window
         PushAppTokenBox.Text = config.Push.AppToken;
         PushClientTokenBox.Text = config.Push.ClientToken;
         PushAppDownloadUrlBox.Text = config.Push.EffectiveAppDownloadUrl;
+        PushAutoTunnelBox.IsChecked = config.Push.AutoStartTemporaryTunnel;
+        PushLocalServerUrlBox.Text = config.Push.EffectiveLocalServerUrl;
         PushPriorityBox.Text = config.Push.Priority.ToString();
+        PushTunnelStatusText.Text = DescribeTemporaryTunnel(config.Push.EffectiveServerUrl);
         RefreshPushQrCode();
 
         EnableWebhookBox.IsChecked = config.Webhook.Enabled;
@@ -93,6 +100,8 @@ public partial class MessagesDialog : Window
         _config.Push.AppToken = PushAppTokenBox.Text ?? "";
         _config.Push.ClientToken = PushClientTokenBox.Text ?? "";
         _config.Push.AppDownloadUrl = PushAppDownloadUrlBox.Text ?? "";
+        _config.Push.AutoStartTemporaryTunnel = PushAutoTunnelBox.IsChecked ?? false;
+        _config.Push.LocalServerUrl = PushLocalServerUrlBox.Text ?? "";
         _config.Push.Priority = ParsePositiveInt(PushPriorityBox.Text, 5);
 
         _config.Webhook.Enabled = EnableWebhookBox.IsChecked ?? false;
@@ -110,7 +119,7 @@ public partial class MessagesDialog : Window
 
     private static void OnBotLinkClick(object? sender, RoutedEventArgs e)
     {
-        OpenUrl("https://t.me/ls_monitoringbot");
+        OpenUrl(TelegramBotUrl);
     }
 
     private async void OnTestTelegramClick(object? sender, RoutedEventArgs e)
@@ -251,6 +260,37 @@ public partial class MessagesDialog : Window
         OpenUrl(BuildPushConnectUri(serverUrl, clientToken));
     }
 
+    private async void OnStartPushTunnelClick(object? sender, RoutedEventArgs e)
+    {
+        StartPushTunnelButton.IsEnabled = false;
+        PushTunnelStatusText.Text = "Проверяю локальный Gotify и запускаю tunnel...";
+
+        try
+        {
+            var result = await _quickTunnelService.EnsureStartedAsync(PushLocalServerUrlBox.Text);
+            if (result.Success)
+            {
+                PushServerUrlBox.Text = result.PublicUrl;
+                EnablePushBox.IsChecked = true;
+                PushAutoTunnelBox.IsChecked = true;
+                PushTunnelStatusText.Text = "Tunnel запущен. После перезагрузки компьютера URL нужно создать заново.";
+                PushStatusText.Text = result.PublicUrl;
+                RefreshPushQrCode();
+                return;
+            }
+
+            PushTunnelStatusText.Text = result.Message;
+        }
+        catch (Exception ex)
+        {
+            PushTunnelStatusText.Text = $"Ошибка tunnel: {ex.Message}";
+        }
+        finally
+        {
+            StartPushTunnelButton.IsEnabled = true;
+        }
+    }
+
     private void RefreshPushQrCode()
     {
         var downloadTarget = BuildPushDownloadTarget();
@@ -293,6 +333,8 @@ public partial class MessagesDialog : Window
             AppToken = PushAppTokenBox.Text ?? "",
             ClientToken = PushClientTokenBox.Text ?? "",
             AppDownloadUrl = PushAppDownloadUrlBox.Text ?? "",
+            AutoStartTemporaryTunnel = PushAutoTunnelBox.IsChecked ?? false,
+            LocalServerUrl = PushLocalServerUrlBox.Text ?? "",
             Priority = ParsePositiveInt(PushPriorityBox.Text, 5)
         };
         var service = new GotifyAlertService(pushConfig);
@@ -356,7 +398,7 @@ public partial class MessagesDialog : Window
             DeliveryMode = UseOwnSmtpBox.IsChecked == true ? EmailDeliveryMode.Smtp : EmailDeliveryMode.Relay,
             InstallationId = _config.Email.InstallationId,
             Recipients = ParseStringList(EmailRecipientsBox.Text ?? ""),
-            RelayUrl = (EmailRelayUrlBox.Text ?? "").Trim(),
+            RelayUrl = _config.Email.RelayUrl,
             From = (EmailFromBox.Text ?? "").Trim(),
             SmtpHost = (EmailSmtpHostBox.Text ?? "").Trim(),
             SmtpPort = ParsePositiveInt(EmailSmtpPortBox.Text, 587),
@@ -364,7 +406,7 @@ public partial class MessagesDialog : Window
             Username = (EmailUsernameBox.Text ?? "").Trim()
         };
 
-        config.RelayToken = EmailRelayTokenBox.Text ?? "";
+        config.RelayToken = _config.Email.RelayToken;
         config.Password = EmailPasswordBox.Text ?? "";
         return config;
     }
@@ -411,6 +453,22 @@ public partial class MessagesDialog : Window
     private static string BuildPushConnectUri(string serverUrl, string clientToken)
     {
         return $"lsmonitoring://connect?server={Uri.EscapeDataString(serverUrl)}&token={Uri.EscapeDataString(clientToken)}";
+    }
+
+    private static string DescribeTemporaryTunnel(string serverUrl)
+    {
+        if (string.IsNullOrWhiteSpace(serverUrl))
+        {
+            return "Tunnel не запущен.";
+        }
+
+        if (Uri.TryCreate(serverUrl.Trim(), UriKind.Absolute, out var uri) &&
+            uri.Host.EndsWith(".trycloudflare.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Используется временный Cloudflare Tunnel. После перезагрузки компьютера URL меняется.";
+        }
+
+        return "Задан постоянный публичный URL; временный tunnel не будет заменять его автоматически.";
     }
 
     private static void OpenUrl(string url)
