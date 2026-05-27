@@ -55,7 +55,7 @@
     "server_url": "",
     "app_token": "",
     "client_token": "",
-    "app_download_url": "",
+    "app_download_url": "https://github.com/Gorjian1/LsMonitoring/releases/latest/download/ls-alerts-latest.apk",
     "target": "",
     "priority": 5
   },

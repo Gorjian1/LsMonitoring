@@ -35,4 +35,23 @@ public class PushConfigTests
 
         Assert.True(config.HasClientSettings);
     }
+
+    [Fact]
+    public void EffectiveAppDownloadUrl_UsesStableLatestApkByDefault()
+    {
+        var config = new PushConfig();
+
+        Assert.Equal(PushConfig.DefaultAppDownloadUrl, config.EffectiveAppDownloadUrl);
+    }
+
+    [Fact]
+    public void EffectiveAppDownloadUrl_UsesCustomUrlWhenSet()
+    {
+        var config = new PushConfig
+        {
+            AppDownloadUrl = " https://example.org/ls-alerts.apk "
+        };
+
+        Assert.Equal("https://example.org/ls-alerts.apk", config.EffectiveAppDownloadUrl);
+    }
 }

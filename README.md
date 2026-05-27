@@ -161,7 +161,8 @@ Workflow собирает:
 - self-contained desktop exe;
 - portable zip;
 - Inno Setup installer;
-- signed Android APK `ls-alerts-<version>.apk`.
+- signed Android APK `ls-alerts-<version>.apk`;
+- stable Android APK asset `ls-alerts-latest.apk` for the QR download link.
 
 Перед публикацией релиза workflow проверяет наличие артефактов, версию desktop exe и подпись APK.
 

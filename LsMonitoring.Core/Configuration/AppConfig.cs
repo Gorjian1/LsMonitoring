@@ -361,6 +361,8 @@ public sealed class SmsConfig
 
 public sealed class PushConfig
 {
+    public const string DefaultAppDownloadUrl = "https://github.com/Gorjian1/LsMonitoring/releases/latest/download/ls-alerts-latest.apk";
+
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = false;
 
@@ -392,7 +394,9 @@ public sealed class PushConfig
     public string EffectiveClientToken => ClientToken.Trim();
 
     [JsonIgnore]
-    public string EffectiveAppDownloadUrl => AppDownloadUrl.Trim();
+    public string EffectiveAppDownloadUrl => string.IsNullOrWhiteSpace(AppDownloadUrl)
+        ? DefaultAppDownloadUrl
+        : AppDownloadUrl.Trim();
 
     [JsonIgnore]
     public bool HasDeliverySettings =>

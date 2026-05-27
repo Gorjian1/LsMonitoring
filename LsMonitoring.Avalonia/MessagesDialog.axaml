@@ -416,7 +416,7 @@
 
                                         <TextBlock Grid.Row="3" Grid.Column="0" Classes="field-label" Text="Страница APK:"/>
                                         <TextBox Grid.Row="3" Grid.Column="1" x:Name="PushAppDownloadUrlBox"
-                                                 PlaceholderText="https://example.com/ls-alerts"/>
+                                                 PlaceholderText="https://github.com/Gorjian1/LsMonitoring/releases/latest/download/ls-alerts-latest.apk"/>
 
                                         <TextBlock Grid.Row="4" Grid.Column="0" Classes="field-label" Text="Приоритет:"/>
                                         <TextBox Grid.Row="4" Grid.Column="1" x:Name="PushPriorityBox"

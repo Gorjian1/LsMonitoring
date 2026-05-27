@@ -151,6 +151,9 @@ jobs:
           Copy-Item `
             LsMonitoring.MobileAlerts/app/build/outputs/apk/release/app-release.apk `
             artifacts/release/ls-alerts-$version.apk
+          Copy-Item `
+            LsMonitoring.MobileAlerts/app/build/outputs/apk/release/app-release.apk `
+            artifacts/release/ls-alerts-latest.apk
 
       - name: Verify release artifacts
         shell: pwsh
@@ -160,7 +163,8 @@ jobs:
             "artifacts/release/LsMonitoring-$env:RUNTIME_ID.exe",
             "artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip",
             "artifacts/release/LsMonitoringSetup-$env:RUNTIME_ID.exe",
-            "artifacts/release/ls-alerts-$version.apk"
+            "artifacts/release/ls-alerts-$version.apk",
+            "artifacts/release/ls-alerts-latest.apk"
           )
 
           foreach ($path in $expected) {

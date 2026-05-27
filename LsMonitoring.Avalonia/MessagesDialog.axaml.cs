@@ -63,7 +63,7 @@ public partial class MessagesDialog : Window
         PushServerUrlBox.Text = config.Push.ServerUrl;
         PushAppTokenBox.Text = config.Push.AppToken;
         PushClientTokenBox.Text = config.Push.ClientToken;
-        PushAppDownloadUrlBox.Text = config.Push.AppDownloadUrl;
+        PushAppDownloadUrlBox.Text = config.Push.EffectiveAppDownloadUrl;
         PushPriorityBox.Text = config.Push.Priority.ToString();
         RefreshPushQrCode();
 
@@ -390,7 +390,10 @@ public partial class MessagesDialog : Window
 
     private string BuildPushDownloadTarget()
     {
-        return (PushAppDownloadUrlBox.Text ?? "").Trim();
+        var value = (PushAppDownloadUrlBox.Text ?? "").Trim();
+        return string.IsNullOrWhiteSpace(value)
+            ? PushConfig.DefaultAppDownloadUrl
+            : value;
     }
 
     private string BuildPushConnectTarget()
