@@ -233,7 +233,9 @@ public sealed class CloudflareQuickTunnelService
 
     private async Task<string> WaitForPublicUrlAsync(Process process, CancellationToken cancellationToken)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(35);
+        // 90s — Cloudflare quick tunnel provisioning can be slow from regions with
+        // high latency to Cloudflare's edge (RU networks regularly take 40–60s).
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(90);
         while (DateTimeOffset.UtcNow < deadline)
         {
             cancellationToken.ThrowIfCancellationRequested();
