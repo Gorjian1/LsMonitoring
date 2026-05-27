@@ -116,6 +116,10 @@ jobs:
           }
           vpk @packArgs
 
+      - name: List Velopack artifacts
+        shell: pwsh
+        run: Get-ChildItem artifacts/release | Select-Object Name, Length | Format-Table -AutoSize
+
       - name: Setup Java for Android
         uses: actions/setup-java@v4
         with:
@@ -177,8 +181,18 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.version.outputs.value }}"
+
+          # Setup exe: vpk may use LsMonitoring-Setup.exe or LsMonitoringSetup.exe depending on version
+          $setupExe = Get-ChildItem artifacts/release -Filter "*Setup*.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if ($null -eq $setupExe -or $setupExe.Length -eq 0) {
+            Write-Host "Contents of artifacts/release:"
+            Get-ChildItem artifacts/release | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
+            throw "No Velopack Setup.exe found in artifacts/release"
+          }
+          Write-Host "Setup exe: $($setupExe.Name)"
+
           $expected = @(
-            "artifacts/release/LsMonitoring-Setup.exe",
             "artifacts/release/LsMonitoring-$version-full.nupkg",
             "artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip",
             "artifacts/release/ls-alerts-$version.apk",
