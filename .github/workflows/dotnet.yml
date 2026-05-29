@@ -22,11 +22,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.targets') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: ./global.json
-          cache: true
 
       - name: Restore
         run: dotnet restore LsMonitoring.sln
@@ -50,11 +57,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.targets') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: ./global.json
-          cache: true
 
       - name: Resolve version
         id: version
