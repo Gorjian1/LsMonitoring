@@ -57,7 +57,7 @@ public sealed partial class CsvGatewaySource : IDataSource
             Timeout = _timeout
         };
 
-        var token = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{_username}:{_password}"));
+        var token = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_username}:{_password}"));
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", token);
         return Task.CompletedTask;
     }

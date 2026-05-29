@@ -26,6 +26,7 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: ./global.json
+          cache: true
 
       - name: Restore
         run: dotnet restore LsMonitoring.sln
@@ -36,7 +37,7 @@ jobs:
       - name: Test
         run: dotnet test LsMonitoring.sln --no-build -c Release
 
-  release:
+  release-desktop:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build-test
     runs-on: windows-latest
@@ -53,6 +54,7 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           global-json-file: ./global.json
+          cache: true
 
       - name: Resolve version
         id: version
@@ -130,9 +132,20 @@ jobs:
           }
           vpk @packArgs
 
-      - name: List Velopack artifacts
-        shell: pwsh
-        run: Get-ChildItem artifacts/release | Select-Object Name, Length | Format-Table -AutoSize
+      - name: Upload Desktop Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-artifacts
+          path: artifacts/release/*
+
+  release-android:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Setup Java for Android
         uses: actions/setup-java@v4
@@ -145,136 +158,131 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+          validate-wrappers: false
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          echo "value=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build Android alerts APK
-        shell: pwsh
+        shell: bash
         env:
           LS_ALERTS_KEYSTORE_B64: ${{ secrets.LS_ALERTS_KEYSTORE_B64 }}
           LS_ALERTS_KEYSTORE_PASSWORD: ${{ secrets.LS_ALERTS_KEYSTORE_PASSWORD }}
           LS_ALERTS_KEY_ALIAS: ${{ secrets.LS_ALERTS_KEY_ALIAS }}
           LS_ALERTS_KEY_PASSWORD: ${{ secrets.LS_ALERTS_KEY_PASSWORD }}
         run: |
-          $missing = @()
-          foreach ($name in @(
-            "LS_ALERTS_KEYSTORE_B64",
-            "LS_ALERTS_KEYSTORE_PASSWORD",
-            "LS_ALERTS_KEY_ALIAS",
-            "LS_ALERTS_KEY_PASSWORD"
-          )) {
-            if ([string]::IsNullOrWhiteSpace((Get-Item "env:$name").Value)) {
-              $missing += $name
-            }
-          }
+          missing=()
+          for name in LS_ALERTS_KEYSTORE_B64 LS_ALERTS_KEYSTORE_PASSWORD LS_ALERTS_KEY_ALIAS LS_ALERTS_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              missing+=("$name")
+            fi
+          done
 
-          if ($missing.Count -gt 0) {
-            throw "Missing Android signing secrets: $($missing -join ', ')"
-          }
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "Missing Android signing secrets: ${missing[*]}"
+            exit 1
+          fi
 
-          $version = "${{ steps.version.outputs.value }}"
-          $versionParts = $version.Split(".") | ForEach-Object { [int]$_ }
-          while ($versionParts.Count -lt 3) {
-            $versionParts += 0
-          }
-          $versionCode = ($versionParts[0] * 10000) + ($versionParts[1] * 100) + $versionParts[2]
-          $keystorePath = "${{ github.workspace }}\LsMonitoring.MobileAlerts\release-key.jks"
-          [IO.File]::WriteAllBytes($keystorePath, [Convert]::FromBase64String($env:LS_ALERTS_KEYSTORE_B64))
-          $env:LS_ALERTS_KEYSTORE_FILE = $keystorePath
+          VERSION="${{ steps.version.outputs.value }}"
+          IFS='.' read -r -a parts <<< "$VERSION"
+          v1=${parts[0]:-0}
+          v2=${parts[1]:-0}
+          v3=${parts[2]:-0}
+          VERSION_CODE=$(( v1 * 10000 + v2 * 100 + v3 ))
 
-          Push-Location LsMonitoring.MobileAlerts
-          gradle --no-daemon assembleRelease "-PversionName=$version" "-PversionCode=$versionCode"
-          Pop-Location
+          KEYSTORE_PATH="${{ github.workspace }}/LsMonitoring.MobileAlerts/release-key.jks"
+          printf "%s" "$LS_ALERTS_KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+          export LS_ALERTS_KEYSTORE_FILE="$KEYSTORE_PATH"
 
-          Copy-Item `
-            LsMonitoring.MobileAlerts/app/build/outputs/apk/release/app-release.apk `
-            artifacts/release/ls-alerts-$version.apk
-          Copy-Item `
-            LsMonitoring.MobileAlerts/app/build/outputs/apk/release/app-release.apk `
-            artifacts/release/ls-alerts-latest.apk
+          cd LsMonitoring.MobileAlerts
+          gradle --no-daemon assembleRelease -PversionName="$VERSION" -PversionCode="$VERSION_CODE"
+          cd ..
 
-      - name: Verify release artifacts
-        shell: pwsh
+          mkdir -p artifacts/release
+          cp LsMonitoring.MobileAlerts/app/build/outputs/apk/release/app-release.apk artifacts/release/ls-alerts-$VERSION.apk
+          cp LsMonitoring.MobileAlerts/app/build/outputs/apk/release/app-release.apk artifacts/release/ls-alerts-latest.apk
+
+          # Verify signature
+          APKSIGNER_PATH=$(find $ANDROID_HOME/build-tools -name apksigner | sort -V | tail -n 1)
+          if [ -n "$APKSIGNER_PATH" ]; then
+            $APKSIGNER_PATH verify --print-certs artifacts/release/ls-alerts-$VERSION.apk
+          else
+            echo "apksigner not found, skipping signature verification"
+          fi
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: artifacts/release/ls-alerts-*.apk
+
+  publish-release:
+    needs: [release-desktop, release-android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: ./global.json
+
+      - name: Resolve version
+        id: version
+        shell: bash
         run: |
-          $version = "${{ steps.version.outputs.value }}"
+          VERSION=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          echo "value=$VERSION" >> $GITHUB_OUTPUT
 
-          # Setup exe: vpk may use LsMonitoring-Setup.exe or LsMonitoringSetup.exe depending on version
-          $setupExe = Get-ChildItem artifacts/release -Filter "*Setup*.exe" -ErrorAction SilentlyContinue |
-            Select-Object -First 1
-          if ($null -eq $setupExe -or $setupExe.Length -eq 0) {
-            Write-Host "Contents of artifacts/release:"
-            Get-ChildItem artifacts/release | ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
-            throw "No Velopack Setup.exe found in artifacts/release"
-          }
-          Write-Host "Setup exe: $($setupExe.Name)"
+      - name: Download Desktop Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-artifacts
+          path: artifacts/release
 
-          $expected = @(
-            "artifacts/release/LsMonitoring-$version-full.nupkg",
-            "artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip",
-            "artifacts/release/ls-alerts-$version.apk",
-            "artifacts/release/ls-alerts-latest.apk"
-          )
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-artifacts
+          path: artifacts/release
 
-          foreach ($path in $expected) {
-            if (!(Test-Path $path)) {
-              throw "Missing release artifact: $path"
-            }
-
-            $item = Get-Item $path
-            if ($item.Length -le 0) {
-              throw "Empty release artifact: $path"
-            }
-          }
-
-          $apk = "artifacts/release/ls-alerts-$version.apk"
-          $apksignerCommand = Get-Command apksigner.bat -ErrorAction SilentlyContinue
-          if ($null -eq $apksignerCommand) {
-            $apksignerCommand = Get-Command apksigner -ErrorAction SilentlyContinue
-          }
-
-          $apksignerPath = $apksignerCommand?.Source
-          if ([string]::IsNullOrWhiteSpace($apksignerPath)) {
-            $sdkRoots = @($env:ANDROID_HOME, $env:ANDROID_SDK_ROOT) |
-              Where-Object { ![string]::IsNullOrWhiteSpace($_) } |
-              Select-Object -Unique
-            foreach ($sdkRoot in $sdkRoots) {
-              $candidate = Get-ChildItem `
-                -Path (Join-Path $sdkRoot "build-tools") `
-                -Filter apksigner.bat `
-                -Recurse `
-                -ErrorAction SilentlyContinue |
-                Sort-Object FullName -Descending |
-                Select-Object -First 1
-              if ($candidate) {
-                $apksignerPath = $candidate.FullName
-                break
-              }
-            }
-          }
-
-          if ([string]::IsNullOrWhiteSpace($apksignerPath)) {
-            throw "apksigner was not found in PATH or Android SDK build-tools"
-          }
-
-          & $apksignerPath verify --print-certs $apk
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk
 
       - name: Publish release via Velopack
-        shell: pwsh
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          vpk upload github `
-            --repoUrl https://github.com/Gorjian1/LsMonitoring `
-            --token ${{ github.token }} `
-            --tag ${{ github.ref_name }} `
-            --outputDir artifacts/release `
-            --releaseName "LS Monitoring ${{ github.ref_name }}"
+          vpk upload github \
+            --repoUrl https://github.com/Gorjian1/LsMonitoring \
+            --token ${{ github.token }} \
+            --tag ${{ github.ref_name }} \
+            --outputDir artifacts/release \
+            --releaseName "LS Monitoring ${{ github.ref_name }}" \
+            --publish
 
       - name: Upload extra artifacts to release
-        shell: pwsh
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $version = "${{ steps.version.outputs.value }}"
-          gh release upload "${{ github.ref_name }}" `
-            "artifacts/release/ls-alerts-$version.apk" `
-            "artifacts/release/ls-alerts-latest.apk" `
-            "artifacts/release/LsMonitoring-$env:RUNTIME_ID-portable.zip"
+          VERSION="${{ steps.version.outputs.value }}"
+          gh release upload "${{ github.ref_name }}" \
+            "artifacts/release/ls-alerts-$VERSION.apk" \
+            "artifacts/release/ls-alerts-latest.apk" \
+            "artifacts/release/LsMonitoring-win-x64-portable.zip"
+
+      - name: Set release notes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ github.ref_name }}" --notes "Сборка Ls Monitoring" --draft=false

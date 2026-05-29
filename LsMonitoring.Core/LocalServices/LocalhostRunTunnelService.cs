@@ -17,7 +17,7 @@ public sealed record LocalhostRunTunnelResult(
 /// tunnel — trycloudflare.com is unreliable from many ISPs (e.g. RU) due to throttling,
 /// whereas plain outbound SSH on port 22 generally goes through.
 /// </summary>
-public sealed class LocalhostRunTunnelService
+public sealed class LocalhostRunTunnelService : IDisposable
 {
     private const string SshHost = "nokey@localhost.run";
 
@@ -26,14 +26,17 @@ public sealed class LocalhostRunTunnelService
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private readonly HttpClient _httpClient;
+    private readonly bool _ownsHttpClient;
     private readonly string _stateDirectory;
     private readonly string _pidPath;
     private readonly string _urlPath;
     private readonly string _logPath;
+    private Process? _sshProcess;
 
     public LocalhostRunTunnelService(string stateDirectory, HttpClient? httpClient = null)
     {
         _stateDirectory = stateDirectory;
+        _ownsHttpClient = httpClient == null;
         _httpClient = httpClient ?? new HttpClient();
         _pidPath = Path.Combine(_stateDirectory, "tunnel.pid");
         _urlPath = Path.Combine(_stateDirectory, "tunnel.url");
@@ -69,7 +72,7 @@ public sealed class LocalhostRunTunnelService
             return cached;
         }
 
-        StopOwnedSshProcess();
+        Stop();
 
         var sshPath = ResolveSshPath();
         if (sshPath is null)
@@ -84,6 +87,7 @@ public sealed class LocalhostRunTunnelService
         var publicUrl = await StartSshTunnelAsync(sshPath, localUrl, cancellationToken);
         if (string.IsNullOrWhiteSpace(publicUrl))
         {
+            Stop();
             return Fail($"localhost.run не вернул публичный URL за 90 с. Лог: {_logPath}");
         }
 
@@ -211,12 +215,12 @@ public sealed class LocalhostRunTunnelService
         startInfo.ArgumentList.Add("ExitOnForwardFailure=yes");
         startInfo.ArgumentList.Add(SshHost);
 
-        var process = Process.Start(startInfo)
+        _sshProcess = Process.Start(startInfo)
             ?? throw new InvalidOperationException("ssh.exe не запустился.");
 
         try
         {
-            File.WriteAllText(_pidPath, process.Id.ToString(CultureInfo.InvariantCulture));
+            File.WriteAllText(_pidPath, _sshProcess.Id.ToString(CultureInfo.InvariantCulture));
         }
         catch
         {
@@ -241,12 +245,12 @@ public sealed class LocalhostRunTunnelService
             }
         }
 
-        process.OutputDataReceived += (_, e) => OnLine(e.Data);
-        process.ErrorDataReceived += (_, e) => OnLine(e.Data);
-        process.EnableRaisingEvents = true;
-        process.Exited += (_, _) => urlTcs.TrySetResult("");
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
+        _sshProcess.OutputDataReceived += (_, e) => OnLine(e.Data);
+        _sshProcess.ErrorDataReceived += (_, e) => OnLine(e.Data);
+        _sshProcess.EnableRaisingEvents = true;
+        _sshProcess.Exited += (_, _) => urlTcs.TrySetResult("");
+        _sshProcess.BeginOutputReadLine();
+        _sshProcess.BeginErrorReadLine();
 
         using var deadlineCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadlineCts.CancelAfter(TimeSpan.FromSeconds(90));
@@ -296,6 +300,44 @@ public sealed class LocalhostRunTunnelService
         catch
         {
             // If the old helper is already gone, the next start will create a new tunnel itself.
+        }
+        finally
+        {
+            TryDelete(_pidPath);
+            TryDelete(_urlPath);
+        }
+    }
+
+    public void Stop()
+    {
+        if (_sshProcess is not null)
+        {
+            try
+            {
+                if (!_sshProcess.HasExited)
+                {
+                    _sshProcess.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                _sshProcess.Dispose();
+                _sshProcess = null;
+            }
+        }
+
+        StopOwnedSshProcess();
+    }
+
+    public void Dispose()
+    {
+        Stop();
+        if (_ownsHttpClient)
+        {
+            _httpClient.Dispose();
         }
     }
 

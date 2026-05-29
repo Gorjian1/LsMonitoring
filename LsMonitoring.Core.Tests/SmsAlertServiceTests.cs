@@ -25,10 +25,14 @@ public sealed class SmsAlertServiceTests
         await service.UpdateAlarmAsync(6989, "A", true, -15, start.AddSeconds(30));
         await service.UpdateAlarmAsync(6989, "A", false, -1, start.AddMinutes(2));
 
-        Assert.Equal(2, handler.RequestUris.Count);
-        Assert.Contains("api_id=api-key", handler.RequestUris[0].Query);
-        Assert.Contains("to=%2B79990000000", handler.RequestUris[0].Query);
-        Assert.Contains("to=%2B79990000000", handler.RequestUris[1].Query);
+        Assert.Equal(2, handler.Requests.Count);
+
+        var body1 = handler.RequestBodies[0];
+        var body2 = handler.RequestBodies[1];
+
+        Assert.Contains("api_id=api-key", body1);
+        Assert.Contains("to=%2B79990000000", body1);
+        Assert.Contains("to=%2B79990000000", body2);
     }
 
     [Fact]
@@ -49,23 +53,32 @@ public sealed class SmsAlertServiceTests
 
         Assert.True(first);
         Assert.False(second);
-        Assert.Single(handler.RequestUris);
+        Assert.Single(handler.Requests);
         Assert.Contains("максимум 1 сообщений в час", service.LastError);
     }
 
     private sealed class CapturingHandler : HttpMessageHandler
     {
-        public List<Uri> RequestUris { get; } = [];
+        public List<HttpRequestMessage> Requests { get; } = [];
+        public List<string> RequestBodies { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            RequestUris.Add(request.RequestUri!);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            Requests.Add(request);
+            if (request.Content is not null)
+            {
+                RequestBodies.Add(await request.Content.ReadAsStringAsync(cancellationToken));
+            }
+            else
+            {
+                RequestBodies.Add("");
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("""{"status":"OK"}""")
-            });
+            };
         }
     }
 }

@@ -82,6 +82,8 @@ public partial class MainWindow : Window
         await StopTelegramAlertsAsync();
         await StopPollingAsync();
         _heartbeat?.Stop();
+        _quickTunnelService.Dispose();
+        _localGotifyService.Dispose();
         base.OnClosed(e);
     }
 

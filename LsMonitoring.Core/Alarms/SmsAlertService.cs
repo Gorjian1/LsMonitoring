@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Text.Json;
 using LsMonitoring.Core.Configuration;
 
@@ -134,7 +135,21 @@ public sealed class SmsAlertService : IAlertChannel
     {
         try
         {
-            using var response = await _httpClient.GetAsync(BuildSmsRuUri(phone, message));
+            var values = new Dictionary<string, string>
+            {
+                { "api_id", _config.ApiKey.Trim() },
+                { "to", phone },
+                { "msg", message },
+                { "json", "1" }
+            };
+
+            if (!string.IsNullOrWhiteSpace(_config.Sender))
+            {
+                values["from"] = _config.Sender.Trim();
+            }
+
+            using var content = new FormUrlEncodedContent(values);
+            using var response = await _httpClient.PostAsync(_config.EffectiveApiUrl, content);
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
@@ -158,42 +173,26 @@ public sealed class SmsAlertService : IAlertChannel
         }
     }
 
-    private Uri BuildSmsRuUri(string phone, string message)
-    {
-        var query = new List<string>
-        {
-            $"api_id={Uri.EscapeDataString(_config.ApiKey.Trim())}",
-            $"to={Uri.EscapeDataString(phone)}",
-            $"msg={Uri.EscapeDataString(message)}",
-            "json=1"
-        };
-
-        if (!string.IsNullOrWhiteSpace(_config.Sender))
-        {
-            query.Add($"from={Uri.EscapeDataString(_config.Sender.Trim())}");
-        }
-
-        var separator = _config.EffectiveApiUrl.Contains('?') ? "&" : "?";
-        return new Uri(_config.EffectiveApiUrl + separator + string.Join("&", query));
-    }
-
     private bool TryReserveRateLimitSlot()
     {
         var now = DateTime.UtcNow;
-        while (_sentAt.Count > 0 && now - _sentAt.Peek() > TimeSpan.FromHours(1))
+        lock (_sentAt)
         {
-            _sentAt.Dequeue();
-        }
+            while (_sentAt.Count > 0 && now - _sentAt.Peek() > TimeSpan.FromHours(1))
+            {
+                _sentAt.Dequeue();
+            }
 
-        var limit = _config.EffectiveMaxMessagesPerHour;
-        if (_sentAt.Count >= limit)
-        {
-            RecordError($"SMS limit exceeded: максимум {limit} сообщений в час.");
-            return false;
-        }
+            var limit = _config.EffectiveMaxMessagesPerHour;
+            if (_sentAt.Count >= limit)
+            {
+                RecordError($"SMS limit exceeded: максимум {limit} сообщений в час.");
+                return false;
+            }
 
-        _sentAt.Enqueue(now);
-        return true;
+            _sentAt.Enqueue(now);
+            return true;
+        }
     }
 
     private static bool LooksLikeSmsRuError(string body)

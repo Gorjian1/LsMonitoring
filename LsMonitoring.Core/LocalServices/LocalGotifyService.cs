@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
@@ -21,7 +22,7 @@ public sealed record LocalGotifyBootstrapResult(
 /// generated admin password, supervises the process, and bootstraps Application + Client tokens via the Gotify API.
 /// All state lives in %LOCALAPPDATA%\LS Monitoring\ so each installation is self-contained.
 /// </summary>
-public sealed class LocalGotifyService
+public sealed class LocalGotifyService : IDisposable
 {
     public const string GotifyDownloadUrl =
         "https://github.com/gotify/server/releases/latest/download/gotify-windows-amd64.exe.zip";
@@ -32,6 +33,7 @@ public sealed class LocalGotifyService
     private const string AdminUsername = "admin";
 
     private readonly HttpClient _httpClient;
+    private readonly bool _ownsHttpClient;
     private readonly string _toolDirectory;
     private readonly string _dataDirectory;
     private readonly string _gotifyExePath;
@@ -39,6 +41,7 @@ public sealed class LocalGotifyService
     private readonly string _gotifyPidPath;
     private readonly string _adminPasswordPath;
     private readonly int _port;
+    private Process? _gotifyProcess;
 
     public LocalGotifyService(
         string toolDirectory,
@@ -48,6 +51,7 @@ public sealed class LocalGotifyService
     {
         _toolDirectory = toolDirectory;
         _dataDirectory = dataDirectory;
+        _ownsHttpClient = httpClient == null;
         _httpClient = httpClient ?? new HttpClient();
         _gotifyExePath = Path.Combine(_toolDirectory, "gotify-server.exe");
         _gotifyConfigPath = Path.Combine(_dataDirectory, "config.yml");
@@ -152,12 +156,12 @@ public sealed class LocalGotifyService
             return (false, "В архиве Gotify не найден .exe-файл.");
         }
 
-        StopOwnedProcess();
+        Stop();
 
-        var process = StartGotify(path);
+        _gotifyProcess = StartGotify(path);
         try
         {
-            File.WriteAllText(_gotifyPidPath, process.Id.ToString(CultureInfo.InvariantCulture));
+            File.WriteAllText(_gotifyPidPath, _gotifyProcess.Id.ToString(CultureInfo.InvariantCulture));
         }
         catch
         {
@@ -173,9 +177,9 @@ public sealed class LocalGotifyService
                 return (true, "Запущен.");
             }
 
-            if (process.HasExited)
+            if (_gotifyProcess.HasExited)
             {
-                return (false, $"Gotify упал на старте (exit {process.ExitCode}).");
+                return (false, $"Gotify упал на старте (exit {_gotifyProcess.ExitCode}).");
             }
 
             await Task.Delay(500, cancellationToken);
@@ -364,6 +368,43 @@ pluginsdir: plugins
         catch
         {
             // If the previous helper is already gone, the next start will own port 8080 itself.
+        }
+        finally
+        {
+            TryDelete(_gotifyPidPath);
+        }
+    }
+
+    public void Stop()
+    {
+        if (_gotifyProcess is not null)
+        {
+            try
+            {
+                if (!_gotifyProcess.HasExited)
+                {
+                    _gotifyProcess.Kill(entireProcessTree: true);
+                }
+            }
+            catch
+            {
+            }
+            finally
+            {
+                _gotifyProcess.Dispose();
+                _gotifyProcess = null;
+            }
+        }
+
+        StopOwnedProcess();
+    }
+
+    public void Dispose()
+    {
+        Stop();
+        if (_ownsHttpClient)
+        {
+            _httpClient.Dispose();
         }
     }
 
