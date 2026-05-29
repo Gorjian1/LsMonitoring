@@ -11,11 +11,18 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-test:
+    # On tags the build/test runs inside release-desktop, so skip the
+    # redundant windows job and keep it off the release critical path.
+    if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
     runs-on: windows-latest
 
     steps:
@@ -46,7 +53,6 @@ jobs:
 
   release-desktop:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build-test
     runs-on: windows-latest
 
     env:
@@ -76,6 +82,9 @@ jobs:
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
           "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test LsMonitoring.Core.Tests/LsMonitoring.Core.Tests.csproj -c Release
 
       - name: Publish app
         shell: pwsh
@@ -126,6 +135,7 @@ jobs:
           vpk download github `
             --repoUrl https://github.com/Gorjian1/LsMonitoring `
             --token ${{ github.token }} `
+            --channel win `
             --outputDir artifacts/previous
 
       - name: Pack with Velopack
@@ -139,7 +149,8 @@ jobs:
             "--packDir", "artifacts/publish/$env:RUNTIME_ID",
             "--mainExe", "LsMonitoring.Avalonia.exe",
             "--outputDir", "artifacts/release",
-            "--packTitle", "LS Monitoring"
+            "--packTitle", "LS Monitoring",
+            "--channel", "win"
           )
           if ($previousDir) {
             $packArgs += "--previousDir", $previousDir
@@ -154,7 +165,6 @@ jobs:
 
   release-android:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build-test
     runs-on: ubuntu-latest
 
     steps:
@@ -278,6 +288,7 @@ jobs:
           vpk upload github \
             --repoUrl https://github.com/Gorjian1/LsMonitoring \
             --token ${{ github.token }} \
+            --channel win \
             --tag ${{ github.ref_name }} \
             --outputDir artifacts/release \
             --releaseName "LS Monitoring ${{ github.ref_name }}" \
