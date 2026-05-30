@@ -85,6 +85,12 @@ public sealed class SmsAlertService : IAlertChannel
 
         if (_activeAlarms.TryGetValue(key, out var alarm))
         {
+            if (!_config.SendResolvedNotifications)
+            {
+                _activeAlarms.Remove(key);
+                return;
+            }
+
             var sent = await SendSmsAsync(FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp));
             if (sent)
             {

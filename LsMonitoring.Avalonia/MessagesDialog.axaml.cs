@@ -12,6 +12,7 @@ namespace LsMonitoring.Avalonia;
 public partial class MessagesDialog : Window
 {
     private const string SendTestText = "Отправить тест";
+    private const string UnlinkChatText = "Отвязать чат";
     private const string TelegramBotUrl = "https://t.me/ls_monitoringbot";
 
     private readonly LocalhostRunTunnelService _quickTunnelService = LocalhostRunTunnelService.CreateDefault();
@@ -26,6 +27,7 @@ public partial class MessagesDialog : Window
         CancelButton.Click += OnCancelClick;
         BotLinkButton.Click += OnBotLinkClick;
         TestTelegramButton.Click += OnTestTelegramClick;
+        UnlinkTelegramButton.Click += OnUnlinkTelegramClick;
         TestEmailButton.Click += OnTestEmailClick;
         TestSmsButton.Click += OnTestSmsClick;
         PushDownloadButton.Click += OnPushDownloadClick;
@@ -35,17 +37,19 @@ public partial class MessagesDialog : Window
         PushServerUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
         PushClientTokenBox.TextChanged += (_, _) => RefreshPushQrCode();
         PushAppDownloadUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
-        SetQrCode(TelegramBotQrImage, TelegramBotUrl);
     }
 
     public void LoadConfig(AppConfig config)
     {
         _config = config;
+        TelegramLinkCodeBox.Text = config.Telegram.EffectiveLinkCode;
+        SetQrCode(TelegramBotQrImage, BuildTelegramBotUrl(config.Telegram.EffectiveLinkCode));
         EnableTelegramBox.IsChecked = config.Telegram.Enabled;
         TelegramChatIdsBox.Text = string.Join(", ", config.Telegram.ChatIds);
 
         EnableEmailBox.IsChecked = config.Email.Enabled;
         EmailRecipientsBox.Text = string.Join(", ", config.Email.Recipients);
+        EmailSendResolvedBox.IsChecked = config.Email.SendResolvedNotifications;
         UseOwnSmtpBox.IsChecked = !config.Email.UsesRelay;
         EmailFromBox.Text = config.Email.From;
         EmailPasswordBox.Text = config.Email.Password;
@@ -58,6 +62,7 @@ public partial class MessagesDialog : Window
 
         EnableSmsBox.IsChecked = config.Sms.Enabled;
         SmsPhonesBox.Text = string.Join(", ", config.Sms.PhoneNumbers);
+        SmsSendResolvedBox.IsChecked = config.Sms.SendResolvedNotifications;
         SmsProviderBox.Text = string.IsNullOrWhiteSpace(config.Sms.Provider) ? SmsConfig.SmsRuProvider : config.Sms.Provider;
         SmsApiUrlBox.Text = config.Sms.EffectiveApiUrl;
         SmsApiKeyBox.Text = config.Sms.ApiKey;
@@ -89,6 +94,7 @@ public partial class MessagesDialog : Window
 
         _config.Sms.Enabled = EnableSmsBox.IsChecked ?? false;
         _config.Sms.PhoneNumbers = ParseStringList(SmsPhonesBox.Text ?? "");
+        _config.Sms.SendResolvedNotifications = SmsSendResolvedBox.IsChecked ?? false;
         _config.Sms.Provider = (SmsProviderBox.Text ?? "").Trim();
         _config.Sms.ApiUrl = (SmsApiUrlBox.Text ?? "").Trim();
         _config.Sms.ApiKey = SmsApiKeyBox.Text ?? "";
@@ -118,9 +124,9 @@ public partial class MessagesDialog : Window
         Close(false);
     }
 
-    private static void OnBotLinkClick(object? sender, RoutedEventArgs e)
+    private void OnBotLinkClick(object? sender, RoutedEventArgs e)
     {
-        OpenUrl(TelegramBotUrl);
+        OpenUrl(BuildTelegramBotUrl(_config.Telegram.EffectiveLinkCode));
     }
 
     private async void OnTestTelegramClick(object? sender, RoutedEventArgs e)
@@ -133,7 +139,15 @@ public partial class MessagesDialog : Window
         }
 
         var chatIds = ParseTelegramChatIds(TelegramChatIdsBox.Text ?? "");
-        var service = new TelegramAlertService(token, chatIds, startPolling: false);
+        var linkCode = _config.Telegram.EffectiveLinkCode;
+        TelegramLinkCodeBox.Text = linkCode;
+        SetQrCode(TelegramBotQrImage, BuildTelegramBotUrl(linkCode));
+
+        var service = new TelegramAlertService(
+            token,
+            chatIds,
+            startPolling: false,
+            requiredLinkCode: linkCode);
 
         TestTelegramButton.IsEnabled = false;
         try
@@ -165,6 +179,23 @@ public partial class MessagesDialog : Window
             service.Stop();
             TestTelegramButton.Content = SendTestText;
             TestTelegramButton.IsEnabled = true;
+        }
+    }
+
+    private async void OnUnlinkTelegramClick(object? sender, RoutedEventArgs e)
+    {
+        TelegramChatIdsBox.Text = "";
+        EnableTelegramBox.IsChecked = false;
+        UnlinkTelegramButton.IsEnabled = false;
+        try
+        {
+            UnlinkTelegramButton.Content = "Отвязано";
+            await Task.Delay(1500);
+        }
+        finally
+        {
+            UnlinkTelegramButton.Content = UnlinkChatText;
+            UnlinkTelegramButton.IsEnabled = true;
         }
     }
 
@@ -413,6 +444,7 @@ public partial class MessagesDialog : Window
             DeliveryMode = UseOwnSmtpBox.IsChecked == true ? EmailDeliveryMode.Smtp : EmailDeliveryMode.Relay,
             InstallationId = _config.Email.InstallationId,
             Recipients = ParseStringList(EmailRecipientsBox.Text ?? ""),
+            SendResolvedNotifications = EmailSendResolvedBox.IsChecked ?? false,
             RelayUrl = _config.Email.RelayUrl,
             From = (EmailFromBox.Text ?? "").Trim(),
             SmtpHost = (EmailSmtpHostBox.Text ?? "").Trim(),
@@ -436,6 +468,7 @@ public partial class MessagesDialog : Window
             ApiKey = SmsApiKeyBox.Text ?? "",
             Sender = (SmsSenderBox.Text ?? "").Trim(),
             PhoneNumbers = ParseStringList(SmsPhonesBox.Text ?? ""),
+            SendResolvedNotifications = SmsSendResolvedBox.IsChecked ?? false,
             MaxMessagesPerHour = ParsePositiveInt(SmsMaxPerHourBox.Text, SmsConfig.DefaultMaxMessagesPerHour)
         };
     }
@@ -451,6 +484,13 @@ public partial class MessagesDialog : Window
         return string.IsNullOrWhiteSpace(value)
             ? PushConfig.DefaultAppDownloadUrl
             : value;
+    }
+
+    private static string BuildTelegramBotUrl(string linkCode)
+    {
+        return string.IsNullOrWhiteSpace(linkCode)
+            ? TelegramBotUrl
+            : $"{TelegramBotUrl}?start={Uri.EscapeDataString(linkCode.Trim())}";
     }
 
     private string BuildPushConnectTarget()

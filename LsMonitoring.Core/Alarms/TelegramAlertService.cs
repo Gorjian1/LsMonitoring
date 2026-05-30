@@ -16,6 +16,7 @@ public class TelegramAlertService : IUpdatableAlertChannel
 
     private readonly string _botToken;
     private readonly List<long> _chatIds;
+    private readonly string _requiredLinkCode;
     private readonly object _chatIdsLock = new();
     private readonly HttpClient _httpClient;
     private readonly Action<long>? _onNewChatIdDiscovered;
@@ -32,10 +33,12 @@ public class TelegramAlertService : IUpdatableAlertChannel
         string botToken,
         List<long> chatIds,
         Action<long>? onNewChatIdDiscovered = null,
-        bool startPolling = true)
+        bool startPolling = true,
+        string? requiredLinkCode = null)
     {
         _botToken = botToken.Trim();
         _chatIds = chatIds;
+        _requiredLinkCode = (requiredLinkCode ?? "").Trim();
         _onNewChatIdDiscovered = onNewChatIdDiscovered;
         _httpClient = new HttpClient();
 
@@ -342,16 +345,65 @@ public class TelegramAlertService : IUpdatableAlertChannel
 
         var chatId = chatIdProp.GetInt64();
         var text = msg.TryGetProperty("text", out var textProp) ? textProp.GetString() : "";
+        var linkCodeMatches = LinkCodeMatches(text);
 
-        if (TryAddChatId(chatId))
+        if (!linkCodeMatches && !string.IsNullOrWhiteSpace(_requiredLinkCode))
+        {
+            if (IsStartCommand(text))
+            {
+                _ = SendMessageAsync(chatId, "Код привязки не совпал. Откройте ссылку или QR из LS Monitoring и отправьте /start с кодом.");
+            }
+
+            return;
+        }
+
+        if (linkCodeMatches && TryAddChatId(chatId))
         {
             _ = SendMessageAsync(chatId, "👋 Вы успешно подписаны на уведомления LS Monitoring!");
             _onNewChatIdDiscovered?.Invoke(chatId);
         }
-        else if (text == "/start")
+        else if (linkCodeMatches)
         {
             _ = SendMessageAsync(chatId, "✅ Вы уже подписаны на уведомления. Ожидайте тревожных сигналов от LS Monitoring!");
         }
+    }
+
+    private bool LinkCodeMatches(string? text)
+    {
+        if (!IsStartCommand(text))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_requiredLinkCode))
+        {
+            return true;
+        }
+
+        var payload = ExtractStartPayload(text);
+        return string.Equals(payload, _requiredLinkCode, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsStartCommand(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        return text.Trim().StartsWith("/start", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ExtractStartPayload(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return "";
+        }
+
+        var trimmed = text.Trim();
+        var parts = trimmed.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 2 ? parts[1].Trim() : "";
     }
 
     private IReadOnlyList<long> GetChatIdsSnapshot()

@@ -108,11 +108,56 @@ public sealed class TelegramConfig
     [JsonPropertyName("bot_token")]
     public string BotToken { get; set; } = "";
 
+    [JsonPropertyName("link_code")]
+    public string LinkCode { get; set; } = "";
+
     [JsonPropertyName("chat_ids")]
     public List<long> ChatIds { get; set; } = [];
 
     [JsonIgnore]
     public string EffectiveBotToken => TelegramSecrets.ResolveBotToken(BotToken);
+
+    [JsonIgnore]
+    public string EffectiveLinkCode => EnsureLinkCode();
+
+    public string EnsureLinkCode()
+    {
+        if (IsValidLinkCode(LinkCode))
+        {
+            LinkCode = LinkCode.Trim().ToUpperInvariant();
+            return LinkCode;
+        }
+
+        LinkCode = GenerateLinkCode();
+        return LinkCode;
+    }
+
+    public static bool IsValidLinkCode(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.Length is >= 6 and <= 16 &&
+               trimmed.All(ch => char.IsAsciiLetterOrDigit(ch));
+    }
+
+    private static string GenerateLinkCode()
+    {
+        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        Span<byte> bytes = stackalloc byte[8];
+        RandomNumberGenerator.Fill(bytes);
+
+        var chars = new char[8];
+        for (var i = 0; i < chars.Length; i++)
+        {
+            chars[i] = alphabet[bytes[i] % alphabet.Length];
+        }
+
+        return new string(chars);
+    }
 }
 
 public static class EmailDeliveryMode
@@ -180,6 +225,9 @@ public sealed class EmailConfig
 
     [JsonPropertyName("recipients")]
     public List<string> Recipients { get; set; } = [];
+
+    [JsonPropertyName("send_resolved_notifications")]
+    public bool SendResolvedNotifications { get; set; } = false;
 
     [JsonIgnore]
     public string Password
@@ -336,6 +384,9 @@ public sealed class SmsConfig
 
     [JsonPropertyName("max_messages_per_hour")]
     public int MaxMessagesPerHour { get; set; } = DefaultMaxMessagesPerHour;
+
+    [JsonPropertyName("send_resolved_notifications")]
+    public bool SendResolvedNotifications { get; set; } = false;
 
     [JsonIgnore]
     public string EffectiveProvider => string.IsNullOrWhiteSpace(Provider)

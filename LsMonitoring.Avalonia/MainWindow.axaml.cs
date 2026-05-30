@@ -364,7 +364,8 @@ public partial class MainWindow : Window
             _telegramAlertService = new TelegramAlertService(
                 botToken, 
                 _config.Telegram.ChatIds.ToList(), // pass a copy or reference depending on logic, list is fine
-                OnNewChatIdDiscovered);
+                OnNewChatIdDiscovered,
+                requiredLinkCode: _config.Telegram.EffectiveLinkCode);
         }
     }
 

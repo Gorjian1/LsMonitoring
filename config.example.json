@@ -24,6 +24,7 @@
   "telegram": {
     "enabled": false,
     "bot_token": "",
+    "link_code": "",
     "chat_ids": []
   },
   "email": {
@@ -38,7 +39,8 @@
     "username": "",
     "password_b64": "",
     "from": "",
-    "recipients": []
+    "recipients": [],
+    "send_resolved_notifications": false
   },
   "sms": {
     "enabled": false,
@@ -47,7 +49,8 @@
     "api_key": "",
     "sender": "",
     "phone_numbers": [],
-    "max_messages_per_hour": 20
+    "max_messages_per_hour": 20,
+    "send_resolved_notifications": false
   },
   "push": {
     "enabled": false,

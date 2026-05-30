@@ -102,21 +102,21 @@
                                                 <TextBlock Classes="step-number" Text="1"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Отсканируйте QR справа или откройте бота по ссылке и отправьте /start."/>
+                                                       Text="Отсканируйте QR справа или откройте бота по ссылке: Telegram отправит /start с кодом привязки."/>
                                         </Grid>
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="2"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Нажмите Отправить тест. Поле ID можно оставить пустым — чат подхватится автоматически."/>
+                                                       Text="Если ссылка не подставила код, скопируйте код ниже и отправьте боту: /start код."/>
                                         </Grid>
                                         <Grid ColumnDefinitions="26,*">
                                             <Border Classes="step-index">
                                                 <TextBlock Classes="step-number" Text="3"/>
                                             </Border>
                                             <TextBlock Grid.Column="1" Classes="card-text"
-                                                       Text="Когда тест дошёл — включите канал галочкой во вкладке и сохраните."/>
+                                                       Text="Нажмите Отправить тест. Поле ID можно оставить пустым — чат подхватится автоматически. Кнопка Отвязать чат очищает получателя."/>
                                         </Grid>
                                     </StackPanel>
                                 </StackPanel>
@@ -154,16 +154,25 @@
                         </Border>
 
                         <Border Classes="form-card">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto" RowSpacing="10">
+                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
-                                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto">
+                                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto,Auto">
                                     <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox"
                                              PlaceholderText="ID чатов: 1234567, 9876543"/>
                                     <Button Grid.Column="1" x:Name="TestTelegramButton"
                                             Content="Отправить тест"
                                             Margin="8,0,0,0"
                                             Padding="12,4"/>
+                                    <Button Grid.Column="2" x:Name="UnlinkTelegramButton"
+                                            Content="Отвязать чат"
+                                            Margin="8,0,0,0"
+                                            Padding="12,4"/>
                                 </Grid>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Код:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="TelegramLinkCodeBox"
+                                         IsReadOnly="True"
+                                         PlaceholderText="код привязки"/>
                             </Grid>
                         </Border>
                     </StackPanel>
@@ -213,7 +222,7 @@
                         </Border>
 
                         <Border Classes="form-card">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
                                 <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto">
                                     <TextBox Grid.Column="0" x:Name="EmailRecipientsBox"
@@ -224,7 +233,11 @@
                                             Padding="12,4"/>
                                 </Grid>
 
-                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="EmailStatusText"
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Окончание:"/>
+                                <CheckBox Grid.Row="1" Grid.Column="1" x:Name="EmailSendResolvedBox"
+                                          Content="Отправлять окончание тревоги"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="EmailStatusText"
                                            Classes="card-text"/>
                             </Grid>
                         </Border>
@@ -464,8 +477,8 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <CheckBox x:Name="EnableSmsBox" IsEnabled="False" ToolTip.Tip="Канал в разработке"/>
-                        <TextBlock Text="SMS" VerticalAlignment="Center" Opacity="0.6"/>
+                        <CheckBox x:Name="EnableSmsBox"/>
+                        <TextBlock Text="SMS" VerticalAlignment="Center"/>
                     </StackPanel>
                 </TabItem.Header>
                 <ScrollViewer Margin="0,14,0,0"
@@ -474,20 +487,47 @@
                     <StackPanel Spacing="12" Margin="0,0,8,0">
                         <Border Classes="channel-card">
                             <StackPanel Spacing="10">
-                                <TextBlock Classes="card-title" Text="SMS — в разработке"/>
+                                <TextBlock Classes="card-title" Text="SMS"/>
                                 <TextBlock Classes="card-text"
-                                           Text="Канал пока не подключён. Появится в одном из следующих обновлений вместе с готовой интеграцией SMS-провайдера."/>
+                                           Text="SMS отправляются через sms.ru. Укажите номера, API key и лимит сообщений ниже."/>
+                                <StackPanel Spacing="7">
+                                    <Grid ColumnDefinitions="26,*">
+                                        <Border Classes="step-index">
+                                            <TextBlock Classes="step-number" Text="1"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Classes="card-text"
+                                                   Text="Введите номера получателей через запятую."/>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="26,*">
+                                        <Border Classes="step-index">
+                                            <TextBlock Classes="step-number" Text="2"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Classes="card-text"
+                                                   Text="Укажите API key sms.ru в настройке SMS-провайдера."/>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="26,*">
+                                        <Border Classes="step-index">
+                                            <TextBlock Classes="step-number" Text="3"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="1" Classes="card-text"
+                                                   Text="Нажмите Отправить тест. Окончание тревоги включайте только если нужны SMS о восстановлении."/>
+                                    </Grid>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="form-card" IsVisible="False">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <Border Classes="form-card">
+                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
                                 <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
                                 <TextBox Grid.Row="0" Grid.Column="1" x:Name="SmsPhonesBox"
                                          PlaceholderText="+79990000000, +79991111111"/>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Проверка:"/>
-                                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="Auto,*">
+                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Окончание:"/>
+                                <CheckBox Grid.Row="1" Grid.Column="1" x:Name="SmsSendResolvedBox"
+                                          Content="Отправлять окончание тревоги"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Classes="field-label" Text="Проверка:"/>
+                                <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*">
                                     <Button Grid.Column="0" x:Name="TestSmsButton"
                                             Content="Отправить тест"
                                             Padding="12,4"/>
@@ -501,7 +541,7 @@
                             </Grid>
                         </Border>
 
-                        <Expander Header="Настройка SMS-провайдера" IsExpanded="False" IsVisible="False">
+                        <Expander Header="Настройка SMS-провайдера" IsExpanded="False">
                             <Border Classes="form-card" Margin="0,8,0,0">
                                 <StackPanel Spacing="10">
                                     <TextBlock Classes="card-text"

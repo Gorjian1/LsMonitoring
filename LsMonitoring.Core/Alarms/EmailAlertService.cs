@@ -92,6 +92,12 @@ public sealed class EmailAlertService : IAlertChannel
 
         if (_activeAlarms.TryGetValue(key, out var alarm))
         {
+            if (!_config.SendResolvedNotifications)
+            {
+                _activeAlarms.Remove(key);
+                return;
+            }
+
             var sent = await SendEmailAsync(
                 $"LS Monitoring: норма, узел {nodeId}, ось {axis}",
                 FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp));

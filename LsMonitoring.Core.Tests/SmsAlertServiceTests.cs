@@ -7,7 +7,7 @@ namespace LsMonitoring.Core.Tests;
 public sealed class SmsAlertServiceTests
 {
     [Fact]
-    public async Task UpdateAlarmAsync_SendsOnlyStartAndResolvedMessages()
+    public async Task UpdateAlarmAsync_SendsResolvedMessageWhenEnabled()
     {
         var handler = new CapturingHandler();
         var service = new SmsAlertService(new SmsConfig
@@ -16,7 +16,8 @@ public sealed class SmsAlertServiceTests
             ApiKey = "api-key",
             ApiUrl = "https://sms.example.test/send",
             PhoneNumbers = ["+79990000000"],
-            MaxMessagesPerHour = 10
+            MaxMessagesPerHour = 10,
+            SendResolvedNotifications = true
         }, new HttpClient(handler));
 
         var start = new DateTime(2026, 5, 26, 10, 0, 0);
@@ -33,6 +34,29 @@ public sealed class SmsAlertServiceTests
         Assert.Contains("api_id=api-key", body1);
         Assert.Contains("to=%2B79990000000", body1);
         Assert.Contains("to=%2B79990000000", body2);
+    }
+
+    [Fact]
+    public async Task UpdateAlarmAsync_SkipsResolvedMessageWhenDisabledAndClearsActiveAlarm()
+    {
+        var handler = new CapturingHandler();
+        var service = new SmsAlertService(new SmsConfig
+        {
+            Enabled = true,
+            ApiKey = "api-key",
+            ApiUrl = "https://sms.example.test/send",
+            PhoneNumbers = ["+79990000000"],
+            MaxMessagesPerHour = 10,
+            SendResolvedNotifications = false
+        }, new HttpClient(handler));
+
+        var start = new DateTime(2026, 5, 26, 10, 0, 0);
+
+        await service.UpdateAlarmAsync(6989, "A", true, -12, start);
+        await service.UpdateAlarmAsync(6989, "A", false, -1, start.AddMinutes(2));
+        await service.UpdateAlarmAsync(6989, "A", true, -13, start.AddMinutes(3));
+
+        Assert.Equal(2, handler.Requests.Count);
     }
 
     [Fact]
