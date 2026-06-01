@@ -46,17 +46,6 @@
                 <TextBox Grid.Row="3" Grid.Column="2" x:Name="CriticalBBox"/>
             </Grid>
 
-            <!-- Тревоги -->
-            <TextBlock Text="ТРЕВОГИ" FontSize="10" FontWeight="SemiBold"
-                       LetterSpacing="2" Foreground="{StaticResource BrushMuted}" Margin="0,8,0,0"/>
-            <Grid ColumnDefinitions="140,*" RowDefinitions="Auto" RowSpacing="10">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="В окне:" VerticalAlignment="Center"
-                           Foreground="{StaticResource BrushMuted}"/>
-                <CheckBox Grid.Row="0" Grid.Column="1" x:Name="EnableAlarmsBox"
-                          Content="Показывать баннер при критике"
-                          Foreground="{StaticResource BrushText}"/>
-            </Grid>
-
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,20,0,0">
                 <Button x:Name="CancelButton" Content="Отмена" Padding="15,6"/>
                 <Button x:Name="SaveButton" Content="Сохранить" Padding="15,6" Background="{StaticResource BrushPrimary}" Foreground="White" BorderBrush="{StaticResource BrushPrimaryHover}"/>

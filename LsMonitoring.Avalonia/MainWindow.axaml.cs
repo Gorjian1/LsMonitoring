@@ -632,10 +632,10 @@ public partial class MainWindow : Window
         item.Model = nodeReadings.Model ?? item.Model;
         var buffer = _buffersByNode[nodeId];
         var before = buffer.Latest;
-        buffer.Merge(nodeReadings.Readings, _config.PlotBufferPoints);
+        var added = buffer.Merge(nodeReadings.Readings, _config.PlotBufferPoints);
         item.UpdateFrom(buffer, nodeReadings.Model, _config.GetCalibration(nodeId));
 
-        _totalMessages += nodeReadings.Readings.Count;
+        _totalMessages += added.Count;
 
         if (_currentNode is null)
         {

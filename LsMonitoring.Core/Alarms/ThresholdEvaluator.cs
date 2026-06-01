@@ -6,7 +6,7 @@ namespace LsMonitoring.Core.Alarms;
 
 public static class ThresholdEvaluator
 {
-    public static Evaluation Evaluate(Reading reading, Thresholds thresholds, AlarmConfig alarm, NodeCalibration? calibration = null)
+    public static Evaluation Evaluate(Reading reading, Thresholds thresholds, NodeCalibration? calibration = null)
     {
         var evaluation = EvaluateAxisThresholds(reading, thresholds, calibration);
         if (!reading.Invalid)

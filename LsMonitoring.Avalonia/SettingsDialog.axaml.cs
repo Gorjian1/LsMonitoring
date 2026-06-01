@@ -22,8 +22,6 @@ public partial class SettingsDialog : Window
         GatewayIpBox.Text = config.Connection.GatewayIp;
         UsernameBox.Text = config.Connection.Username;
         PasswordBox.Text = config.Connection.Password;
-        EnableAlarmsBox.IsChecked = config.Alarm.Enabled;
-
         ThresholdModeBox.SelectedIndex = string.Equals(config.Thresholds.Mode, Thresholds.VariationMode, StringComparison.OrdinalIgnoreCase)
             ? 1
             : 0;
@@ -38,8 +36,6 @@ public partial class SettingsDialog : Window
         _config.Connection.GatewayIp = GatewayIpBox.Text ?? "";
         _config.Connection.Username = UsernameBox.Text ?? "";
         _config.Connection.Password = PasswordBox.Text ?? "";
-        _config.Alarm.Enabled = EnableAlarmsBox.IsChecked ?? false;
-
         _config.Thresholds.Mode = ReadSelectedThresholdMode();
         _config.Thresholds.ZeroA = ParseNumber(ZeroABox.Text, _config.Thresholds.ZeroA);
         _config.Thresholds.ZeroB = ParseNumber(ZeroBBox.Text, _config.Thresholds.ZeroB);

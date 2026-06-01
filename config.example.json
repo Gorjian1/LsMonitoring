@@ -14,13 +14,6 @@
     "same_for_ab": true,
     "mode": "absolute"
   },
-  "alarm": {
-    "sound": true,
-    "popup": true,
-    "log_to_csv": true,
-    "invalid_behavior": "mark",
-    "invalid_alarm_minutes": 5
-  },
   "telegram": {
     "enabled": false,
     "bot_token": "",

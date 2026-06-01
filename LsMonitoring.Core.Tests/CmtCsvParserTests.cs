@@ -84,14 +84,14 @@ public sealed class CmtCsvParserTests
         };
 
         var statuses = parsed.Readings
-            .Select(x => ThresholdEvaluator.Evaluate(x, thresholds, new AlarmConfig()).Status)
+            .Select(x => ThresholdEvaluator.Evaluate(x, thresholds).Status)
             .ToHashSet();
 
         Assert.Contains(Status.Ok, statuses);
         Assert.Contains(Status.Warning, statuses);
         Assert.Contains(Status.Critical, statuses);
         Assert.Contains(parsed.Readings, x =>
-            x.Invalid && ThresholdEvaluator.Evaluate(x, thresholds, new AlarmConfig()).Status == Status.Critical);
+            x.Invalid && ThresholdEvaluator.Evaluate(x, thresholds).Status == Status.Critical);
     }
 
     [Fact]

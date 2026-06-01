@@ -80,27 +80,6 @@ public sealed class Thresholds
     }
 }
 
-public sealed class AlarmConfig
-{
-    [JsonPropertyName("enabled")]
-    public bool Enabled { get; set; } = false;
-
-    [JsonPropertyName("sound")]
-    public bool Sound { get; set; } = true;
-
-    [JsonPropertyName("popup")]
-    public bool Popup { get; set; } = true;
-
-    [JsonPropertyName("log_to_csv")]
-    public bool LogToCsv { get; set; } = true;
-
-    [JsonPropertyName("invalid_behavior")]
-    public string InvalidBehavior { get; set; } = "mark";
-
-    [JsonPropertyName("invalid_alarm_minutes")]
-    public int InvalidAlarmMinutes { get; set; } = 5;
-}
-
 public sealed class TelegramConfig
 {
     [JsonPropertyName("enabled")]
@@ -625,9 +604,6 @@ public sealed class AppConfig
 
     [JsonPropertyName("thresholds")]
     public Thresholds Thresholds { get; set; } = new();
-
-    [JsonPropertyName("alarm")]
-    public AlarmConfig Alarm { get; set; } = new();
 
     [JsonPropertyName("telegram")]
     public TelegramConfig Telegram { get; set; } = new();
