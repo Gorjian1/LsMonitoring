@@ -586,7 +586,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        OnReadingsReady(nodeId, NodeReadings.FromParsedCsv(nodeId, parsed));
+        OnReadingsReady(nodeId, NodeReadings.FromParsedCsv(nodeId, parsed), live: false);
         StatusText.Text = $"CSV загружен — узел {nodeId}";
     }
 
@@ -626,7 +626,7 @@ public partial class MainWindow : Window
         return item;
     }
 
-    private void OnReadingsReady(int nodeId, NodeReadings nodeReadings)
+    private void OnReadingsReady(int nodeId, NodeReadings nodeReadings, bool live = true)
     {
         var item = EnsureNode(nodeId);
         item.Model = nodeReadings.Model ?? item.Model;
@@ -651,8 +651,11 @@ public partial class MainWindow : Window
         UpdateNodeSummary();
         _nextPollAt = DateTime.Now + TimeSpan.FromSeconds(_config.Connection.PollingIntervalSeconds);
 
-        var latest = buffer.Latest;
-        TriggerAlarmNotificationsIfNeeded(nodeId, latest);
+        if (live)
+        {
+            var latest = buffer.Latest;
+            TriggerAlarmNotificationsIfNeeded(nodeId, latest);
+        }
     }
 
     private void TriggerAlarmNotificationsIfNeeded(int nodeId, Reading? latest)

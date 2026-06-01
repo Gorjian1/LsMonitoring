@@ -298,7 +298,11 @@ _totalMessages += added.Count; // было: nodeReadings.Readings.Count
 
 ---
 
-## [ ] M2-3 — Не слать реальные тревоги при загрузке CSV-файла 🟡
+## [x] M2-3 — Не слать реальные тревоги при загрузке CSV-файла 🟡
+
+> Сделано: у `OnReadingsReady` появился параметр `bool live = true`; `TriggerAlarmNotificationsIfNeeded`
+> вызывается только при `live`. `LoadCsvAsync` зовёт `OnReadingsReady(..., live: false)`, поэтому
+> предпросмотр CSV больше не шлёт реальные уведомления. Живой поллинг и `PollOnceAsync` остаются `live: true`.
 
 **Проблема.** `LoadCsvAsync` (`MainWindow.axaml.cs:548`) зовёт `OnReadingsReady`, который в конце
 вызывает `TriggerAlarmNotificationsIfNeeded` (`:643`). README позиционирует CSV как **безопасный
