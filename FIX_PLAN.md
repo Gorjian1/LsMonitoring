@@ -329,7 +329,17 @@ private void OnReadingsReady(int nodeId, NodeReadings nodeReadings, bool live = 
 
 # M3 — Ресурсы и стабильность
 
-## [ ] M3-1 — Алерт-сервисы как `IDisposable`, общий HttpClient 🟡
+## [x] M3-1 — Алерт-сервисы как `IDisposable`, общий HttpClient 🟡
+
+> Сделано (с поправкой на текущее состояние после M1-2: Telegram уже вынесен в компаньон-процесс,
+> в десктопе `TelegramAlertService` больше не создаётся):
+> - `TelegramAlertService` теперь `IAsyncDisposable` (`StopAsync` → `Dispose` у `HttpClient` и `CTS`).
+>   `BotHost` (единственный владелец сервиса) при смене токена/`Dispose` диспозит предыдущий поллер
+>   через fire-and-forget `DisposeQuietly`, не блокируя конфигурацию на завершении gone-задачи.
+> - Десктоп: `MainWindow` держит один `_alertHttpClient` и передаёт его в Email/SMS/Gotify-сервисы,
+>   которые пересоздаются на каждом `ReconfigureAlertServices` — больше нет утечки сокет-хендлера
+>   на каждую переконфигурацию. Клиент диспозится в `OnClosed`.
+> - `MessagesDialog` держит один `_testHttpClient` для кнопок «тест» каналов и диспозит его в `OnClosed`.
 
 **Проблема.** `TelegramAlertService` (`LsMonitoring.Core/Alarms/TelegramAlertService.cs`) не реализует
 `IDisposable`: каждый `ReconfigureTelegramAlerts` (`MainWindow.axaml.cs:357`) утекает `HttpClient`+`CTS`.

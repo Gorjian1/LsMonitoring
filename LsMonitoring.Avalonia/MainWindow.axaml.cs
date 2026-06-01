@@ -40,6 +40,10 @@ public partial class MainWindow : Window
     private readonly string _deviationHistoryPath;
     private AppConfig _config;
     private readonly TelegramCompanionService _telegramCompanion = new();
+    // Single HttpClient shared by all alert channels. Services are recreated on every
+    // ReconfigureAlertServices call, so passing a reusable client avoids leaking a socket
+    // handler per reconfigure.
+    private readonly HttpClient _alertHttpClient = new();
     private EmailAlertService? _emailAlertService;
     private SmsAlertService? _smsAlertService;
     private GotifyAlertService? _gotifyAlertService;
@@ -86,6 +90,7 @@ public partial class MainWindow : Window
         _heartbeat?.Stop();
         _quickTunnelService.Dispose();
         _localGotifyService.Dispose();
+        _alertHttpClient.Dispose();
         base.OnClosed(e);
     }
 
@@ -411,17 +416,17 @@ public partial class MainWindow : Window
 
     private void ReconfigureEmailAlerts()
     {
-        _emailAlertService = _config.Email.Enabled ? new EmailAlertService(_config.Email) : null;
+        _emailAlertService = _config.Email.Enabled ? new EmailAlertService(_config.Email, _alertHttpClient) : null;
     }
 
     private void ReconfigureSmsAlerts()
     {
-        _smsAlertService = _config.Sms.Enabled ? new SmsAlertService(_config.Sms) : null;
+        _smsAlertService = _config.Sms.Enabled ? new SmsAlertService(_config.Sms, _alertHttpClient) : null;
     }
 
     private void ReconfigureGotifyAlerts()
     {
-        _gotifyAlertService = _config.Push.Enabled ? new GotifyAlertService(_config.Push) : null;
+        _gotifyAlertService = _config.Push.Enabled ? new GotifyAlertService(_config.Push, _alertHttpClient) : null;
     }
 
     private void StartConfiguredPushTunnelInBackground()

@@ -18,6 +18,8 @@ public partial class MessagesDialog : Window
     private readonly LocalhostRunTunnelService _quickTunnelService = LocalhostRunTunnelService.CreateDefault();
     private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
     private readonly TelegramCompanionService? _companion;
+    // Shared by the channel "test" buttons so repeated clicks don't leak an HttpClient each time.
+    private readonly HttpClient _testHttpClient = new();
 
     private AppConfig _config = null!;
 
@@ -44,6 +46,12 @@ public partial class MessagesDialog : Window
         PushServerUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
         PushClientTokenBox.TextChanged += (_, _) => RefreshPushQrCode();
         PushAppDownloadUrlBox.TextChanged += (_, _) => RefreshPushQrCode();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _testHttpClient.Dispose();
+        base.OnClosed(e);
     }
 
     public void LoadConfig(AppConfig config)
@@ -249,7 +257,7 @@ public partial class MessagesDialog : Window
     private async void OnTestEmailClick(object? sender, RoutedEventArgs e)
     {
         var emailConfig = BuildEmailConfigFromUi();
-        var service = new EmailAlertService(emailConfig);
+        var service = new EmailAlertService(emailConfig, _testHttpClient);
 
         TestEmailButton.IsEnabled = false;
         EmailStatusText.Text = "";
@@ -292,7 +300,7 @@ public partial class MessagesDialog : Window
     private async void OnTestSmsClick(object? sender, RoutedEventArgs e)
     {
         var smsConfig = BuildSmsConfigFromUi();
-        var service = new SmsAlertService(smsConfig);
+        var service = new SmsAlertService(smsConfig, _testHttpClient);
 
         TestSmsButton.IsEnabled = false;
         SmsStatusText.Text = "";
@@ -430,7 +438,7 @@ public partial class MessagesDialog : Window
             LocalServerUrl = PushLocalServerUrlBox.Text ?? "",
             Priority = ParsePositiveInt(PushPriorityBox.Text, 5)
         };
-        var service = new GotifyAlertService(pushConfig);
+        var service = new GotifyAlertService(pushConfig, _testHttpClient);
 
         TestPushButton.IsEnabled = false;
         PushStatusText.Text = "";

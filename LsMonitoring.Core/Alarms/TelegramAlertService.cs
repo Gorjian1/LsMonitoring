@@ -10,7 +10,7 @@ public class ActiveTelegramAlarm
     public double LastValue { get; set; }
 }
 
-public class TelegramAlertService : IUpdatableAlertChannel
+public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
 {
     private const string LogFilePath = "logs/telegram_debug.txt";
 
@@ -79,6 +79,14 @@ public class TelegramAlertService : IUpdatableAlertChannel
         catch (OperationCanceledException)
         {
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await StopAsync();
+        _httpClient.Dispose();
+        _cts.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private async Task PollUpdatesAsync(CancellationToken token)

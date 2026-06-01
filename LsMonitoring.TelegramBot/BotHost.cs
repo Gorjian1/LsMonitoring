@@ -23,6 +23,7 @@ public sealed class BotHost : IDisposable
         botToken = (botToken ?? "").Trim();
         linkCode = (linkCode ?? "").Trim();
 
+        TelegramAlertService? previous;
         lock (_lock)
         {
             if (_service is not null &&
@@ -32,7 +33,7 @@ public sealed class BotHost : IDisposable
                 return;
             }
 
-            _service?.Stop();
+            previous = _service;
             _service = null;
             _token = botToken;
             _linkCode = linkCode;
@@ -47,6 +48,10 @@ public sealed class BotHost : IDisposable
                     requiredLinkCode: linkCode);
             }
         }
+
+        // Dispose the superseded poller (cancels getUpdates, frees its HttpClient + CTS) outside
+        // the lock so we never block configuration on the cancelled polling task winding down.
+        DisposeQuietly(previous);
     }
 
     public IReadOnlyList<long> ChatIds
@@ -108,10 +113,35 @@ public sealed class BotHost : IDisposable
 
     public void Dispose()
     {
+        TelegramAlertService? service;
         lock (_lock)
         {
-            _service?.Stop();
+            service = _service;
             _service = null;
         }
+
+        DisposeQuietly(service);
+    }
+
+    private static void DisposeQuietly(TelegramAlertService? service)
+    {
+        if (service is null)
+        {
+            return;
+        }
+
+        // Fire-and-forget: DisposeAsync awaits the cancelled polling task before freeing the
+        // HttpClient/CTS. We deliberately don't block the caller (Configure/Dispose) on it.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await service.DisposeAsync();
+            }
+            catch
+            {
+                // Teardown of a superseded poller must never crash the host.
+            }
+        });
     }
 }
