@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using LsMonitoring.Core.IO;
 
 namespace LsMonitoring.Core.LocalServices;
 
@@ -269,13 +270,13 @@ public sealed class LocalGotifyService : IDisposable
             if (string.IsNullOrWhiteSpace(password))
             {
                 password = GenerateRandomPassword();
-                File.WriteAllText(_adminPasswordPath, password);
+                AtomicFile.WriteAllText(_adminPasswordPath, password);
             }
         }
         else
         {
             password = GenerateRandomPassword();
-            File.WriteAllText(_adminPasswordPath, password);
+            AtomicFile.WriteAllText(_adminPasswordPath, password);
         }
 
         if (!File.Exists(_gotifyConfigPath))
@@ -297,7 +298,7 @@ database:
 uploadedimagesdir: images
 pluginsdir: plugins
 ";
-            File.WriteAllText(_gotifyConfigPath, config);
+            AtomicFile.WriteAllText(_gotifyConfigPath, config);
         }
 
         return password;

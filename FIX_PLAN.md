@@ -53,7 +53,15 @@
 
 # M1 — Безопасность и надёжность (делать первым)
 
-## [ ] M1-1 — Отозвать Telegram-токен и убрать его из клиента 🔴
+## [x] M1-1 — Отозвать Telegram-токен и убрать его из клиента 🔴
+
+> Сделано (код): десктоп больше не отправляет через зашитый токен — бот вынесен в отдельную
+> программу. `TelegramSecrets.ResolveBotToken` теперь предпочитает введённый пользователем токен
+> встроенному (env → config → embedded).
+> ⚠️ ОСТАЁТСЯ РУЧНОЕ ДЕЙСТВИЕ (с телефона/у компа):
+> 1. @BotFather → `/revoke` старого бота (токен скомпрометирован).
+> 2. Удалить файл `LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs`, чтобы встроенный
+>    токен не попадал даже в локальные сборки.
 
 **Проблема.** Живой bot token зашит в `LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs`
 (строковый литерал в `GetEmbeddedBotToken`). Файл в `.gitignore`, поэтому в репозиторий не попал,
@@ -77,7 +85,31 @@
 
 ---
 
-## [ ] M1-2 — Telegram: серверный relay ИЛИ персональный бот 🔴
+## [x] M1-2 — Telegram: отдельная прога-компаньон + свой бот 🔴
+
+> Реализован выбранный вариант «локальный компаньон + свой бот»:
+> - Новый проект **`LsMonitoring.TelegramBot`** — localhost-HTTP-сервис (HttpListener, 127.0.0.1:8771):
+>   держит токен, гоняет ОДИН getUpdates-поллер (нет 409), привязывает чат по `/start <код>`.
+>   Эндпоинты `/health /config /state /test /alarm`; auth по `X-LS-Bot-Key` (кроме `/health`).
+>   Переиспользует проверенный `TelegramAlertService` из Core.
+> - Десктоп: **`TelegramCompanionService`** запускает/супервизит exe (как gotify), шлёт config и алармы;
+>   `MainWindow` больше НЕ создаёт `TelegramAlertService` и не опрашивает Telegram; chat id
+>   подтягиваются из `/state` в heartbeat и мёржатся в config.
+> - **`MessagesDialog`**: добавлены поля «Bot token» и «Bot @username»; тест/привязка идут через компаньон.
+> - CI бандлит `LsMonitoring.TelegramBot.exe` рядом с приложением.
+> - Проверено: сборка solution чистая, тесты 31/31; компаньон smoke-тестом отвечает на
+>   /health /config /state /test /alarm (с фейковым токеном /test корректно вернул Telegram 401).
+>
+> **Известное ограничение 0.8 (→ 0.9):** «Отвязать чат» очищает список на десктопе, но компаньон
+> сбрасывает привязки только при смене токена/кода или перезапуске (нет `/unlink`).
+>
+> **Ручная проверка (нужен реальный бот, у компа):**
+> 1. @BotFather → создать бота, скопировать токен и @username.
+> 2. Оповещения → Telegram: вставить token и @username, нажать «Отправить тест».
+> 3. Отсканировать QR / открыть ссылку, отправить боту `/start <код>`.
+> 4. Кнопка → «Отправлено!», chat-id появился в поле, пришло тестовое сообщение.
+> 5. Diagnostics → Telegram «включён, готов», ошибок нет; в Task Manager один
+>    `LsMonitoring.TelegramBot.exe`; в `logs/telegram_debug.txt` нет `409 Conflict`.
 
 **Проблема.** Сейчас модель — один общий бот на всех, токен на клиенте, опрос `getUpdates`
 с клиента. Telegram **запрещает параллельный `getUpdates`** одним токеном (`409 Conflict`),
@@ -108,7 +140,10 @@ CI-сборки Telegram просто не включится (токена не
 
 ---
 
-## [ ] M1-3 — Атомарная запись config/history 🟠
+## [x] M1-3 — Атомарная запись config/history 🟠
+
+> Сделано: `LsMonitoring.Core/IO/AtomicFile.cs`; подключено в `AppConfig.Save`,
+> `MainWindow.SaveDeviationHistory`, `LocalGotifyService` (config.yml + admin-pass.txt).
 
 **Проблема.** Все сохранения — `File.WriteAllText` (truncate-then-write). Падение посреди записи
 бьёт файл. Затронуто:
@@ -158,7 +193,10 @@ public static class AtomicFile
 
 ---
 
-## [ ] M1-4 — Не затирать конфиг/историю молча при ошибке 🟠
+## [x] M1-4 — Не затирать конфиг/историю молча при ошибке 🟠
+
+> Сделано: `AppConfig.Load` и `MainWindow.LoadDeviationHistory` читают `path` → `path.bak`,
+> а битый файл уносят в `*.corrupt-<timestamp>` вместо тихого сброса.
 
 **Проблема.** `AppConfig.Load` (`AppConfig.cs:692`) при любом исключении возвращает **новый дефолтный**
 конфиг; `LoadDeviationHistory` (`MainWindow.axaml.cs:864`) при ошибке **чистит** историю. В связке

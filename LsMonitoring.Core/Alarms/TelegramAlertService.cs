@@ -29,6 +29,9 @@ public class TelegramAlertService : IUpdatableAlertChannel
     public string? LastError { get; private set; }
     public string ChannelName => "Telegram";
 
+    /// <summary>Thread-safe snapshot of the currently bound chat ids.</summary>
+    public IReadOnlyList<long> ChatIds => GetChatIdsSnapshot();
+
     public TelegramAlertService(
         string botToken,
         List<long> chatIds,

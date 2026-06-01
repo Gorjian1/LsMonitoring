@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using LsMonitoring.Core.Configuration;
+using LsMonitoring.Core.IO;
 using LsMonitoring.Core.Models;
 using LsMonitoring.Core.Monitoring;
 using LsMonitoring.Core.Parsing;
@@ -38,7 +39,7 @@ public partial class MainWindow : Window
     private readonly string _configPath;
     private readonly string _deviationHistoryPath;
     private AppConfig _config;
-    private TelegramAlertService? _telegramAlertService;
+    private readonly TelegramCompanionService _telegramCompanion = new();
     private EmailAlertService? _emailAlertService;
     private SmsAlertService? _smsAlertService;
     private GotifyAlertService? _gotifyAlertService;
@@ -53,6 +54,7 @@ public partial class MainWindow : Window
     private DateTime? _plotCutoffTime;
     private bool _isPickingPlotCutoff;
     private bool _pushTunnelStartInProgress;
+    private int _heartbeatTick;
 
     public MainWindow()
     {
@@ -79,7 +81,7 @@ public partial class MainWindow : Window
 
     protected override async void OnClosed(EventArgs e)
     {
-        await StopTelegramAlertsAsync();
+        await _telegramCompanion.DisposeAsync();
         await StopPollingAsync();
         _heartbeat?.Stop();
         _quickTunnelService.Dispose();
@@ -127,6 +129,13 @@ public partial class MainWindow : Window
         _heartbeat = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _heartbeat.Tick += (_, _) =>
         {
+            _heartbeatTick++;
+            if (_heartbeatTick % 5 == 0)
+            {
+                // Pull any chats that bound to the bot (via /start <code>) from the companion.
+                _ = SyncTelegramChatIdsAsync();
+            }
+
             foreach (var node in _nodes)
             {
                 if (_buffersByNode.TryGetValue(node.NodeId, out var buf))
@@ -269,8 +278,7 @@ public partial class MainWindow : Window
 
     private async Task ShowMessagesDialogAsync()
     {
-        await StopTelegramAlertsAsync();
-        var dialog = new MessagesDialog();
+        var dialog = new MessagesDialog(_telegramCompanion);
         dialog.LoadConfig(_config);
         var saved = false;
 
@@ -319,9 +327,9 @@ public partial class MainWindow : Window
                 new ChannelDiagnostics(
                     "Telegram",
                     _config.Telegram.Enabled,
-                    _telegramAlertService is not null,
+                    _config.Telegram.Enabled && !string.IsNullOrWhiteSpace(_config.Telegram.EffectiveBotToken),
                     true,
-                    _telegramAlertService?.LastError),
+                    _telegramCompanion.LastError),
                 new ChannelDiagnostics(
                     "Почта",
                     _config.Email.Enabled,
@@ -356,32 +364,48 @@ public partial class MainWindow : Window
 
     private void ReconfigureTelegramAlerts()
     {
-        StopTelegramAlerts();
+        // Push config to the companion in the background (it launches/supervises the separate
+        // LsMonitoring.TelegramBot.exe). The desktop never holds the token or polls Telegram.
+        _ = ApplyTelegramConfigAsync();
+    }
 
+    private async Task ApplyTelegramConfigAsync()
+    {
         var botToken = _config.Telegram.EffectiveBotToken;
         if (_config.Telegram.Enabled && !string.IsNullOrWhiteSpace(botToken))
         {
-            _telegramAlertService = new TelegramAlertService(
-                botToken, 
-                _config.Telegram.ChatIds.ToList(), // pass a copy or reference depending on logic, list is fine
-                OnNewChatIdDiscovered,
-                requiredLinkCode: _config.Telegram.EffectiveLinkCode);
+            await _telegramCompanion.EnsureConfiguredAsync(
+                botToken,
+                _config.Telegram.EffectiveLinkCode,
+                _config.Telegram.ChatIds);
+        }
+        else
+        {
+            await _telegramCompanion.StopAsync();
         }
     }
 
-    private void StopTelegramAlerts()
+    private async Task SyncTelegramChatIdsAsync()
     {
-        _telegramAlertService?.Stop();
-        _telegramAlertService = null;
-    }
-
-    private async Task StopTelegramAlertsAsync()
-    {
-        var service = _telegramAlertService;
-        _telegramAlertService = null;
-        if (service is not null)
+        if (!_config.Telegram.Enabled)
         {
-            await service.StopAsync();
+            return;
+        }
+
+        var bound = await _telegramCompanion.GetBoundChatIdsAsync();
+        var changed = false;
+        foreach (var id in bound)
+        {
+            if (!_config.Telegram.ChatIds.Contains(id))
+            {
+                _config.Telegram.ChatIds.Add(id);
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            _config.Save(_configPath);
         }
     }
 
@@ -504,18 +528,6 @@ public partial class MainWindow : Window
         {
             _pushTunnelStartInProgress = false;
         }
-    }
-
-    private void OnNewChatIdDiscovered(long newChatId)
-    {
-        Dispatcher.UIThread.Post(() => 
-        {
-            if (!_config.Telegram.ChatIds.Contains(newChatId))
-            {
-                _config.Telegram.ChatIds.Add(newChatId);
-                _config.Save(_configPath);
-            }
-        });
     }
 
     private async Task DiscoverNodesAsync()
@@ -712,9 +724,9 @@ public partial class MainWindow : Window
 
     private IEnumerable<IAlertChannel> EnabledAlertChannels()
     {
-        if (_telegramAlertService is { } telegram)
+        if (_config.Telegram.Enabled && !string.IsNullOrWhiteSpace(_config.Telegram.EffectiveBotToken))
         {
-            yield return telegram;
+            yield return _telegramCompanion;
         }
 
         if (_emailAlertService is { } email)
@@ -834,40 +846,65 @@ public partial class MainWindow : Window
 
     private void LoadDeviationHistory()
     {
-        try
+        // Primary file first, then the atomic-write backup. A corrupt primary is quarantined rather
+        // than silently wiped, so one bad read can't erase the whole deviation history.
+        foreach (var candidate in new[] { _deviationHistoryPath, _deviationHistoryPath + ".bak" })
         {
-            if (!File.Exists(_deviationHistoryPath))
+            if (!File.Exists(candidate))
             {
+                continue;
+            }
+
+            try
+            {
+                var entries = JsonSerializer.Deserialize<List<DeviationHistoryEntry>>(
+                    File.ReadAllText(candidate),
+                    DeviationHistoryJsonOptions) ?? [];
+
+                ResetDeviationHistoryState();
+                foreach (var entry in entries
+                             .Where(x => x.NodeId > 0 && !string.IsNullOrWhiteSpace(x.Axis))
+                             .OrderByDescending(x => x.StartedAt)
+                             .Take(MaxDeviationHistoryItems)
+                             .Reverse())
+                {
+                    InsertDeviationHistoryEntry(entry);
+                    if (entry.EndedAt is null)
+                    {
+                        _activeDeviationHistory[(entry.NodeId, entry.Axis)] = entry;
+                    }
+                }
+
                 UpdateDeviationHistoryEmptyState();
                 return;
             }
-
-            var entries = JsonSerializer.Deserialize<List<DeviationHistoryEntry>>(
-                File.ReadAllText(_deviationHistoryPath),
-                DeviationHistoryJsonOptions) ?? [];
-
-            foreach (var entry in entries
-                         .Where(x => x.NodeId > 0 && !string.IsNullOrWhiteSpace(x.Axis))
-                         .OrderByDescending(x => x.StartedAt)
-                         .Take(MaxDeviationHistoryItems)
-                         .Reverse())
+            catch
             {
-                InsertDeviationHistoryEntry(entry);
-                if (entry.EndedAt is null)
-                {
-                    _activeDeviationHistory[(entry.NodeId, entry.Axis)] = entry;
-                }
+                ResetDeviationHistoryState();
+                // Try the backup next, then quarantine below.
             }
+        }
 
-            UpdateDeviationHistoryEmptyState();
+        try
+        {
+            if (File.Exists(_deviationHistoryPath))
+            {
+                File.Move(_deviationHistoryPath, $"{_deviationHistoryPath}.corrupt-{DateTime.Now:yyyyMMddHHmmss}");
+            }
         }
         catch
         {
-            _deviationHistory.Clear();
-            _deviationHistoryRowsById.Clear();
-            _activeDeviationHistory.Clear();
-            UpdateDeviationHistoryEmptyState();
+            // Best effort; the next atomic save overwrites it safely.
         }
+
+        UpdateDeviationHistoryEmptyState();
+    }
+
+    private void ResetDeviationHistoryState()
+    {
+        _deviationHistory.Clear();
+        _deviationHistoryRowsById.Clear();
+        _activeDeviationHistory.Clear();
     }
 
     private void SaveDeviationHistory()
@@ -885,7 +922,7 @@ public partial class MainWindow : Window
                 .OrderByDescending(x => x.StartedAt)
                 .Take(MaxDeviationHistoryItems)
                 .ToList();
-            File.WriteAllText(_deviationHistoryPath, JsonSerializer.Serialize(entries, DeviationHistoryJsonOptions));
+            AtomicFile.WriteAllText(_deviationHistoryPath, JsonSerializer.Serialize(entries, DeviationHistoryJsonOptions));
         }
         catch
         {

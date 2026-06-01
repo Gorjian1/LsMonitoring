@@ -17,11 +17,18 @@ public partial class MessagesDialog : Window
 
     private readonly LocalhostRunTunnelService _quickTunnelService = LocalhostRunTunnelService.CreateDefault();
     private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
+    private readonly TelegramCompanionService? _companion;
 
     private AppConfig _config = null!;
 
-    public MessagesDialog()
+    // Parameterless ctor required by the Avalonia runtime XAML loader / previewer.
+    public MessagesDialog() : this(null)
     {
+    }
+
+    public MessagesDialog(TelegramCompanionService? companion)
+    {
+        _companion = companion;
         InitializeComponent();
         SaveButton.Click += OnSaveClick;
         CancelButton.Click += OnCancelClick;
@@ -43,6 +50,8 @@ public partial class MessagesDialog : Window
     {
         _config = config;
         TelegramLinkCodeBox.Text = config.Telegram.EffectiveLinkCode;
+        TelegramBotTokenBox.Text = config.Telegram.BotToken;
+        TelegramBotUsernameBox.Text = config.Telegram.BotUsername;
         SetQrCode(TelegramBotQrImage, BuildTelegramBotUrl(config.Telegram.EffectiveLinkCode));
         EnableTelegramBox.IsChecked = config.Telegram.Enabled;
         TelegramChatIdsBox.Text = string.Join(", ", config.Telegram.ChatIds);
@@ -89,6 +98,8 @@ public partial class MessagesDialog : Window
     {
         _config.Telegram.Enabled = EnableTelegramBox.IsChecked ?? false;
         _config.Telegram.ChatIds = ParseTelegramChatIds(TelegramChatIdsBox.Text ?? "");
+        _config.Telegram.BotToken = (TelegramBotTokenBox.Text ?? "").Trim();
+        _config.Telegram.BotUsername = (TelegramBotUsernameBox.Text ?? "").Trim().TrimStart('@');
 
         _config.Email = BuildEmailConfigFromUi();
 
@@ -131,10 +142,21 @@ public partial class MessagesDialog : Window
 
     private async void OnTestTelegramClick(object? sender, RoutedEventArgs e)
     {
-        var token = _config.Telegram.EffectiveBotToken;
+        var token = (TelegramBotTokenBox.Text ?? "").Trim();
         if (string.IsNullOrWhiteSpace(token))
         {
-            await FlashTestButtonAsync("Нет бота");
+            token = _config.Telegram.EffectiveBotToken;
+        }
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            await FlashTestButtonAsync("Нет токена");
+            return;
+        }
+
+        if (_companion is null)
+        {
+            await FlashTestButtonAsync("Бот недоступен");
             return;
         }
 
@@ -143,30 +165,34 @@ public partial class MessagesDialog : Window
         TelegramLinkCodeBox.Text = linkCode;
         SetQrCode(TelegramBotQrImage, BuildTelegramBotUrl(linkCode));
 
-        var service = new TelegramAlertService(
-            token,
-            chatIds,
-            startPolling: false,
-            requiredLinkCode: linkCode);
-
         TestTelegramButton.IsEnabled = false;
         try
         {
-            if (chatIds.Count == 0)
+            if (!await _companion.EnsureConfiguredAsync(token, linkCode, chatIds))
             {
-                TestTelegramButton.Content = "Нажмите /start";
-                await service.DiscoverChatIdsAsync(TimeSpan.FromSeconds(30));
-                TelegramChatIdsBox.Text = string.Join(", ", chatIds.Distinct());
+                await FlashTestButtonAsync("Ошибка бота");
+                return;
             }
 
             if (chatIds.Count == 0)
             {
-                await FlashTestButtonAsync(service.LastError is null ? "Нет чатов" : "Ошибка");
+                TestTelegramButton.Content = "Нажмите /start";
+                var bound = await WaitForChatBindingAsync(TimeSpan.FromSeconds(30));
+                if (bound.Count > 0)
+                {
+                    chatIds = bound.ToList();
+                    TelegramChatIdsBox.Text = string.Join(", ", chatIds.Distinct());
+                }
+            }
+
+            if (chatIds.Count == 0)
+            {
+                await FlashTestButtonAsync(_companion.LastError is null ? "Нет чатов" : "Ошибка");
                 return;
             }
 
             TestTelegramButton.Content = "Отправка...";
-            var success = await service.SendTestMessageAsync();
+            var success = await _companion.SendTestAsync();
             if (success)
             {
                 EnableTelegramBox.IsChecked = true;
@@ -176,10 +202,31 @@ public partial class MessagesDialog : Window
         }
         finally
         {
-            service.Stop();
             TestTelegramButton.Content = SendTestText;
             TestTelegramButton.IsEnabled = true;
         }
+    }
+
+    private async Task<IReadOnlyList<long>> WaitForChatBindingAsync(TimeSpan timeout)
+    {
+        if (_companion is null)
+        {
+            return [];
+        }
+
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            var bound = await _companion.GetBoundChatIdsAsync();
+            if (bound.Count > 0)
+            {
+                return bound;
+            }
+
+            await Task.Delay(1000);
+        }
+
+        return await _companion.GetBoundChatIdsAsync();
     }
 
     private async void OnUnlinkTelegramClick(object? sender, RoutedEventArgs e)
@@ -486,11 +533,15 @@ public partial class MessagesDialog : Window
             : value;
     }
 
-    private static string BuildTelegramBotUrl(string linkCode)
+    private string BuildTelegramBotUrl(string linkCode)
     {
-        return string.IsNullOrWhiteSpace(linkCode)
+        var username = (TelegramBotUsernameBox?.Text ?? "").Trim().TrimStart('@');
+        var baseUrl = string.IsNullOrWhiteSpace(username)
             ? TelegramBotUrl
-            : $"{TelegramBotUrl}?start={Uri.EscapeDataString(linkCode.Trim())}";
+            : $"https://t.me/{username}";
+        return string.IsNullOrWhiteSpace(linkCode)
+            ? baseUrl
+            : $"{baseUrl}?start={Uri.EscapeDataString(linkCode.Trim())}";
     }
 
     private string BuildPushConnectTarget()

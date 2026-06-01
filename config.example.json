@@ -24,6 +24,7 @@
   "telegram": {
     "enabled": false,
     "bot_token": "",
+    "bot_username": "",
     "link_code": "",
     "chat_ids": []
   },

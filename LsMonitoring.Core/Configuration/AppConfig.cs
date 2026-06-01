@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Security.Cryptography;
+using LsMonitoring.Core.IO;
 using LsMonitoring.Core.Models;
 
 namespace LsMonitoring.Core.Configuration;
@@ -113,6 +114,9 @@ public sealed class TelegramConfig
 
     [JsonPropertyName("chat_ids")]
     public List<long> ChatIds { get; set; } = [];
+
+    [JsonPropertyName("bot_username")]
+    public string BotUsername { get; set; } = "";
 
     [JsonIgnore]
     public string EffectiveBotToken => TelegramSecrets.ResolveBotToken(BotToken);
@@ -680,18 +684,46 @@ public sealed class AppConfig
 
     public static AppConfig Load(string path)
     {
-        if (!File.Exists(path))
+        // Try the primary file, then the atomic-write backup. Only fall back to defaults if both
+        // are unreadable — and never silently clobber a corrupt file (quarantine it instead) so a
+        // single bad read can't wipe gateway credentials, thresholds and saved chat ids.
+        foreach (var candidate in new[] { path, path + ".bak" })
         {
-            return new AppConfig();
+            if (!File.Exists(candidate))
+            {
+                continue;
+            }
+
+            try
+            {
+                var loaded = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(candidate), JsonOptions);
+                if (loaded is not null)
+                {
+                    return loaded;
+                }
+            }
+            catch
+            {
+                // Try the backup next, then quarantine below.
+            }
         }
 
+        QuarantineCorruptFile(path);
+        return new AppConfig();
+    }
+
+    private static void QuarantineCorruptFile(string path)
+    {
         try
         {
-            return JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(path), JsonOptions) ?? new AppConfig();
+            if (File.Exists(path))
+            {
+                File.Move(path, $"{path}.corrupt-{DateTime.Now:yyyyMMddHHmmss}");
+            }
         }
         catch
         {
-            return new AppConfig();
+            // If we cannot move it, leave it; the next atomic Save overwrites it safely.
         }
     }
 
@@ -703,7 +735,7 @@ public sealed class AppConfig
             Directory.CreateDirectory(dir);
         }
 
-        File.WriteAllText(path, JsonSerializer.Serialize(this, JsonOptions));
+        AtomicFile.WriteAllText(path, JsonSerializer.Serialize(this, JsonOptions));
     }
 
     public static string ResolveDefaultPath()

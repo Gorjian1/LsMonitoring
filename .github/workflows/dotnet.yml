@@ -99,6 +99,20 @@ jobs:
             -o artifacts/publish/$env:RUNTIME_ID
           Get-ChildItem artifacts/publish/$env:RUNTIME_ID -Filter *.pdb -File | Remove-Item -Force
 
+      - name: Bundle Telegram bot companion with the app
+        shell: pwsh
+        run: |
+          dotnet publish LsMonitoring.TelegramBot/LsMonitoring.TelegramBot.csproj `
+            -c Release `
+            -r $env:RUNTIME_ID `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -p:Version=${{ steps.version.outputs.value }} `
+            -o artifacts/publish-bot
+          Copy-Item "artifacts/publish-bot/LsMonitoring.TelegramBot.exe" "artifacts/publish/$env:RUNTIME_ID/LsMonitoring.TelegramBot.exe" -Force
+
       - name: Bundle gotify-server.exe with the app
         shell: pwsh
         run: |
