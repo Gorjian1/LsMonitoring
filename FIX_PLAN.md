@@ -367,7 +367,13 @@ public async ValueTask DisposeAsync()
 
 ---
 
-## [ ] M3-2 — Диалог Messages освобождает свои сервисы 🟡
+## [x] M3-2 — Диалог Messages освобождает свои сервисы 🟡
+
+> Сделано по варианту «переиспользовать из `MainWindow`»: `MessagesDialog` больше не зовёт
+> `CreateDefault()`, а принимает `LocalhostRunTunnelService` и `LocalGotifyService` через конструктор
+> (`ShowMessagesDialogAsync` передаёт `_quickTunnelService`/`_localGotifyService`). Диалог их только
+> заимствует и НЕ диспозит — единственный владелец gotify/тоннеля остаётся `MainWindow` (диспозит в
+> своём `OnClosed`). Безпараметровый ctor для XAML-превьюера передаёт design-time `CreateDefault()`.
 
 **Проблема.** `MessagesDialog` создаёт **собственные** `LocalhostRunTunnelService` и
 `LocalGotifyService` (`MessagesDialog.axaml.cs:18-19`) и никогда их не Dispose (нет `OnClosed`).

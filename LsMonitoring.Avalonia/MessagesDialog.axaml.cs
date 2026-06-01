@@ -15,8 +15,10 @@ public partial class MessagesDialog : Window
     private const string UnlinkChatText = "Отвязать чат";
     private const string TelegramBotUrl = "https://t.me/ls_monitoringbot";
 
-    private readonly LocalhostRunTunnelService _quickTunnelService = LocalhostRunTunnelService.CreateDefault();
-    private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
+    // Owned by MainWindow (one gotify/tunnel owner per app); the dialog only borrows them and
+    // must NOT dispose them.
+    private readonly LocalhostRunTunnelService _quickTunnelService;
+    private readonly LocalGotifyService _localGotifyService;
     private readonly TelegramCompanionService? _companion;
     // Shared by the channel "test" buttons so repeated clicks don't leak an HttpClient each time.
     private readonly HttpClient _testHttpClient = new();
@@ -24,13 +26,18 @@ public partial class MessagesDialog : Window
     private AppConfig _config = null!;
 
     // Parameterless ctor required by the Avalonia runtime XAML loader / previewer.
-    public MessagesDialog() : this(null)
+    public MessagesDialog() : this(null, LocalhostRunTunnelService.CreateDefault(), LocalGotifyService.CreateDefault())
     {
     }
 
-    public MessagesDialog(TelegramCompanionService? companion)
+    public MessagesDialog(
+        TelegramCompanionService? companion,
+        LocalhostRunTunnelService quickTunnelService,
+        LocalGotifyService localGotifyService)
     {
         _companion = companion;
+        _quickTunnelService = quickTunnelService;
+        _localGotifyService = localGotifyService;
         InitializeComponent();
         SaveButton.Click += OnSaveClick;
         CancelButton.Click += OnCancelClick;

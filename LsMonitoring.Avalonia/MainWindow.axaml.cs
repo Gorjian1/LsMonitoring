@@ -283,7 +283,7 @@ public partial class MainWindow : Window
 
     private async Task ShowMessagesDialogAsync()
     {
-        var dialog = new MessagesDialog(_telegramCompanion);
+        var dialog = new MessagesDialog(_telegramCompanion, _quickTunnelService, _localGotifyService);
         dialog.LoadConfig(_config);
         var saved = false;
 
