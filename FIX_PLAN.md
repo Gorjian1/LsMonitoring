@@ -521,7 +521,25 @@ static bool HasValidBearerToken(HttpContext context, string expectedToken)
 
 ---
 
-## [ ] M4-2 — Rate-limit в relay 🟠
+## [x] M4-2 — Rate-limit в relay 🟠
+
+> Сделано: в `LsMonitoring.AlertRelay/Program.cs` подключён ASP.NET rate limiter
+> (`builder.Services.AddRateLimiter(...)` + `app.UseRateLimiter()`), на `/api/alerts/email`
+> навешана политика `RequireRateLimiting("email")`. Политика — `FixedWindowRateLimiter`,
+> окно 1 час, `PermitLimit = RateLimitPerHour` (новая опция `LS_ALERT_RATE_LIMIT_PER_HOUR`,
+> дефолт 60), `QueueLimit = 0`, `RejectionStatusCode = 429`.
+> - **Ключ партиции** (`ResolveRateLimitPartitionKey`): сперва заголовок `X-LS-Installation-Id`
+>   (его уже шлёт `EmailAlertService.SendRelayEmailAsync`), при отсутствии — клиентский IP с учётом
+>   первого хопа `X-Forwarded-For` (relay за TLS-терминирующим прокси). Так лимит у каждой установки
+>   свой, а отсутствие заголовка не схлопывает всех в один бакет.
+> - Лимит вынесен в конфиг → правится без передеплоя.
+> - **Smoke-тест локально** (`LS_ALERT_RATE_LIMIT_PER_HOUR=2`): первые 2 запроса проходят к хендлеру
+>   (503 — SMTP не настроен, лимитер их пропустил), 3-й вернул 429; запрос с другим
+>   `X-LS-Installation-Id` получил свой бакет (503, не 429).
+> - README relay дополнен переменной и разделом про rate limit. Сборка чистая (0/0), тесты 31/5/0.
+>
+> **Примечание по TLS:** Bearer уходит в открытую, если хостинг не терминирует TLS — это
+> ответственность деплоя (вне кода), отмечено в плане ниже.
 
 **Проблема.** `/api/alerts/email` (`Program.cs:17`) без лимитов: утёкший токен = открытый спам-шлюз
 через твой SMTP.

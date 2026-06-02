@@ -2,11 +2,34 @@ using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton(_ => RelayOptions.Load(builder.Configuration));
 
+// Rate-limit the email endpoint so a leaked Bearer token can't turn the relay into an open
+// spam gateway through our SMTP. Fixed window, partitioned per installation (falling back to
+// client IP when the header is absent/spoofed). Limits come from config so they can be tuned
+// without a redeploy.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("email", context =>
+    {
+        var relayOptions = context.RequestServices.GetRequiredService<RelayOptions>();
+        return RateLimitPartition.GetFixedWindowLimiter(
+            ResolveRateLimitPartitionKey(context),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromHours(1),
+                PermitLimit = relayOptions.RateLimitPerHour,
+                QueueLimit = 0
+            });
+    });
+});
+
 var app = builder.Build();
+app.UseRateLimiter();
 
 app.MapGet("/health", (RelayOptions options) => Results.Ok(new
 {
@@ -77,7 +100,7 @@ app.MapPost("/api/alerts/email", async (HttpContext context, EmailAlertRequest r
         app.Logger.LogError(ex, "Failed to send relay email for installation {InstallationId}.", request.InstallationId);
         return Results.Problem("Failed to send email.", statusCode: StatusCodes.Status502BadGateway);
     }
-});
+}).RequireRateLimiting("email");
 
 app.Run();
 
@@ -96,6 +119,27 @@ static bool HasValidBearerToken(HttpContext context, string expectedToken)
     return CryptographicOperations.FixedTimeEquals(
         Encoding.UTF8.GetBytes(provided),
         Encoding.UTF8.GetBytes(expectedToken));
+}
+
+static string ResolveRateLimitPartitionKey(HttpContext context)
+{
+    var installationId = context.Request.Headers["X-LS-Installation-Id"].ToString().Trim();
+    if (installationId.Length > 0)
+    {
+        return $"inst:{installationId}";
+    }
+
+    // No installation header — fall back to the client IP. Honor the first X-Forwarded-For hop
+    // when the relay sits behind a TLS-terminating reverse proxy.
+    var forwarded = context.Request.Headers["X-Forwarded-For"].ToString();
+    var ip = forwarded.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .FirstOrDefault();
+    if (string.IsNullOrEmpty(ip))
+    {
+        ip = context.Connection.RemoteIpAddress?.ToString();
+    }
+
+    return $"ip:{ip ?? "unknown"}";
 }
 
 static string BuildBody(EmailAlertRequest request)
@@ -128,6 +172,7 @@ public sealed class RelayOptions
     public string From { get; init; } = "";
     public string FromName { get; init; } = "LS Monitoring";
     public int MaxRecipients { get; init; } = 10;
+    public int RateLimitPerHour { get; init; } = 60;
 
     public bool HasSmtpSettings =>
         !string.IsNullOrWhiteSpace(SmtpHost) &&
@@ -147,7 +192,8 @@ public sealed class RelayOptions
             SmtpPassword = Read(configuration, "LS_ALERT_SMTP_PASSWORD"),
             From = Read(configuration, "LS_ALERT_SMTP_FROM"),
             FromName = Read(configuration, "LS_ALERT_SMTP_FROM_NAME", "LS Monitoring"),
-            MaxRecipients = ReadInt(configuration, "LS_ALERT_MAX_RECIPIENTS", 10)
+            MaxRecipients = ReadInt(configuration, "LS_ALERT_MAX_RECIPIENTS", 10),
+            RateLimitPerHour = ReadInt(configuration, "LS_ALERT_RATE_LIMIT_PER_HOUR", 60)
         };
     }
 

@@ -51,9 +51,14 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
 - **M4-1** — done: relay `HasValidBearerToken` now uses
   `CryptographicOperations.FixedTimeEquals` (constant-time Bearer compare) instead
   of `string.Equals(..., Ordinal)`; prefix checked separately with `StartsWith`.
-- **NEXT → M4-2** — rate-limit the relay: ASP.NET `AddRateLimiter` fixed-window
-  keyed per installation/IP on `/api/alerts/email`, return 429 on overflow.
-- After M4-2: M4-3 (pin+hash Gotify), then the M5 (QoL) section.
+- **M4-2** — done: ASP.NET `AddRateLimiter` + `UseRateLimiter`; `/api/alerts/email`
+  has `RequireRateLimiting("email")` — fixed window (1h), `PermitLimit` from new
+  `LS_ALERT_RATE_LIMIT_PER_HOUR` (default 60), partitioned by `X-LS-Installation-Id`
+  header (IP + `X-Forwarded-For` fallback), 429 on overflow. Smoke-tested locally
+  (limit=2 → 3rd req 429; other installation id → own bucket). README updated.
+- **NEXT → M4-3** — pin Gotify version + verify SHA-256 (runtime in
+  `LocalGotifyService` and CI `.github/workflows/dotnet.yml`).
+- After M4-3: the M5 (QoL/perf/legacy/CI) section.
 
 ## Key drift between the plan and current code
 
