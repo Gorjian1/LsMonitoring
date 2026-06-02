@@ -566,7 +566,23 @@ app.UseRateLimiter();
 
 ---
 
-## [ ] M4-3 — Пиннинг версии и проверка хеша Gotify 🟡
+## [x] M4-3 — Пиннинг версии и проверка хеша Gotify 🟡
+
+> Сделано (версия зафиксирована на **v2.9.1**, хеши взяты с реальных артефактов релиза — у Gotify
+> нет отдельного `checksums.txt`, посчитал сам):
+> - **Рантайм** (`LocalGotifyService`): `GotifyDownloadUrl` теперь указывает на конкретный тег
+>   (`.../releases/download/v2.9.1/...`), а не `latest`. Добавлены константы `GotifyVersion`,
+>   `GotifyZipSha256` (`8E05…DE74`), `GotifyExeSha256` (`2A1B…C20C`) и хелпер `FileHashMatches`
+>   (`SHA256.HashData` + `Convert.ToHexString`, сравнение `OrdinalIgnoreCase`).
+>   В `ResolveGotifyExeAsync`: bundled-бинарь и ранее скачанная копия используются **только** при
+>   совпадении exe-хеша (иначе fall-through на перекачку); live-download проверяет zip-хеш и при
+>   несовпадении бросает исключение до распаковки. Итог: непроверенный/подменённый бинарь не
+>   запускается ни одним из трёх путей.
+> - **CI** (`.github/workflows/dotnet.yml`, шаг бандла Gotify): URL пиннится на v2.9.1; после
+>   `Invoke-WebRequest` сверяется `Get-FileHash` zip-а, после распаковки — exe; несовпадение любого
+>   из них роняет сборку (`throw`). В комментах и коде, и в CI указано бампить версию+хеши вместе.
+> - Проверено: сборка solution чистая (0/0), тесты 31 passed / 5 skipped / 0 failed; хеши получены
+>   из фактически скачанного `gotify-windows-amd64.exe.zip` v2.9.1 и извлечённого из него .exe.
 
 **Проблема.** Gotify тянется как `latest` без проверки:
 - рантайм: `LocalGotifyService.cs:27` (`GotifyDownloadUrl`), скачивание `:206`;

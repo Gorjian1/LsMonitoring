@@ -56,9 +56,16 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
   `LS_ALERT_RATE_LIMIT_PER_HOUR` (default 60), partitioned by `X-LS-Installation-Id`
   header (IP + `X-Forwarded-For` fallback), 429 on overflow. Smoke-tested locally
   (limit=2 → 3rd req 429; other installation id → own bucket). README updated.
-- **NEXT → M4-3** — pin Gotify version + verify SHA-256 (runtime in
-  `LocalGotifyService` and CI `.github/workflows/dotnet.yml`).
-- After M4-3: the M5 (QoL/perf/legacy/CI) section.
+- **M4-3** — done: Gotify pinned to **v2.9.1** with verified SHA-256. Runtime
+  (`LocalGotifyService`): pinned download URL + `GotifyZipSha256`/`GotifyExeSha256`
+  constants + `FileHashMatches`; bundled/cached exe used only if exe-hash matches,
+  live download verifies zip-hash before extracting. CI bundle step pins the URL and
+  fails the build on zip/exe hash mismatch. Bump version+hashes together.
+- **NEXT → M5** — QoL/perf/legacy/CI section (order doesn't matter within M5):
+  M5-1 (unify all secrets under DPAPI), M5-2 (logs to `%LOCALAPPDATA%`),
+  M5-3 (`TrendPlot.Render` perf), M5-4 (debounce/async saves), M5-5 (single
+  threshold logic via `ThresholdEvaluator`), M5-6 (dead code), M5-7 (CI hardening),
+  M5-8 (SMS rate-limit slot on success only). M5-7 partly overlaps M4 already done.
 
 ## Key drift between the plan and current code
 

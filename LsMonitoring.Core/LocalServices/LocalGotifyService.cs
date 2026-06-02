@@ -25,8 +25,20 @@ public sealed record LocalGotifyBootstrapResult(
 /// </summary>
 public sealed class LocalGotifyService : IDisposable
 {
+    // Pinned to a specific Gotify release with verified hashes instead of `latest`: a `latest`
+    // URL silently changes contents over time and gives us nothing to verify against, so a
+    // compromised/MITM'd download could run arbitrary code. When bumping the version, update all
+    // three constants together (and the CI workflow that bundles the binary).
+    public const string GotifyVersion = "v2.9.1";
+
     public const string GotifyDownloadUrl =
-        "https://github.com/gotify/server/releases/latest/download/gotify-windows-amd64.exe.zip";
+        $"https://github.com/gotify/server/releases/download/{GotifyVersion}/gotify-windows-amd64.exe.zip";
+
+    // SHA-256 of gotify-windows-amd64.exe.zip for the pinned version (verified on live download).
+    public const string GotifyZipSha256 = "8E05188232E0312DBC4F5760267777590A834BA53B8FB50844CAD43BF711DE74";
+
+    // SHA-256 of the gotify-windows-amd64.exe inside that zip (gates the bundled/cached binaries).
+    public const string GotifyExeSha256 = "2A1BFAC2575C72FB5476372A0691FF223DFCC55FD83BBA32259627493720C20C";
 
     private const string ApplicationName = "LS Monitoring";
     private const string ClientName = "LS Monitoring Desktop";
@@ -208,15 +220,16 @@ public sealed class LocalGotifyService : IDisposable
     {
         // 1. Bundled binary next to the app. CI ships this so end users never
         //    hit a runtime download — Windows Defender treats fresh downloads
-        //    of Go binaries as PUA and quarantines mid-write.
+        //    of Go binaries as PUA and quarantines mid-write. Only trust it if it
+        //    matches the pinned hash, otherwise fall through and re-download.
         var bundled = Path.Combine(AppContext.BaseDirectory, "gotify-server.exe");
-        if (File.Exists(bundled))
+        if (File.Exists(bundled) && FileHashMatches(bundled, GotifyExeSha256))
         {
             return bundled;
         }
 
-        // 2. Previously downloaded copy in the per-user data dir.
-        if (File.Exists(_gotifyExePath))
+        // 2. Previously downloaded copy in the per-user data dir (same hash gate).
+        if (File.Exists(_gotifyExePath) && FileHashMatches(_gotifyExePath, GotifyExeSha256))
         {
             return _gotifyExePath;
         }
@@ -239,6 +252,12 @@ public sealed class LocalGotifyService : IDisposable
             await using (var output = File.Create(zipPath))
             {
                 await response.Content.CopyToAsync(output, downloadCts.Token);
+            }
+
+            if (!FileHashMatches(zipPath, GotifyZipSha256))
+            {
+                throw new InvalidOperationException(
+                    $"Контрольная сумма скачанного Gotify ({GotifyVersion}) не совпала с ожидаемой — загрузка отклонена.");
             }
 
             using (var archive = ZipFile.OpenRead(zipPath))
@@ -563,6 +582,22 @@ pluginsdir: plugins
         catch
         {
             return "";
+        }
+    }
+
+    private static bool FileHashMatches(string path, string expectedSha256)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+            var actual = Convert.ToHexString(SHA256.HashData(stream));
+            return string.Equals(actual, expectedSha256, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            // Unreadable/locked file can't be trusted — treat as a mismatch so the caller
+            // falls back to a fresh, verified download instead of running it.
+            return false;
         }
     }
 

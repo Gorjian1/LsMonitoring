@@ -116,14 +116,27 @@ jobs:
       - name: Bundle gotify-server.exe with the app
         shell: pwsh
         run: |
-          $url = "https://github.com/gotify/server/releases/latest/download/gotify-windows-amd64.exe.zip"
+          # Pinned version + verified hashes. Must match the constants in
+          # LsMonitoring.Core/LocalServices/LocalGotifyService.cs — bump them together.
+          $version = "v2.9.1"
+          $expectedZipSha = "8E05188232E0312DBC4F5760267777590A834BA53B8FB50844CAD43BF711DE74"
+          $expectedExeSha = "2A1BFAC2575C72FB5476372A0691FF223DFCC55FD83BBA32259627493720C20C"
+          $url = "https://github.com/gotify/server/releases/download/$version/gotify-windows-amd64.exe.zip"
           $zip = "artifacts/gotify-download.zip"
           $extract = "artifacts/gotify-extracted"
           Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+          $zipSha = (Get-FileHash -Algorithm SHA256 -Path $zip).Hash
+          if ($zipSha -ne $expectedZipSha) {
+            throw "Gotify zip SHA-256 mismatch: expected $expectedZipSha got $zipSha"
+          }
           New-Item -ItemType Directory -Force $extract | Out-Null
           Expand-Archive -Path $zip -DestinationPath $extract -Force
           $exe = Get-ChildItem $extract -Filter "*.exe" -Recurse | Select-Object -First 1
           if (-not $exe) { throw "No .exe found inside Gotify zip" }
+          $exeSha = (Get-FileHash -Algorithm SHA256 -Path $exe.FullName).Hash
+          if ($exeSha -ne $expectedExeSha) {
+            throw "Gotify exe SHA-256 mismatch: expected $expectedExeSha got $exeSha"
+          }
           Copy-Item $exe.FullName "artifacts/publish/$env:RUNTIME_ID/gotify-server.exe" -Force
           Remove-Item $zip, $extract -Recurse -Force
 
