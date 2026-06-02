@@ -625,13 +625,16 @@ public partial class MainWindow : Window
 
     private void AddNode(object? sender, RoutedEventArgs e)
     {
-        if (int.TryParse(NodeIdBox.Text, out var nodeId))
+        if (!int.TryParse(NodeIdBox.Text, out var nodeId) || nodeId <= 0)
         {
-            EnsureNode(nodeId);
-            NodeIdBox.Text = "";
-            SaveUiToConfig();
-            UpdateNodeSummary();
+            StatusText.Text = "Node ID должен быть положительным числом";
+            return;
         }
+
+        EnsureNode(nodeId);
+        NodeIdBox.Text = "";
+        SaveUiToConfig();
+        UpdateNodeSummary();
     }
 
     private NodeListItem EnsureNode(int nodeId)

@@ -33,7 +33,16 @@ public partial class SettingsDialog : Window
 
     private void OnSaveClick(object? sender, RoutedEventArgs e)
     {
-        _config.Connection.GatewayIp = GatewayIpBox.Text ?? "";
+        var gatewayIp = (GatewayIpBox.Text ?? "").Trim();
+        if (gatewayIp.Length == 0)
+        {
+            ValidationText.Text = "Укажите IP шлюза — поле не может быть пустым.";
+            ValidationText.IsVisible = true;
+            GatewayIpBox.Focus();
+            return;
+        }
+
+        _config.Connection.GatewayIp = gatewayIp;
         _config.Connection.Username = UsernameBox.Text ?? "";
         _config.Connection.Password = PasswordBox.Text ?? "";
         _config.Thresholds.Mode = ReadSelectedThresholdMode();

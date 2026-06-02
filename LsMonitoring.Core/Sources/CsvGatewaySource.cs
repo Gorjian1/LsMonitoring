@@ -156,7 +156,13 @@ public sealed partial class CsvGatewaySource : IDataSource
 
             foreach (Match match in NodeLinkRegex().Matches(html))
             {
-                var nodeId = int.Parse(match.Groups[1].Value);
+                if (!int.TryParse(match.Groups[1].Value, out var nodeId))
+                {
+                    // Malformed/overflowing node id in the admin HTML — skip it rather than
+                    // letting the whole discovery throw.
+                    continue;
+                }
+
                 if (found.ContainsKey(nodeId))
                 {
                     continue;

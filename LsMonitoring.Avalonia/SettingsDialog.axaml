@@ -46,6 +46,9 @@
                 <TextBox Grid.Row="3" Grid.Column="2" x:Name="CriticalBBox"/>
             </Grid>
 
+            <TextBlock x:Name="ValidationText" Foreground="{StaticResource BrushDanger}" FontSize="12"
+                       TextWrapping="Wrap" IsVisible="False" Margin="0,8,0,0"/>
+
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,20,0,0">
                 <Button x:Name="CancelButton" Content="Отмена" Padding="15,6"/>
                 <Button x:Name="SaveButton" Content="Сохранить" Padding="15,6" Background="{StaticResource BrushPrimary}" Foreground="White" BorderBrush="{StaticResource BrushPrimaryHover}"/>

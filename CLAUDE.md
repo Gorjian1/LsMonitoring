@@ -44,10 +44,13 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
   (`ValidateServerCertificate` + `ObservedThumbprint`), new
   `connection.cert_thumbprint` config, `MainWindow.CreateGatewaySource()` +
   `PersistLearnedThumbprintIfNeeded`.
-- **NEXT → M3-5** — `TryParse` / input validation: `CsvGatewaySource` line ~148
-  `int.Parse` → `int.TryParse` with `continue`; `MainWindow.AddNode` reject Node
-  ID ≤ 0; `SettingsDialog.OnSaveClick` reject empty gateway IP.
-- After M3-5: the M4 (relay hardening) and M5 (QoL) sections remain.
+- **M3-5** — done: `CsvGatewaySource.DiscoverNodesAsync` `int.Parse` → `int.TryParse`
+  with `continue` (guards against overflow on long digit runs); `MainWindow.AddNode`
+  rejects Node ID ≤ 0 with a status-bar message; `SettingsDialog` gained a hidden
+  `ValidationText` plate and refuses to save an empty (trimmed) gateway IP.
+- **NEXT → M4-1** — relay hardening: constant-time Bearer compare in
+  `LsMonitoring.AlertRelay/Program.cs` (`string.Equals` → `CryptographicOperations.FixedTimeEquals`).
+- After M4: M4-2 (rate-limit relay), M4-3 (pin+hash Gotify), then the M5 (QoL) section.
 
 ## Key drift between the plan and current code
 
