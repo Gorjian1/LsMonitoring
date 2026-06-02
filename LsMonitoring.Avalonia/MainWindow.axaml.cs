@@ -189,21 +189,54 @@ public partial class MainWindow : Window
         UpdateNodeSummary();
     }
 
+    // Builds a gateway source pre-loaded with the pinned certificate thumbprint (if any) so it can
+    // reject a swapped certificate after the first trusted connection.
+    private CsvGatewaySource CreateGatewaySource()
+    {
+        return new CsvGatewaySource(
+            _config.Connection.GatewayIp,
+            _config.Connection.Username,
+            _config.Connection.Password,
+            TimeSpan.FromSeconds(_config.Connection.RequestTimeoutSeconds),
+            _config.Connection.CertThumbprint);
+    }
+
+    // Trust-on-first-use: once we've successfully talked to the gateway, pin the certificate
+    // thumbprint we saw so later connections are checked against it. No-op if already pinned.
+    private void PersistLearnedThumbprintIfNeeded(CsvGatewaySource? source)
+    {
+        if (source?.ObservedThumbprint is not { Length: > 0 } thumbprint)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_config.Connection.CertThumbprint))
+        {
+            return;
+        }
+
+        _config.Connection.CertThumbprint = thumbprint;
+        _config.Save(_configPath);
+    }
+
     private async Task StartPollingAsync()
     {
         await StopPollingAsync();
 
-        _source = new CsvGatewaySource(
-            _config.Connection.GatewayIp,
-            _config.Connection.Username,
-            _config.Connection.Password,
-            TimeSpan.FromSeconds(_config.Connection.RequestTimeoutSeconds));
+        _source = CreateGatewaySource();
 
         var interval = TimeSpan.FromSeconds(_config.Connection.PollingIntervalSeconds);
         _poller = new PollingService(_source, interval);
         _poller.SetNodes(_nodes.Select(x => x.NodeId));
         _poller.ReadingsReady += (nodeId, parsed) => Dispatcher.UIThread.Post(() => OnReadingsReady(nodeId, parsed));
-        _poller.ConnectionState += (ok, message) => Dispatcher.UIThread.Post(() => SetConnectionState(ok, message));
+        _poller.ConnectionState += (ok, message) => Dispatcher.UIThread.Post(() =>
+        {
+            SetConnectionState(ok, message);
+            if (ok)
+            {
+                PersistLearnedThumbprintIfNeeded(_source);
+            }
+        });
         _poller.Error += (nodeId, message) => Dispatcher.UIThread.Post(() => StatusText.Text = $"Узел {nodeId}: {message}");
         _poller.Start();
 
@@ -247,11 +280,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        await using var source = new CsvGatewaySource(
-            _config.Connection.GatewayIp,
-            _config.Connection.Username,
-            _config.Connection.Password,
-            TimeSpan.FromSeconds(_config.Connection.RequestTimeoutSeconds));
+        await using var source = CreateGatewaySource();
 
         foreach (var node in _nodes.ToList())
         {
@@ -265,6 +294,8 @@ public partial class MainWindow : Window
                 StatusText.Text = $"Узел {node.NodeId}: {e.Message}";
             }
         }
+
+        PersistLearnedThumbprintIfNeeded(source);
     }
 
     private async Task ShowSettingsDialogAsync()
@@ -540,11 +571,7 @@ public partial class MainWindow : Window
         try
         {
             StatusText.Text = "Поиск узлов…";
-            await using var source = new CsvGatewaySource(
-                _config.Connection.GatewayIp,
-                _config.Connection.Username,
-                _config.Connection.Password,
-                TimeSpan.FromSeconds(_config.Connection.RequestTimeoutSeconds));
+            await using var source = CreateGatewaySource();
 
             var found = await source.DiscoverNodesAsync();
             foreach (var node in found)
@@ -552,6 +579,7 @@ public partial class MainWindow : Window
                 EnsureNode(node.NodeId).Model = node.Model;
             }
 
+            PersistLearnedThumbprintIfNeeded(source);
             StatusText.Text = found.Count == 0 ? "Активные узлы не найдены" : $"Найдено активных узлов: {found.Count}";
             SaveUiToConfig();
             UpdateNodeSummary();

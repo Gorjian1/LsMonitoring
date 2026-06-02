@@ -428,7 +428,19 @@ var dialog = new MessagesDialog(_localGotifyService, _quickTunnelService);
 
 ---
 
-## [ ] M3-4 — Пиннинг сертификата gateway вместо «принимать любой» 🟡
+## [x] M3-4 — Пиннинг сертификата gateway вместо «принимать любой» 🟡
+
+> Сделано по варианту TOFU:
+> - `CsvGatewaySource` больше не использует `DangerousAcceptAnyServerCertificateValidator`. Вместо
+>   него — колбэк `ValidateServerCertificate`: считает SHA-256 отпечаток серта (`GetCertHashString`),
+>   кладёт его в `ObservedThumbprint`. Если пин ещё не задан — принимает (первое доверие); если задан —
+>   принимает только при совпадении, иначе хендшейк падает.
+> - В конфиг добавлено `connection.cert_thumbprint` (+ в `config.example.json`); ctor источника
+>   принимает `pinnedThumbprint`.
+> - `MainWindow` создаёт источник через `CreateGatewaySource()` (прокидывает сохранённый отпечаток) и
+>   после первого успешного обмена закрепляет `ObservedThumbprint` через `PersistLearnedThumbprintIfNeeded`
+>   (поллинг — по событию `ConnectionState(ok)`; `PollOnce`/`DiscoverNodes` — после запросов). Отпечаток
+>   нормализуется (hex, uppercase, без разделителей), сравнение регистронезависимое.
 
 **Проблема.** `CsvGatewaySource.ConnectAsync` (`LsMonitoring.Core/Sources/CsvGatewaySource.cs:51`)
 ставит `DangerousAcceptAnyServerCertificateValidator` и при этом шлёт Basic-auth с паролем gateway.

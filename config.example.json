@@ -4,7 +4,8 @@
     "username": "admin",
     "password_b64": "",
     "polling_interval_s": 5,
-    "request_timeout_s": 8
+    "request_timeout_s": 8,
+    "cert_thumbprint": ""
   },
   "thresholds": {
     "warning_a": 5.0,

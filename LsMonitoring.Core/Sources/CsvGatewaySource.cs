@@ -1,5 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Security;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using LsMonitoring.Core.Models;
@@ -20,15 +23,23 @@ public sealed partial class CsvGatewaySource : IDataSource
     private readonly string _username;
     private readonly string _password;
     private readonly TimeSpan _timeout;
+    private readonly string? _pinnedThumbprint;
     private HttpClient? _client;
 
-    public CsvGatewaySource(string gatewayIp, string username, string password, TimeSpan timeout)
+    public CsvGatewaySource(string gatewayIp, string username, string password, TimeSpan timeout, string? pinnedThumbprint = null)
     {
         _gatewayIp = gatewayIp.Trim();
         _username = username;
         _password = password;
         _timeout = timeout;
+        _pinnedThumbprint = NormalizeThumbprint(pinnedThumbprint);
     }
+
+    /// <summary>
+    /// SHA-256 thumbprint (hex, uppercase, no separators) of the certificate presented by the
+    /// gateway during the most recent TLS handshake. Lets the caller pin it on first use.
+    /// </summary>
+    public string? ObservedThumbprint { get; private set; }
 
     public string BaseUrl
     {
@@ -48,7 +59,7 @@ public sealed partial class CsvGatewaySource : IDataSource
 
         var handler = new HttpClientHandler
         {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+            ServerCertificateCustomValidationCallback = ValidateServerCertificate,
             AllowAutoRedirect = true
         };
 
@@ -178,6 +189,49 @@ public sealed partial class CsvGatewaySource : IDataSource
         _client?.Dispose();
         _client = null;
         return ValueTask.CompletedTask;
+    }
+
+    // Trust-on-first-use pinning. The gateway uses a self-signed link-local certificate, so the
+    // normal chain/name checks always fail and can't be relied on. Instead we remember the cert's
+    // SHA-256 thumbprint on first connection and, once pinned, reject anything that doesn't match —
+    // a swapped certificate (e.g. a MITM in a shared network) fails the handshake instead of being
+    // accepted silently along with the Basic-auth credentials.
+    private bool ValidateServerCertificate(HttpRequestMessage request, X509Certificate2? certificate, X509Chain? chain, SslPolicyErrors errors)
+    {
+        if (certificate is null)
+        {
+            return false;
+        }
+
+        var thumbprint = certificate.GetCertHashString(HashAlgorithmName.SHA256);
+        ObservedThumbprint = thumbprint;
+
+        if (string.IsNullOrEmpty(_pinnedThumbprint))
+        {
+            // First contact: accept and let the caller persist ObservedThumbprint.
+            return true;
+        }
+
+        return string.Equals(thumbprint, _pinnedThumbprint, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? NormalizeThumbprint(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var sb = new StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            if (Uri.IsHexDigit(ch))
+            {
+                sb.Append(char.ToUpperInvariant(ch));
+            }
+        }
+
+        return sb.Length == 0 ? null : sb.ToString();
     }
 
     private Task<HttpResponseMessage> GetAsync(string path, CancellationToken cancellationToken)

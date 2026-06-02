@@ -522,6 +522,14 @@ public sealed class ConnectionConfig
     [JsonPropertyName("request_timeout_s")]
     public int RequestTimeoutSeconds { get; set; } = 8;
 
+    /// <summary>
+    /// SHA-256 thumbprint (hex) of the gateway TLS certificate, pinned on first successful
+    /// connection (trust-on-first-use). Empty means "not yet learned"; once set, a certificate
+    /// whose thumbprint differs is rejected instead of silently accepted.
+    /// </summary>
+    [JsonPropertyName("cert_thumbprint")]
+    public string CertThumbprint { get; set; } = "";
+
     [JsonIgnore]
     public string Password
     {
