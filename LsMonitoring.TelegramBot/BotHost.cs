@@ -10,48 +10,68 @@ namespace LsMonitoring.TelegramBot;
 public sealed class BotHost : IDisposable
 {
     private readonly object _lock = new();
+    // Serializes reconfiguration so a new poller is never started before the previous one has
+    // fully stopped (two getUpdates loops on one token → Telegram 409 Conflict).
+    private readonly SemaphoreSlim _configGate = new(1, 1);
     private TelegramAlertService? _service;
     private string _token = "";
     private string _linkCode = "";
 
     /// <summary>
     /// Sets/refreshes the bot token, required link code and known chat ids. If the token and link
-    /// code are unchanged, the existing poller (and its discovered chat bindings) is kept.
+    /// code are unchanged, the existing poller (and its discovered chat bindings) is kept. The
+    /// previous poller is fully stopped and disposed before a new one starts, so two getUpdates
+    /// loops never run concurrently against the same token.
     /// </summary>
-    public void Configure(string botToken, string linkCode, IReadOnlyList<long> chatIds)
+    public async Task ConfigureAsync(string botToken, string linkCode, IReadOnlyList<long> chatIds)
     {
         botToken = (botToken ?? "").Trim();
         linkCode = (linkCode ?? "").Trim();
 
-        TelegramAlertService? previous;
-        lock (_lock)
+        await _configGate.WaitAsync().ConfigureAwait(false);
+        try
         {
-            if (_service is not null &&
-                string.Equals(_token, botToken, StringComparison.Ordinal) &&
-                string.Equals(_linkCode, linkCode, StringComparison.Ordinal))
+            TelegramAlertService? previous;
+            lock (_lock)
             {
-                return;
+                if (_service is not null &&
+                    string.Equals(_token, botToken, StringComparison.Ordinal) &&
+                    string.Equals(_linkCode, linkCode, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                previous = _service;
+                _service = null;
+                _token = botToken;
+                _linkCode = linkCode;
             }
 
-            previous = _service;
-            _service = null;
-            _token = botToken;
-            _linkCode = linkCode;
+            // Wait for the superseded poller's getUpdates loop to finish (cancel + await) and free
+            // its HttpClient/CTS before the replacement poller starts.
+            if (previous is not null)
+            {
+                await DisposeServiceAsync(previous).ConfigureAwait(false);
+            }
 
             if (!string.IsNullOrWhiteSpace(botToken))
             {
-                _service = new TelegramAlertService(
+                var service = new TelegramAlertService(
                     botToken,
                     chatIds.ToList(),
                     onNewChatIdDiscovered: null,
                     startPolling: true,
                     requiredLinkCode: linkCode);
+                lock (_lock)
+                {
+                    _service = service;
+                }
             }
         }
-
-        // Dispose the superseded poller (cancels getUpdates, frees its HttpClient + CTS) outside
-        // the lock so we never block configuration on the cancelled polling task winding down.
-        DisposeQuietly(previous);
+        finally
+        {
+            _configGate.Release();
+        }
     }
 
     public IReadOnlyList<long> ChatIds
@@ -120,28 +140,25 @@ public sealed class BotHost : IDisposable
             _service = null;
         }
 
-        DisposeQuietly(service);
-    }
-
-    private static void DisposeQuietly(TelegramAlertService? service)
-    {
-        if (service is null)
+        // Process is shutting down; fire-and-forget the teardown rather than blocking Dispose.
+        if (service is not null)
         {
-            return;
+            _ = Task.Run(() => DisposeServiceAsync(service));
         }
 
-        // Fire-and-forget: DisposeAsync awaits the cancelled polling task before freeing the
-        // HttpClient/CTS. We deliberately don't block the caller (Configure/Dispose) on it.
-        _ = Task.Run(async () =>
+        _configGate.Dispose();
+    }
+
+    private static async Task DisposeServiceAsync(TelegramAlertService service)
+    {
+        try
         {
-            try
-            {
-                await service.DisposeAsync();
-            }
-            catch
-            {
-                // Teardown of a superseded poller must never crash the host.
-            }
-        });
+            // DisposeAsync cancels getUpdates, awaits the polling task, then frees HttpClient/CTS.
+            await service.DisposeAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            // Teardown of a superseded poller must never crash the host.
+        }
     }
 }

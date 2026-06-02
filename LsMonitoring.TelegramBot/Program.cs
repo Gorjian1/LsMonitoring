@@ -69,7 +69,7 @@ async Task HandleAsync(HttpListenerContext ctx)
             case ("/config", "POST"):
             {
                 var req = await ReadJson<ConfigRequest>(ctx);
-                host.Configure(req?.BotToken ?? "", req?.LinkCode ?? "", req?.ChatIds ?? []);
+                await host.ConfigureAsync(req?.BotToken ?? "", req?.LinkCode ?? "", req?.ChatIds ?? []);
                 await WriteJson(ctx, 200, new { ok = true });
                 break;
             }

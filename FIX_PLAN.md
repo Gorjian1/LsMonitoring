@@ -395,7 +395,18 @@ var dialog = new MessagesDialog(_localGotifyService, _quickTunnelService);
 
 ---
 
-## [ ] M3-3 — Убрать гонку параллельного getUpdates (409) 🟡
+## [x] M3-3 — Убрать гонку параллельного getUpdates (409) 🟡
+
+> Сделано (с поправкой на состояние после M1-2: единственный поллер теперь в компаньоне `BotHost`,
+> десктопного `StopTelegramAlerts`/`ReconfigureTelegramAlerts` больше нет):
+> - `BotHost.Configure` стал `ConfigureAsync`: смена токена/линк-кода теперь **сначала** полностью
+>   останавливает прежний поллер (`DisposeAsync` = cancel getUpdates + await polling task + dispose
+>   HttpClient/CTS) и только потом стартует новый. Раньше (после M3-1) старый диспозился
+>   fire-and-forget, и новый поллер мог стартовать раньше остановки старого → окно для `409`.
+> - Параллельные `/config` сериализованы через `SemaphoreSlim _configGate`, поэтому два запроса не
+>   могут одновременно поднять два поллера. `Program.cs` теперь `await host.ConfigureAsync(...)`.
+> - Пункт про `DiscoverChatIdsAsync` неактуален: десктоп больше не создаёт `TelegramAlertService`
+>   напрямую — обнаружение чатов идёт через тот же единственный поллер компаньона.
 
 **Проблема.** `StopTelegramAlerts()` (`MainWindow.axaml.cs:372`) только `Cancel()` и сразу зовёт
 создание нового сервиса; старый getUpdates ещё может лететь → два опроса одним токеном → `409 Conflict`.
