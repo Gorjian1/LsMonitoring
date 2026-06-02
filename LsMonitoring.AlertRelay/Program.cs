@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Security.Cryptography;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -84,8 +85,17 @@ static bool HasValidBearerToken(HttpContext context, string expectedToken)
 {
     var authorization = context.Request.Headers.Authorization.ToString();
     const string prefix = "Bearer ";
-    return authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-           string.Equals(authorization[prefix.Length..].Trim(), expectedToken, StringComparison.Ordinal);
+    if (!authorization.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+    {
+        return false;
+    }
+
+    var provided = authorization[prefix.Length..].Trim();
+    // Constant-time compare so a leaked API key can't be reconstructed byte-by-byte
+    // via response-timing analysis. FixedTimeEquals short-circuits on length only.
+    return CryptographicOperations.FixedTimeEquals(
+        Encoding.UTF8.GetBytes(provided),
+        Encoding.UTF8.GetBytes(expectedToken));
 }
 
 static string BuildBody(EmailAlertRequest request)

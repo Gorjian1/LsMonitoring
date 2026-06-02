@@ -486,7 +486,15 @@ MITM в общей сети перехватит креды.
 
 # M4 — Хардненинг relay (`LsMonitoring.AlertRelay`)
 
-## [ ] M4-1 — Constant-time сравнение Bearer 🟠
+## [x] M4-1 — Constant-time сравнение Bearer 🟠
+
+> Сделано: в `LsMonitoring.AlertRelay/Program.cs` `HasValidBearerToken` теперь сначала проверяет
+> префикс `Bearer ` (`StartsWith`, ordinal-ignore-case), а само сравнение токена идёт через
+> `CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(provided), …expectedToken)`
+> вместо `string.Equals(..., Ordinal)`. Добавлен `using System.Security.Cryptography;`
+> (`System.Text` уже был). `FixedTimeEquals` сравнивает байты за постоянное время и
+> короткозамыкается только на разнице длины (длина — допустимая утечка по плану).
+> Проверено: сборка solution чистая (0/0), тесты 31 passed / 5 skipped / 0 failed.
 
 **Проблема.** `Program.cs:88` — `string.Equals(token, expected, Ordinal)` уязвимо к тайминг-атаке
 на восстановление API-ключа.
