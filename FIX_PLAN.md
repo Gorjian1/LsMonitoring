@@ -640,7 +640,23 @@ app.UseRateLimiter();
 `ResolveDeviationHistoryPath` в `MainWindow.axaml.cs:926`). Вынести в общий хелпер. **Готово:** логи
 пишутся независимо от рабочей директории.
 
-## [ ] M5-3 — Производительность `TrendPlot.Render` 🟢
+## [x] M5-3 — Производительность `TrendPlot.Render` 🟢
+> Сделано:
+> - Убран `OrderBy().ToList()` в `Render()` — `ReadingBuffer.Merge` всегда вызывает `Sort` после
+>   добавления, поэтому `Readings` уже отсортирован. Убрана дублирующая проверка `ordered.Count == 0`.
+> - `GapThresholdSeconds` теперь вызывается один раз и результат передаётся в
+>   `DrawInvalidZones`, `DrawSeries` и `RightPaddingSeconds` (новый параметр).
+> - 20+ `SolidColorBrush`/`Pen` объектов, создававшихся на каждый кадр, вынесены в
+>   `private static readonly` поля (`s_bgBrush`, `s_borderPen`, `s_warnBandBrush`, `s_critBandBrush`,
+>   `s_warnLinePen`, `s_critLinePen`, `s_invalidBandBrush`, `s_gapBandBrush`, `s_invalidDashPen`,
+>   `s_gridPen`, `s_timeTickPen`, `s_cutoffPickingPen`, `s_cutoffLinePen`,
+>   `s_textBrush`, `s_textMutedBrush`, `s_accentABrush`, `s_accentBBrush`, `s_accentAPen`, `s_accentBPen`).
+>   Особо важно: `s_gapBandBrush` — бывшая кисть **внутри цикла** `DrawInvalidZones` (до 1000 пр/с).
+> - `DrawText` принимает `IBrush` вместо `string color`; `DrawLegendItem` — `IBrush` вместо `string`.
+> - `DrawSeries` принимает `Pen seriesPen` вместо `string color + double thickness`; убраны
+>   `SeriesColor()` → заменены `SeriesBrush()` и `SeriesPen()`.
+> - Сборка 0/0, тесты 31/5/0.
+
 **Проблема.** `Controls/TrendPlot.cs:135` на каждый кадр: `OrderBy().ToList()` (буфер уже отсортирован
 в `ReadingBuffer`!), повторные `Where/Select/ToList`, `GapThresholdSeconds()` считается 3+ раза,
 кисти/перья аллоцируются заново. Два графика × до 1000 точек. **Решение.** Не сортировать повторно
