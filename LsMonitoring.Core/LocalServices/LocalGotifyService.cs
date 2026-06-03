@@ -514,7 +514,7 @@ pluginsdir: plugins
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var items = await JsonSerializer.DeserializeAsync<List<T>>(stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, cancellationToken);
+            s_jsonOptions, cancellationToken);
         var match = items?.FirstOrDefault(x =>
             string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
         return match?.Token ?? "";
@@ -532,7 +532,7 @@ pluginsdir: plugins
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var created = await JsonSerializer.DeserializeAsync<GotifyApplication>(stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, cancellationToken);
+            s_jsonOptions, cancellationToken);
         return created?.Token ?? "";
     }
 
@@ -548,7 +548,7 @@ pluginsdir: plugins
 
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         var created = await JsonSerializer.DeserializeAsync<GotifyClient>(stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, cancellationToken);
+            s_jsonOptions, cancellationToken);
         return created?.Token ?? "";
     }
 
@@ -559,6 +559,8 @@ pluginsdir: plugins
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", basic);
         return request;
     }
+
+    private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     private static StringContent JsonContent(string json)
     {

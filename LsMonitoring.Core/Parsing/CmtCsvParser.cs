@@ -62,7 +62,9 @@ public static partial class CmtCsvParser
         }
 
         var (mapping, channel) = ClassifyHeader(allRows[headerIndex]);
+#pragma warning disable CA1854 // No subsequent indexer access here — TryGetValue would add noise
         if (!mapping.ContainsKey("ts"))
+#pragma warning restore CA1854
         {
             throw new InvalidDataException("Date-and-time column not found in header.");
         }

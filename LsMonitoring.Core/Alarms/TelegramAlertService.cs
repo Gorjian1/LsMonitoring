@@ -215,7 +215,7 @@ public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
 
         if (isCritical)
         {
-            if (!_activeAlarms.ContainsKey(key))
+            if (!_activeAlarms.TryGetValue(key, out var existingMap))
             {
                 var activeMap = new Dictionary<long, ActiveTelegramAlarm>();
 
@@ -241,7 +241,7 @@ public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
             }
             else
             {
-                var activeMap = _activeAlarms[key];
+                var activeMap = existingMap;
                 foreach (var kvp in activeMap)
                 {
                     var chatId = kvp.Key;
@@ -269,13 +269,13 @@ public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
         }
     }
 
-    private string FormatMessage(int nodeId, string axis, double value, DateTime startTime, DateTime currentTime)
+    private static string FormatMessage(int nodeId, string axis, double value, DateTime startTime, DateTime currentTime)
     {
         var duration = currentTime - startTime;
         return $"🔔 LS Monitoring\nУзел {nodeId}, ось {axis}: отклонение вышло за заданный максимум.\nОтклонение: {value:F3}°\nНачало: {startTime:HH:mm:ss}\nДлительность: {duration.ToString(@"hh\:mm\:ss")}";
     }
 
-    private string FormatResolvedMessage(int nodeId, string axis, DateTime startTime, DateTime resolveTime)
+    private static string FormatResolvedMessage(int nodeId, string axis, DateTime startTime, DateTime resolveTime)
     {
         var duration = resolveTime - startTime;
         return $"✅ LS Monitoring\nУзел {nodeId}, ось {axis}: значение вернулось в норму.\nНачало события: {startTime:HH:mm:ss}\nЗавершено: {resolveTime:HH:mm:ss}\nДлительность: {duration.ToString(@"hh\:mm\:ss")}";

@@ -15,6 +15,9 @@ public partial class MessagesDialog : Window
     private const string UnlinkChatText = "Отвязать чат";
     private const string TelegramBotUrl = "https://t.me/ls_monitoringbot";
 
+    private static readonly char[] s_chatIdSeparators = [',', ';', ' '];
+    private static readonly char[] s_listSeparators = [',', ';', '\r', '\n'];
+
     // Owned by MainWindow (one gotify/tunnel owner per app); the dialog only borrows them and
     // must NOT dispose them.
     private readonly LocalhostRunTunnelService _quickTunnelService;
@@ -476,7 +479,7 @@ public partial class MessagesDialog : Window
     private static List<long> ParseTelegramChatIds(string value)
     {
         var chatIds = new List<long>();
-        var parts = value.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = value.Split(s_chatIdSeparators, StringSplitOptions.RemoveEmptyEntries);
         foreach (var part in parts)
         {
             if (long.TryParse(part, out var id) && !chatIds.Contains(id))
@@ -491,7 +494,7 @@ public partial class MessagesDialog : Window
     private static List<string> ParseStringList(string value)
     {
         return value
-            .Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Split(s_listSeparators, StringSplitOptions.RemoveEmptyEntries)
             .Select(x => x.Trim())
             .Where(x => x.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)

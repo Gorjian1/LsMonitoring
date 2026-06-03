@@ -46,7 +46,7 @@ public sealed class UpdateService
                 return false;
             }
 
-            await _mgr.DownloadUpdatesAsync(update, onProgress);
+            await _mgr.DownloadUpdatesAsync(update, onProgress, ct);
             _pending = update;
             return true;
         }

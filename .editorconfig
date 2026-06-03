@@ -26,3 +26,24 @@ dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 dotnet_style_qualification_for_event = false:suggestion
+
+# ── Analyzer rule overrides ────────────────────────────────────────────────────
+# CA1305: Specify IFormatProvider — deliberately suppressed for the Avalonia/UI
+# project. Almost all formatting here produces text that is displayed to the user
+# or written to a debug log; using CultureInfo.InvariantCulture vs CurrentCulture
+# is intentional where it matters (CSV parser uses InvariantCulture explicitly).
+dotnet_diagnostic.CA1305.severity = none
+
+# CA1859: Use concrete types for improved performance — interface abstractions in
+# this codebase are intentional for testability and extension points; the micro-
+# perf gain is not worth the API rigidity.
+dotnet_diagnostic.CA1859.severity = none
+
+# CA1001: Types that own disposable fields should be disposable — Avalonia Windows
+# and Dialogs have an OnClosed lifecycle hook that handles disposal; the class
+# hierarchy does not easily allow implementing IDisposable at the Window level.
+dotnet_diagnostic.CA1001.severity = none
+
+# CA1805: Do not initialize unnecessarily — style preference; explicit defaults
+# improve readability for mutable fields.
+dotnet_diagnostic.CA1805.severity = none

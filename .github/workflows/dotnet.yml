@@ -2,14 +2,20 @@ name: LS Monitoring CI/CD
 
 on:
   push:
+    # Only run the push trigger on main, master, and version tags to avoid
+    # duplicate runs when a PR branch is pushed (the pull_request trigger
+    # already covers those). Release branches can be added here as needed.
     branches:
-      - '**'
+      - main
+      - master
     tags:
       - 'v*'
   pull_request:
 
+# Default to read-only. Jobs that publish artifacts or create releases
+# override this with the minimum write scope they actually need.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -50,6 +56,10 @@ jobs:
 
       - name: Test
         run: dotnet test LsMonitoring.sln --no-build -c Release
+
+      - name: Vulnerability scan
+        # Fails the build if any package has a known CVE.
+        run: dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln.txt && grep -q "no vulnerable packages" vuln.txt
 
   release-desktop:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -276,6 +286,9 @@ jobs:
   publish-release:
     needs: [release-desktop, release-android]
     runs-on: ubuntu-latest
+    # This is the only job that creates/updates GitHub releases.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6

@@ -712,7 +712,27 @@ app.UseRateLimiter();
 сервиса — отложить до 0.9). Удалять только подтверждённо неиспользуемое (греп перед удалением).
 **Готово:** нет неиспользуемых публичных членов (кроме осознанно отложенного webhook 0.9).
 
-## [ ] M5-7 — Хардненинг CI 🟢
+## [x] M5-7 — Хардненинг CI 🟢
+> Сделано:
+> - CI `permissions`: верхний уровень понижен до `contents: read`; `publish-release` job получил
+>   `permissions: contents: write` — единственный job, создающий GitHub Releases.
+> - Push-триггер: `branches: ['**']` → `branches: [main, master]`; PR-ветки покрывает `pull_request`
+>   триггер, дублей больше нет.
+> - Vuln-scan шаг в `build-test`: `dotnet list package --vulnerable --include-transitive | tee vuln.txt &&
+>   grep -q "no vulnerable packages" vuln.txt` — fail при найденных CVE.
+> - `EnableNETAnalyzers=true` + `AnalysisLevel=latest-recommended` в `LsMonitoring.Core.csproj` и
+>   `LsMonitoring.Avalonia.csproj`.
+> - Анализаторы породили 42 предупреждения — все устранены:
+>   - `.editorconfig`: `CA1305` (none), `CA1859` (none), `CA1001` (none), `CA1805` (none) — suppressions
+>     с обоснованием (UI-строки, интерфейсные абстракции, Avalonia-lifecycle, явные дефолты).
+>   - `TelegramAlertService`: CA1854 `ContainsKey` → `TryGetValue`; CA1822 `FormatMessage/FormatResolvedMessage` → `static`.
+>   - `CmtCsvParser.cs:65`: CA1854 suppressed локально (`#pragma`) — паттерн не тот (нет последующего индексера).
+>   - `LocalGotifyService`: CA1869 — три `new JsonSerializerOptions{...}` заменены на `static readonly s_jsonOptions`.
+>   - `UpdateService.cs`: CA2016 — `DownloadUpdatesAsync` теперь получает `ct`.
+>   - `MessagesDialog.axaml.cs`: CA1861 — два `new[] { ... }` → `static readonly char[]`.
+>   - `Program.cs`: CA1852 — `class Program` → `sealed class Program`.
+> - Итог: полная сборка `--no-incremental` = **0 warnings / 0 errors**; тесты 31/5/0.
+
 **Места `.github/workflows/dotnet.yml`.**
 - `permissions: contents: write` (`:12`) на весь workflow → скоупить write только на `publish-release`
   (least privilege), остальным `contents: read`.

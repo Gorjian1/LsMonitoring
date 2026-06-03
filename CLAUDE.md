@@ -69,7 +69,8 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
 - **M5-4** — done: debounce/async saves on the UI thread.
 - **M5-5** — done: single threshold logic via `ThresholdEvaluator`; dead `IsCriticalDeviation` removed.
 - **M5-6** — done: removed `ParsedCsv.LatestValid`, `PushConfig.Target`; `ModbusSource` marked `[Obsolete]`.
-- **NEXT → M5-7** — CI hardening (least-privilege permissions, vuln-scan, analyzers).
+- **M5-7** — done: CI hardening (least-privilege permissions, vuln-scan, analyzers).
+- **NEXT → M5-8** — SMS: rate-limit slot only on success; partial errors.
 
 ## Key drift between the plan and current code
 
