@@ -17,7 +17,7 @@
   },
   "telegram": {
     "enabled": false,
-    "bot_token": "",
+    "bot_token_b64": "",
     "bot_username": "",
     "link_code": "",
     "chat_ids": []
@@ -41,7 +41,7 @@
     "enabled": false,
     "provider": "sms.ru",
     "api_url": "https://sms.ru/sms/send",
-    "api_key": "",
+    "api_key_b64": "",
     "sender": "",
     "phone_numbers": [],
     "max_messages_per_hour": 20,
@@ -51,12 +51,11 @@
     "enabled": false,
     "provider": "Gotify",
     "server_url": "",
-    "app_token": "",
-    "client_token": "",
+    "app_token_b64": "",
+    "client_token_b64": "",
     "app_download_url": "https://github.com/Gorjian1/LsMonitoring/releases/latest/download/ls-alerts-latest.apk",
     "auto_start_temporary_tunnel": true,
     "local_server_url": "http://localhost:8080",
-    "target": "",
     "priority": 5
   },
   "nodes": [

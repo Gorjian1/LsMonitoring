@@ -58,8 +58,20 @@ jobs:
         run: dotnet test LsMonitoring.sln --no-build -c Release
 
       - name: Vulnerability scan
-        # Fails the build if any package has a known CVE.
-        run: dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln.txt && grep -q "no vulnerable packages" vuln.txt
+        # Fails the build if any package has a known CVE. windows-latest defaults to pwsh, so use
+        # PowerShell and parse JSON (locale-independent — the plain-text output is localized to the
+        # runner culture). In the JSON report a clean project has only a "path" key; an affected
+        # project gains a "frameworks" array listing the vulnerable packages.
+        shell: pwsh
+        run: |
+          $json = dotnet list package --vulnerable --include-transitive --format json | Out-String
+          Write-Host $json
+          $report = $json | ConvertFrom-Json
+          $vulnerable = @($report.projects | Where-Object { $_.PSObject.Properties.Name -contains 'frameworks' })
+          if ($vulnerable.Count -gt 0) {
+            Write-Error "Vulnerable packages detected in: $($vulnerable.path -join ', ')"
+            exit 1
+          }
 
   release-desktop:
     if: startsWith(github.ref, 'refs/tags/v')
