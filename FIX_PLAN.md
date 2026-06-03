@@ -698,7 +698,14 @@ app.UseRateLimiter();
 Привести прод к единому `ThresholdEvaluator` (или к одному приватному методу), убрать неиспользуемый
 параметр `AlarmConfig`, если не нужен. **Готово:** одна реализация порогов, тесты зелёные.
 
-## [ ] M5-6 — Убрать мёртвый код 🟢
+## [x] M5-6 — Убрать мёртвый код 🟢
+> Сделано (каждый символ проверен grep-ом перед удалением):
+> - `ParsedCsv.LatestValid` — нигде не используется → удалено.
+> - `PushConfig.Target` (`[JsonPropertyName("target")]`) — нигде не вызывается в C# → удалено.
+> - `ModbusSource` — помечен `[Obsolete("...")]` с пояснением (нужна карта регистров Worldsensing, цель 0.9).
+> - `WebhookConfig.Method/Headers/PayloadTemplate` — осознанно оставлены (0.9).
+> - Сборка 0/0, тесты 31/5/0.
+
 **Места.** `ModbusSource` (заглушка — оставить, но пометить `[Obsolete]`/TODO или вынести),
 `ParsedCsv.LatestValid` (`Models/ParsedCsv.cs:13`, не используется), `PushConfig.Target`
 (`AppConfig.cs:443`), `WebhookConfig.Method/Headers/PayloadTemplate` (используется только при наличии

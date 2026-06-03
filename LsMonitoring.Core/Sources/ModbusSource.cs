@@ -2,6 +2,11 @@ using LsMonitoring.Core.Models;
 
 namespace LsMonitoring.Core.Sources;
 
+/// <summary>
+/// Placeholder implementation — all methods throw <see cref="NotImplementedException"/>.
+/// Full implementation requires the official Worldsensing register map (target 0.9).
+/// </summary>
+[Obsolete("ModbusSource is not yet implemented. Awaiting Worldsensing register map (0.9).")]
 public sealed class ModbusSource : IDataSource
 {
     public ModbusSource(string gatewayIp, int port = 502, IReadOnlyList<int>? unitIds = null)

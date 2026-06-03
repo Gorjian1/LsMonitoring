@@ -525,9 +525,6 @@ public sealed class PushConfig
     [JsonPropertyName("local_server_url")]
     public string LocalServerUrl { get; set; } = DefaultLocalServerUrl;
 
-    [JsonPropertyName("target")]
-    public string Target { get; set; } = "";
-
     [JsonPropertyName("priority")]
     public int Priority { get; set; } = 5;
 

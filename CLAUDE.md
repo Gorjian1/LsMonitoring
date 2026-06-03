@@ -68,7 +68,8 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
 - **M5-3** — done: `TrendPlot.Render` perf: removed redundant `OrderBy`, single `GapThresholdSeconds` call, 20+ static cached brushes/pens (incl. one inside the per-gap loop).
 - **M5-4** — done: debounce/async saves on the UI thread.
 - **M5-5** — done: single threshold logic via `ThresholdEvaluator`; dead `IsCriticalDeviation` removed.
-- **NEXT → M5-6** — remove dead code.
+- **M5-6** — done: removed `ParsedCsv.LatestValid`, `PushConfig.Target`; `ModbusSource` marked `[Obsolete]`.
+- **NEXT → M5-7** — CI hardening (least-privilege permissions, vuln-scan, analyzers).
 
 ## Key drift between the plan and current code
 
