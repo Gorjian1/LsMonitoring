@@ -70,7 +70,8 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
 - **M5-5** — done: single threshold logic via `ThresholdEvaluator`; dead `IsCriticalDeviation` removed.
 - **M5-6** — done: removed `ParsedCsv.LatestValid`, `PushConfig.Target`; `ModbusSource` marked `[Obsolete]`.
 - **M5-7** — done: CI hardening (least-privilege permissions, vuln-scan, analyzers).
-- **NEXT → M5-8** — SMS: rate-limit slot only on success; partial errors.
+- **M5-8** — done: SMS rate-limit slot on success only; partial errors detected.
+- **ALL PHASES COMPLETE** — M1-1 through M5-8 done. Full solution builds 0/0/0; 31 passed / 5 skipped / 0 failed.
 
 ## Key drift between the plan and current code
 

@@ -125,13 +125,21 @@ public sealed class SmsAlertService : IAlertChannel
         var allSuccess = true;
         foreach (var phone in recipients)
         {
-            if (!TryReserveRateLimitSlot())
+            // Check capacity without consuming the slot — only commit on success so that
+            // network errors and provider-side failures don't drain the hourly quota.
+            if (!CheckRateLimitCapacity())
             {
+                RecordError($"SMS limit exceeded: максимум {_config.EffectiveMaxMessagesPerHour} сообщений в час.");
                 allSuccess = false;
                 continue;
             }
 
             var success = await SendOneSmsAsync(phone, message);
+            if (success)
+            {
+                CommitRateLimitSlot();
+            }
+
             allSuccess &= success;
         }
 
@@ -180,7 +188,11 @@ public sealed class SmsAlertService : IAlertChannel
         }
     }
 
-    private bool TryReserveRateLimitSlot()
+    /// <summary>
+    /// Returns <c>true</c> when the hourly window still has capacity. Does NOT consume a slot —
+    /// call <see cref="CommitRateLimitSlot"/> after a successful send.
+    /// </summary>
+    private bool CheckRateLimitCapacity()
     {
         var now = DateTime.UtcNow;
         lock (_sentAt)
@@ -190,18 +202,24 @@ public sealed class SmsAlertService : IAlertChannel
                 _sentAt.Dequeue();
             }
 
-            var limit = _config.EffectiveMaxMessagesPerHour;
-            if (_sentAt.Count >= limit)
-            {
-                RecordError($"SMS limit exceeded: максимум {limit} сообщений в час.");
-                return false;
-            }
-
-            _sentAt.Enqueue(now);
-            return true;
+            return _sentAt.Count < _config.EffectiveMaxMessagesPerHour;
         }
     }
 
+    /// <summary>Records a successful send, consuming one slot in the hourly window.</summary>
+    private void CommitRateLimitSlot()
+    {
+        lock (_sentAt)
+        {
+            _sentAt.Enqueue(DateTime.UtcNow);
+        }
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> when the sms.ru response indicates an error — either a top-level
+    /// <c>"status":"ERROR"</c> (auth failure, quota exceeded, etc.) or a per-recipient
+    /// <c>"sms":{"number":{"status":"ERROR"}}</c> (invalid phone number, etc.).
+    /// </summary>
     private static bool LooksLikeSmsRuError(string body)
     {
         if (string.IsNullOrWhiteSpace(body))
@@ -212,8 +230,29 @@ public sealed class SmsAlertService : IAlertChannel
         try
         {
             using var doc = JsonDocument.Parse(body);
-            return doc.RootElement.TryGetProperty("status", out var status) &&
-                   string.Equals(status.GetString(), "ERROR", StringComparison.OrdinalIgnoreCase);
+            var root = doc.RootElement;
+
+            // Top-level failure (wrong API key, quota exceeded, …)
+            if (root.TryGetProperty("status", out var topStatus) &&
+                string.Equals(topStatus.GetString(), "ERROR", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Per-recipient failure: {"sms": {"+7xxx": {"status":"ERROR", "status_code": 212}}}
+            if (root.TryGetProperty("sms", out var smsObj) && smsObj.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var recipient in smsObj.EnumerateObject())
+                {
+                    if (recipient.Value.TryGetProperty("status", out var recipientStatus) &&
+                        string.Equals(recipientStatus.GetString(), "ERROR", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
         catch
         {

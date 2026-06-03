@@ -743,7 +743,18 @@ app.UseRateLimiter();
   `<AnalysisLevel>latest-recommended</AnalysisLevel>` (Core + Avalonia).
 **Готово:** least-privilege токены, есть vuln-scan, анализаторы включены.
 
-## [ ] M5-8 — SMS: лимит только при успехе; частичные ошибки 🟢
+## [x] M5-8 — SMS: лимит только при успехе; частичные ошибки 🟢
+> Сделано:
+> - `TryReserveRateLimitSlot` разбит на два метода: `CheckRateLimitCapacity()` (проверка без
+>   потребления слота) и `CommitRateLimitSlot()` (запись после успешной отправки). В цикле
+>   отправки: сначала `CheckRateLimitCapacity`, потом `SendOneSmsAsync`, при success → `CommitRateLimitSlot`.
+>   Сетевые и провайдерные ошибки больше не уменьшают часовой лимит.
+> - `LooksLikeSmsRuError` теперь проверяет не только верхнеуровневый `"status":"ERROR"`, но и
+>   per-recipient статусы внутри `"sms":{phone:{"status":"ERROR"}}` — частичные ошибки (невалидный
+>   номер, блокировка от оператора) теперь детектируются и `SendOneSmsAsync` возвращает false для
+>   таких номеров.
+> - Сборка 0/0 (`--no-incremental`), тесты 31/5/0.
+
 **Проблема.** `SmsAlertService.TryReserveRateLimitSlot` (`:182`) занимает слот **до** отправки —
 сетевая ошибка тратит квоту. `LooksLikeSmsRuError` (`:204`) ловит только верхнеуровневый
 `status:ERROR`, не per-number. **Решение.** Резервировать/коммитить слот после успешной отправки
