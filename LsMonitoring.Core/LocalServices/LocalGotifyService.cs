@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using LsMonitoring.Core.Configuration;
 using LsMonitoring.Core.IO;
 
 namespace LsMonitoring.Core.LocalServices;
@@ -285,17 +286,17 @@ public sealed class LocalGotifyService : IDisposable
         string password;
         if (File.Exists(_adminPasswordPath))
         {
-            password = File.ReadAllText(_adminPasswordPath).Trim();
+            password = ReadAdminPassword(_adminPasswordPath);
             if (string.IsNullOrWhiteSpace(password))
             {
                 password = GenerateRandomPassword();
-                AtomicFile.WriteAllText(_adminPasswordPath, password);
+                AtomicFile.WriteAllText(_adminPasswordPath, ProtectedSecret.Encode(password));
             }
         }
         else
         {
             password = GenerateRandomPassword();
-            AtomicFile.WriteAllText(_adminPasswordPath, password);
+            AtomicFile.WriteAllText(_adminPasswordPath, ProtectedSecret.Encode(password));
         }
 
         if (!File.Exists(_gotifyConfigPath))
@@ -571,6 +572,39 @@ pluginsdir: plugins
             .TrimEnd('=')
             .Replace('/', '_')
             .Replace('+', '-');
+    }
+
+    /// <summary>
+    /// Reads the admin password from <paramref name="path"/>. The file now stores a
+    /// DPAPI-protected base64 value; on first run after upgrade it still contains the
+    /// legacy plaintext password — in that case the file is automatically migrated in-place
+    /// so the next read will find the protected form.
+    /// </summary>
+    private static string ReadAdminPassword(string path)
+    {
+        var raw = ReadTextOrEmpty(path);
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return "";
+        }
+
+        var decoded = ProtectedSecret.Decode(raw);
+        if (!string.IsNullOrWhiteSpace(decoded))
+        {
+            return decoded;
+        }
+
+        // Legacy plaintext — migrate to DPAPI-protected form immediately.
+        try
+        {
+            AtomicFile.WriteAllText(path, ProtectedSecret.Encode(raw));
+        }
+        catch
+        {
+            // Migration failure is non-fatal: we still have the plaintext password for this session.
+        }
+
+        return raw;
     }
 
     private static string ReadTextOrEmpty(string path)

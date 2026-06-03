@@ -7,6 +7,74 @@ using LsMonitoring.Core.Models;
 
 namespace LsMonitoring.Core.Configuration;
 
+/// <summary>
+/// Shared DPAPI encode/decode helper. On Windows, bytes are protected with
+/// <see cref="DataProtectionScope.CurrentUser"/> so they cannot be decrypted
+/// on another machine or user account. On other platforms, the value is
+/// stored as plain base64 (no OS-level secret store available).
+/// </summary>
+public static class ProtectedSecret
+{
+    /// <summary>Encodes <paramref name="value"/> to a base64 string, DPAPI-protected on Windows.</summary>
+    public static string Encode(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "";
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(value);
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                bytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
+            }
+            catch
+            {
+                // DPAPI unavailable (e.g. service account without profile) — store as plain base64.
+            }
+        }
+
+        return Convert.ToBase64String(bytes);
+    }
+
+    /// <summary>
+    /// Decodes a value previously encoded by <see cref="Encode"/>. Returns an empty string on
+    /// any error so callers never receive garbage. Falls back gracefully when DPAPI is unavailable
+    /// or the value was written on another machine (migration from unprotected base64).
+    /// </summary>
+    public static string Decode(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "";
+        }
+
+        try
+        {
+            var bytes = Convert.FromBase64String(value);
+            if (OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    bytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
+                }
+                catch
+                {
+                    // Saved without DPAPI (e.g. from another machine or non-Windows) — use raw bytes.
+                }
+            }
+
+            return Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            return "";
+        }
+    }
+}
+
 public sealed class Thresholds
 {
     public const string AbsoluteMode = "absolute";
@@ -85,8 +153,32 @@ public sealed class TelegramConfig
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = false;
 
+    [JsonPropertyName("bot_token_b64")]
+    public string BotTokenBase64 { get; set; } = "";
+
+    // Legacy migration: old configs store the token as plaintext "bot_token".
+    // Deserializing the old key writes it through the protected setter so the
+    // next Save() persists the DPAPI-encoded form and the plaintext key is gone.
     [JsonPropertyName("bot_token")]
-    public string BotToken { get; set; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? LegacyBotToken
+    {
+        get => null;
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(BotTokenBase64))
+            {
+                BotToken = value;
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public string BotToken
+    {
+        get => ProtectedSecret.Decode(BotTokenBase64);
+        set => BotTokenBase64 = ProtectedSecret.Encode(value);
+    }
 
     [JsonPropertyName("link_code")]
     public string LinkCode { get; set; } = "";
@@ -215,15 +307,15 @@ public sealed class EmailConfig
     [JsonIgnore]
     public string Password
     {
-        get => DecodeProtectedString(PasswordBase64);
-        set => PasswordBase64 = EncodeProtectedString(value);
+        get => ProtectedSecret.Decode(PasswordBase64);
+        set => PasswordBase64 = ProtectedSecret.Encode(value);
     }
 
     [JsonIgnore]
     public string RelayToken
     {
-        get => DecodeProtectedString(RelayTokenBase64);
-        set => RelayTokenBase64 = EncodeProtectedString(value);
+        get => ProtectedSecret.Decode(RelayTokenBase64);
+        set => RelayTokenBase64 = ProtectedSecret.Encode(value);
     }
 
     [JsonIgnore]
@@ -255,58 +347,6 @@ public sealed class EmailConfig
         !string.IsNullOrWhiteSpace(EffectiveFrom) &&
         !string.IsNullOrWhiteSpace(EffectiveSmtpHost);
 
-    private static string DecodeProtectedString(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "";
-        }
-
-        try
-        {
-            var bytes = Convert.FromBase64String(value);
-            if (OperatingSystem.IsWindows())
-            {
-                try
-                {
-                    bytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
-                }
-                catch
-                {
-                    // Fallback for configs saved without DPAPI.
-                }
-            }
-
-            return Encoding.UTF8.GetString(bytes);
-        }
-        catch
-        {
-            return "";
-        }
-    }
-
-    private static string EncodeProtectedString(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return "";
-        }
-
-        var bytes = Encoding.UTF8.GetBytes(value);
-        if (OperatingSystem.IsWindows())
-        {
-            try
-            {
-                bytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
-            }
-            catch
-            {
-                // Fallback for systems where DPAPI is unavailable.
-            }
-        }
-
-        return Convert.ToBase64String(bytes);
-    }
 }
 
 public static class EmailSmtpProfile
@@ -356,8 +396,29 @@ public sealed class SmsConfig
     [JsonPropertyName("api_url")]
     public string ApiUrl { get; set; } = "";
 
+    [JsonPropertyName("api_key_b64")]
+    public string ApiKeyBase64 { get; set; } = "";
+
     [JsonPropertyName("api_key")]
-    public string ApiKey { get; set; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? LegacyApiKey
+    {
+        get => null;
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(ApiKeyBase64))
+            {
+                ApiKey = value;
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public string ApiKey
+    {
+        get => ProtectedSecret.Decode(ApiKeyBase64);
+        set => ApiKeyBase64 = ProtectedSecret.Encode(value);
+    }
 
     [JsonPropertyName("sender")]
     public string Sender { get; set; } = "";
@@ -407,11 +468,53 @@ public sealed class PushConfig
     [JsonPropertyName("server_url")]
     public string ServerUrl { get; set; } = "";
 
+    [JsonPropertyName("app_token_b64")]
+    public string AppTokenBase64 { get; set; } = "";
+
     [JsonPropertyName("app_token")]
-    public string AppToken { get; set; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? LegacyAppToken
+    {
+        get => null;
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(AppTokenBase64))
+            {
+                AppToken = value;
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public string AppToken
+    {
+        get => ProtectedSecret.Decode(AppTokenBase64);
+        set => AppTokenBase64 = ProtectedSecret.Encode(value);
+    }
+
+    [JsonPropertyName("client_token_b64")]
+    public string ClientTokenBase64 { get; set; } = "";
 
     [JsonPropertyName("client_token")]
-    public string ClientToken { get; set; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? LegacyClientToken
+    {
+        get => null;
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(ClientTokenBase64))
+            {
+                ClientToken = value;
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public string ClientToken
+    {
+        get => ProtectedSecret.Decode(ClientTokenBase64);
+        set => ClientTokenBase64 = ProtectedSecret.Encode(value);
+    }
 
     [JsonPropertyName("app_download_url")]
     public string AppDownloadUrl { get; set; } = "";
@@ -495,8 +598,29 @@ public sealed class WebhookConfig
     [JsonPropertyName("method")]
     public string Method { get; set; } = "POST";
 
+    [JsonPropertyName("secret_b64")]
+    public string SecretBase64 { get; set; } = "";
+
     [JsonPropertyName("secret")]
-    public string Secret { get; set; } = "";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? LegacySecret
+    {
+        get => null;
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(SecretBase64))
+            {
+                Secret = value;
+            }
+        }
+    }
+
+    [JsonIgnore]
+    public string Secret
+    {
+        get => ProtectedSecret.Decode(SecretBase64);
+        set => SecretBase64 = ProtectedSecret.Encode(value);
+    }
 
     [JsonPropertyName("headers")]
     public string Headers { get; set; } = "";
@@ -533,57 +657,8 @@ public sealed class ConnectionConfig
     [JsonIgnore]
     public string Password
     {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(PasswordBase64))
-            {
-                return "";
-            }
-
-            try
-            {
-                var bytes = Convert.FromBase64String(PasswordBase64);
-                if (OperatingSystem.IsWindows())
-                {
-                    try
-                    {
-                        bytes = ProtectedData.Unprotect(bytes, null, DataProtectionScope.CurrentUser);
-                    }
-                    catch
-                    {
-                        // Fallback
-                    }
-                }
-                return Encoding.UTF8.GetString(bytes);
-            }
-            catch
-            {
-                return "";
-            }
-        }
-        set
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                PasswordBase64 = "";
-            }
-            else
-            {
-                var bytes = Encoding.UTF8.GetBytes(value);
-                if (OperatingSystem.IsWindows())
-                {
-                    try
-                    {
-                        bytes = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
-                    }
-                    catch
-                    {
-                        // Fallback
-                    }
-                }
-                PasswordBase64 = Convert.ToBase64String(bytes);
-            }
-        }
+        get => ProtectedSecret.Decode(PasswordBase64);
+        set => PasswordBase64 = ProtectedSecret.Encode(value);
     }
 }
 

@@ -599,7 +599,25 @@ app.UseRateLimiter();
 
 # M5 — QoL, легаси, производительность, CI (порядок не важен)
 
-## [ ] M5-1 — Единое защищённое хранение секретов 🟢
+## [x] M5-1 — Единое защищённое хранение секретов 🟢
+> Сделано:
+> - Новый публичный хелпер `ProtectedSecret` (в `AppConfig.cs`, `namespace Configuration`)
+>   с `Encode`/`Decode` — бывший приватный `EncodeProtectedString`/`DecodeProtectedString` из
+>   `EmailConfig`, теперь общий для всего кода. На Windows — DPAPI `CurrentUser`, на других ОС —
+>   plain base64 (graceful fallback).
+> - `EmailConfig` и `ConnectionConfig`: заменены вызовы private-методов на `ProtectedSecret`.
+> - Добавлены `*_b64` JSON-поля + `[JsonIgnore]` C#-свойства с encode/decode для:
+>   `TelegramConfig.BotToken` (`bot_token_b64`), `SmsConfig.ApiKey` (`api_key_b64`),
+>   `PushConfig.AppToken` (`app_token_b64`), `PushConfig.ClientToken` (`client_token_b64`),
+>   `WebhookConfig.Secret` (`secret_b64`).
+> - Каждое поле имеет legacy-мигратор: старый JSON-ключ (plaintext) при десериализации
+>   автоматически конвертируется в `_b64` форму — при следующем `Save()` plaintext ключ исчезает.
+> - `LocalGotifyService.admin-pass.txt`: новый `ReadAdminPassword` хелпер — читает защищённый
+>   файл, при обнаружении legacy-plaintext автоматически перезаписывает его через `ProtectedSecret.Encode`.
+>   Запись нового пароля тоже через `ProtectedSecret.Encode`. Добавлен `using Configuration;`.
+> - Проверено: сборка solution чистая (0/0); тесты 31 passed / 5 skipped / 0 failed (включая тесты,
+>   напрямую задающие `ApiKey = "..."`, `AppToken = "..."` и т.д. — работают через новые свойства).
+
 **Проблема.** Под DPAPI только gateway-пароль, SMTP-пароль, relay-токен (`AppConfig.cs`). Открытым
 текстом: Telegram token, SMS `api_key`, Gotify `app_token`/`client_token`, webhook `secret`,
 `admin-pass.txt` (`LocalGotifyService.cs:272`). **Решение.** Вынести DPAPI encode/decode из
