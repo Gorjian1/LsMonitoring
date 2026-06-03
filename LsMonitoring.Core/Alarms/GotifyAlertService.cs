@@ -159,7 +159,7 @@ public sealed class GotifyAlertService : IUpdatableAlertChannel
                 return true;
             }
 
-            RecordError($"Gotify HTTP {(int)response.StatusCode} {response.StatusCode}: {Truncate(body)}");
+            RecordError(FormatHttpError(response, body));
             return false;
         }
         catch (Exception ex)
@@ -280,6 +280,16 @@ public sealed class GotifyAlertService : IUpdatableAlertChannel
     {
         const int maxLength = 500;
         return value.Length <= maxLength ? value : value[..maxLength];
+    }
+
+    private static string FormatHttpError(HttpResponseMessage response, string body)
+    {
+        if (body.Contains("no tunnel here", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Push tunnel недоступен: временный URL устарел. Нажмите \"Запустить tunnel\" или перезапустите приложение.";
+        }
+
+        return $"Gotify HTTP {(int)response.StatusCode} {response.StatusCode}: {Truncate(body)}";
     }
 
     private sealed record GotifyMessage(

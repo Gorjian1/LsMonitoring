@@ -295,6 +295,7 @@ public sealed class LocalhostRunTunnelService : IDisposable
             if (process.ProcessName.Equals("ssh", StringComparison.OrdinalIgnoreCase))
             {
                 process.Kill(entireProcessTree: true);
+                process.WaitForExit(3000);
             }
         }
         catch
@@ -317,6 +318,7 @@ public sealed class LocalhostRunTunnelService : IDisposable
                 if (!_sshProcess.HasExited)
                 {
                     _sshProcess.Kill(entireProcessTree: true);
+                    _sshProcess.WaitForExit(3000);
                 }
             }
             catch

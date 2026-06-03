@@ -108,12 +108,14 @@ public sealed class TelegramCompanionService : IUpdatableAlertChannel, IAsyncDis
     public async Task StopAsync()
     {
         StopProcess();
+        KillStaleCompanions();
         await Task.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
         StopProcess();
+        KillStaleCompanions();
         _http.Dispose();
         await Task.CompletedTask;
     }
@@ -319,7 +321,15 @@ public sealed class TelegramCompanionService : IUpdatableAlertChannel, IAsyncDis
         {
             foreach (var proc in Process.GetProcessesByName(ProcessName))
             {
-                try { proc.Kill(entireProcessTree: true); } catch { /* ignore */ }
+                try
+                {
+                    proc.Kill(entireProcessTree: true);
+                    proc.WaitForExit(3000);
+                }
+                catch
+                {
+                    /* ignore */
+                }
                 finally { proc.Dispose(); }
             }
         }
@@ -341,6 +351,7 @@ public sealed class TelegramCompanionService : IUpdatableAlertChannel, IAsyncDis
             if (!_process.HasExited)
             {
                 _process.Kill(entireProcessTree: true);
+                _process.WaitForExit(3000);
             }
         }
         catch

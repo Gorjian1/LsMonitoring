@@ -27,6 +27,8 @@ public partial class MessagesDialog : Window
 
     private AppConfig _config = null!;
 
+    public event Action? ConfigChanged;
+
     // Parameterless ctor required by the Avalonia runtime XAML loader / previewer.
     public MessagesDialog() : this(null, LocalhostRunTunnelService.CreateDefault(), LocalGotifyService.CreateDefault())
     {
@@ -191,6 +193,7 @@ public partial class MessagesDialog : Window
                 {
                     chatIds = bound.ToList();
                     TelegramChatIdsBox.Text = string.Join(", ", chatIds.Distinct());
+                    PersistTelegramStateFromUi();
                 }
             }
 
@@ -205,6 +208,7 @@ public partial class MessagesDialog : Window
             if (success)
             {
                 EnableTelegramBox.IsChecked = true;
+                PersistTelegramStateFromUi();
             }
 
             await FlashTestButtonAsync(success ? "Отправлено!" : "Ошибка");
@@ -242,6 +246,7 @@ public partial class MessagesDialog : Window
     {
         TelegramChatIdsBox.Text = "";
         EnableTelegramBox.IsChecked = false;
+        PersistTelegramStateFromUi();
         UnlinkTelegramButton.IsEnabled = false;
         try
         {
@@ -270,6 +275,9 @@ public partial class MessagesDialog : Window
             if (success)
             {
                 EnableEmailBox.IsChecked = true;
+                emailConfig.Enabled = true;
+                _config.Email = emailConfig;
+                ConfigChanged?.Invoke();
                 EmailStatusText.Text = "Тестовое письмо отправлено.";
             }
             else
@@ -512,6 +520,13 @@ public partial class MessagesDialog : Window
         config.RelayToken = _config.Email.RelayToken;
         config.Password = EmailPasswordBox.Text ?? "";
         return config;
+    }
+
+    private void PersistTelegramStateFromUi()
+    {
+        _config.Telegram.Enabled = EnableTelegramBox.IsChecked ?? false;
+        _config.Telegram.ChatIds = ParseTelegramChatIds(TelegramChatIdsBox.Text ?? "");
+        ConfigChanged?.Invoke();
     }
 
     private SmsConfig BuildSmsConfigFromUi()

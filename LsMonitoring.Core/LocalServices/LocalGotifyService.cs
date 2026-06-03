@@ -360,7 +360,14 @@ pluginsdir: plugins
         {
             foreach (var proc in Process.GetProcessesByName("gotify-server"))
             {
-                try { proc.Kill(entireProcessTree: true); } catch { }
+                try
+                {
+                    proc.Kill(entireProcessTree: true);
+                    proc.WaitForExit(3000);
+                }
+                catch
+                {
+                }
                 finally { proc.Dispose(); }
             }
         }
@@ -384,6 +391,7 @@ pluginsdir: plugins
             if (process.ProcessName.Contains("gotify", StringComparison.OrdinalIgnoreCase))
             {
                 process.Kill(entireProcessTree: true);
+                process.WaitForExit(3000);
             }
         }
         catch
@@ -405,6 +413,7 @@ pluginsdir: plugins
                 if (!_gotifyProcess.HasExited)
                 {
                     _gotifyProcess.Kill(entireProcessTree: true);
+                    _gotifyProcess.WaitForExit(3000);
                 }
             }
             catch
@@ -418,6 +427,7 @@ pluginsdir: plugins
         }
 
         StopOwnedProcess();
+        KillAnyGotifyProcess();
     }
 
     public void Dispose()

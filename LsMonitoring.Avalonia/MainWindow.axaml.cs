@@ -36,6 +36,7 @@ public partial class MainWindow : Window
     private readonly LocalhostRunTunnelService _quickTunnelService = LocalhostRunTunnelService.CreateDefault();
     private readonly LocalGotifyService _localGotifyService = LocalGotifyService.CreateDefault();
     private readonly UpdateService _updateService = new();
+    private readonly CancellationTokenSource _shutdownCts = new();
     private readonly string _configPath;
     private readonly string _deviationHistoryPath;
     private AppConfig _config;
@@ -63,6 +64,11 @@ public partial class MainWindow : Window
     // active deviation) into a single disk write 1.5 s after the last change.
     private DispatcherTimer? _saveHistoryTimer;
     private DispatcherTimer? _saveConfigTimer;
+    private Task? _pushTunnelTask;
+    private Task? _updateTask;
+    private Task? _shutdownTask;
+    private bool _shutdownComplete;
+    private bool _isShuttingDown;
 
     public MainWindow()
     {
@@ -87,8 +93,48 @@ public partial class MainWindow : Window
         CheckForUpdatesInBackground();
     }
 
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        if (!_shutdownComplete)
+        {
+            e.Cancel = true;
+            _ = CleanupThenCloseAsync();
+            return;
+        }
+
+        await CleanupAsync();
+        base.OnClosing(e);
+    }
+
     protected override async void OnClosed(EventArgs e)
     {
+        await CleanupAsync();
+        base.OnClosed(e);
+    }
+
+    private async Task CleanupThenCloseAsync()
+    {
+        await CleanupAsync();
+        _shutdownComplete = true;
+        await Dispatcher.UIThread.InvokeAsync(Close);
+    }
+
+    private Task CleanupAsync()
+    {
+        if (_shutdownTask is not null)
+        {
+            return _shutdownTask;
+        }
+
+        _shutdownTask = CleanupCoreAsync();
+        return _shutdownTask;
+    }
+
+    private async Task CleanupCoreAsync()
+    {
+        _isShuttingDown = true;
+        _shutdownCts.Cancel();
+
         // Flush any pending debounced saves before tearing down. The timers are stopped so
         // their Tick callbacks won't fire after this point.
         if (_saveHistoryTimer is { IsEnabled: true })
@@ -103,13 +149,29 @@ public partial class MainWindow : Window
             _config.Save(_configPath);
         }
 
+        await WaitForBackgroundServicesToStopAsync();
         await _telegramCompanion.DisposeAsync();
         await StopPollingAsync();
         _heartbeat?.Stop();
         _quickTunnelService.Dispose();
         _localGotifyService.Dispose();
         _alertHttpClient.Dispose();
-        base.OnClosed(e);
+        _shutdownCts.Dispose();
+    }
+
+    private async Task WaitForBackgroundServicesToStopAsync()
+    {
+        var tasks = new[] { _pushTunnelTask, _updateTask }
+            .Where(task => task is not null && !task.IsCompleted)
+            .Cast<Task>()
+            .ToArray();
+
+        if (tasks.Length == 0)
+        {
+            return;
+        }
+
+        await Task.WhenAny(Task.WhenAll(tasks), Task.Delay(TimeSpan.FromSeconds(3)));
     }
 
     private void WireEvents()
@@ -128,7 +190,7 @@ public partial class MainWindow : Window
         PickPlotLimitButton.Click += (_, _) => TogglePlotLimitPicker();
         ClearPlotLimitButton.Click += (_, _) => SetPlotCutoff(null);
         ClearDeviationHistoryButton.Click += (_, _) => ClearDeviationHistory();
-        UpdateBannerButton.Click += (_, _) => _updateService.ApplyAndRestart();
+        UpdateBannerButton.Click += async (_, _) => await ApplyUpdateAndRestartAsync();
         PlotA.CutoffTimePicked += OnPlotCutoffPicked;
         PlotB.CutoffTimePicked += OnPlotCutoffPicked;
         TimeWindowBox.SelectionChanged += (_, _) =>
@@ -334,6 +396,7 @@ public partial class MainWindow : Window
     {
         var dialog = new MessagesDialog(_telegramCompanion, _quickTunnelService, _localGotifyService);
         dialog.LoadConfig(_config);
+        dialog.ConfigChanged += OnMessagesDialogConfigChanged;
         var saved = false;
 
         try
@@ -353,6 +416,12 @@ public partial class MainWindow : Window
                 StartConfiguredPushTunnelInBackground();
             }
         }
+    }
+
+    private void OnMessagesDialogConfigChanged()
+    {
+        _config.Save(_configPath);
+        ReconfigureAlertServices();
     }
 
     private async Task ShowDiagnosticsDialogAsync()
@@ -418,6 +487,11 @@ public partial class MainWindow : Window
 
     private void ReconfigureTelegramAlerts()
     {
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
         // Push config to the companion in the background (it launches/supervises the separate
         // LsMonitoring.TelegramBot.exe). The desktop never holds the token or polls Telegram.
         _ = ApplyTelegramConfigAsync();
@@ -425,13 +499,19 @@ public partial class MainWindow : Window
 
     private async Task ApplyTelegramConfigAsync()
     {
+        if (_isShuttingDown)
+        {
+            return;
+        }
+
         var botToken = _config.Telegram.EffectiveBotToken;
         if (_config.Telegram.Enabled && !string.IsNullOrWhiteSpace(botToken))
         {
             await _telegramCompanion.EnsureConfiguredAsync(
                 botToken,
                 _config.Telegram.EffectiveLinkCode,
-                _config.Telegram.ChatIds);
+                _config.Telegram.ChatIds,
+                _shutdownCts.Token);
         }
         else
         {
@@ -441,12 +521,12 @@ public partial class MainWindow : Window
 
     private async Task SyncTelegramChatIdsAsync()
     {
-        if (!_config.Telegram.Enabled)
+        if (_isShuttingDown || !_config.Telegram.Enabled)
         {
             return;
         }
 
-        var bound = await _telegramCompanion.GetBoundChatIdsAsync();
+        var bound = await _telegramCompanion.GetBoundChatIdsAsync(_shutdownCts.Token);
         var changed = false;
         foreach (var id in bound)
         {
@@ -480,21 +560,29 @@ public partial class MainWindow : Window
 
     private void StartConfiguredPushTunnelInBackground()
     {
-        if (!_config.Push.ShouldAutoStartTemporaryTunnel || _pushTunnelStartInProgress)
+        if (_isShuttingDown || !_config.Push.ShouldAutoStartTemporaryTunnel || _pushTunnelStartInProgress)
         {
             return;
         }
 
-        _ = EnsureConfiguredPushTunnelAsync();
+        _pushTunnelTask = EnsureConfiguredPushTunnelAsync(_shutdownCts.Token);
     }
 
-    private void CheckForUpdatesInBackground() => _ = CheckForUpdatesAsync();
+    private void CheckForUpdatesInBackground()
+    {
+        if (_isShuttingDown)
+        {
+            return;
+        }
 
-    private async Task CheckForUpdatesAsync()
+        _updateTask = CheckForUpdatesAsync(_shutdownCts.Token);
+    }
+
+    private async Task CheckForUpdatesAsync(CancellationToken cancellationToken)
     {
         // Only works when running as a Velopack-managed install (not portable).
-        var ready = await _updateService.CheckAndDownloadAsync();
-        if (!ready)
+        var ready = await _updateService.CheckAndDownloadAsync(ct: cancellationToken);
+        if (!ready || cancellationToken.IsCancellationRequested || _isShuttingDown)
         {
             return;
         }
@@ -507,21 +595,25 @@ public partial class MainWindow : Window
         });
     }
 
-    private async Task EnsureConfiguredPushTunnelAsync()
+    private async Task EnsureConfiguredPushTunnelAsync(CancellationToken cancellationToken)
     {
         _pushTunnelStartInProgress = true;
         var configChanged = false;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             StatusText.Text = "Запуск локального Gotify...";
             var gotify = await _localGotifyService.EnsureRunningAndBootstrapAsync(
                 _config.Push.AppToken,
-                _config.Push.ClientToken);
+                _config.Push.ClientToken,
+                cancellationToken);
             if (!gotify.Success)
             {
                 StatusText.Text = $"Push: {gotify.Message}";
                 return;
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (!string.Equals(_config.Push.LocalServerUrl, gotify.ServerUrl, StringComparison.OrdinalIgnoreCase))
             {
@@ -540,7 +632,9 @@ public partial class MainWindow : Window
             }
 
             StatusText.Text = "Запуск временного Push tunnel...";
-            var result = await _quickTunnelService.EnsureStartedAsync(_config.Push.EffectiveLocalServerUrl);
+            var result = await _quickTunnelService.EnsureStartedAsync(
+                _config.Push.EffectiveLocalServerUrl,
+                cancellationToken);
             if (!result.Success)
             {
                 if (configChanged)
@@ -558,6 +652,8 @@ public partial class MainWindow : Window
                 configChanged = true;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             // First-run convenience: once we have a working stack, enable the channel so the user can
             // immediately see push notifications without flipping the switch manually.
             if (!_config.Push.Enabled)
@@ -574,14 +670,28 @@ public partial class MainWindow : Window
             ReconfigureGotifyAlerts();
             StatusText.Text = $"Push tunnel запущен: {result.PublicUrl}";
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _quickTunnelService.Stop();
+            _localGotifyService.Stop();
+        }
         catch (Exception ex)
         {
-            StatusText.Text = $"Push tunnel: {ex.Message}";
+            if (!_isShuttingDown)
+            {
+                StatusText.Text = $"Push tunnel: {ex.Message}";
+            }
         }
         finally
         {
             _pushTunnelStartInProgress = false;
         }
+    }
+
+    private async Task ApplyUpdateAndRestartAsync()
+    {
+        await CleanupAsync();
+        _updateService.ApplyAndRestart();
     }
 
     private async Task DiscoverNodesAsync()

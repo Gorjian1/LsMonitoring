@@ -174,10 +174,6 @@
                                              IsReadOnly="True"
                                              PlaceholderText="код привязки"/>
                                 </Grid>
-                                <TextBlock Text="Бот встроен в приложение — ничего вводить не нужно. Дайте получателям QR-код или ссылку, пусть нажмут Старт в Telegram."
-                                           FontSize="11"
-                                           Foreground="{StaticResource BrushMuted}"
-                                           TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
