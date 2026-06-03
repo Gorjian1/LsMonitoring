@@ -682,7 +682,16 @@ app.UseRateLimiter();
 в `Task.Run`. Учесть атомарность из `M1-3`. **Готово:** при активной тревоге каждый опрос не делает
 полную сериализацию+запись синхронно.
 
-## [ ] M5-5 — Свести двойную логику критичности к `ThresholdEvaluator` 🟢
+## [x] M5-5 — Свести двойную логику критичности к `ThresholdEvaluator` 🟢
+> Сделано: в `MainWindow` ручные вычисления `DeviationA/B` + `IsCriticalDeviation` заменены на
+> `ThresholdEvaluator.EvaluateAxisThresholds` в двух местах:
+> - `TriggerAlarmNotificationsIfNeeded`: `eval = EvaluateAxisThresholds(latest, ...)`, `aDeviation = eval.AValue`,
+>   `bDeviation = eval.BValue`, per-axis критичность от `|AValue| >= criticalA` — теперь логика в одном месте.
+> - `RefreshCurrentNode` (баннер): аналогично через `latestEval?.AValue/BValue`.
+> - Мёртвый `IsCriticalDeviation` удалён.
+> - `AlarmConfig` в `ThresholdEvaluator` — не было: параметр не присутствует в текущем коде, уже убран ранее.
+> - Сборка 0/0, тесты 31/5/0.
+
 **Проблема.** `ThresholdEvaluator.Evaluate` (`Alarms/ThresholdEvaluator.cs:9`) принимает `AlarmConfig`
 и игнорирует его, и используется только в тестах. В проде критичность считается вручную дважды:
 `MainWindow.axaml.cs:667` (для алертов) и `:987` (для баннера/строк). Риск расхождения. **Решение.**

@@ -729,12 +729,13 @@ public partial class MainWindow : Window
         }
 
         var calibration = _config.GetCalibration(nodeId);
-        var aDeviation = _config.Thresholds.DeviationA(latest, calibration?.ZeroA);
-        var bDeviation = _config.Thresholds.DeviationB(latest, calibration?.ZeroB);
+        var eval = ThresholdEvaluator.EvaluateAxisThresholds(latest, _config.Thresholds, calibration);
+        var aDeviation = eval.AValue;
+        var bDeviation = eval.BValue;
         var criticalA = _config.Thresholds.CriticalA;
         var criticalB = _config.Thresholds.EffectiveCriticalB();
-        var isACritical = IsCriticalDeviation(aDeviation, criticalA);
-        var isBCritical = IsCriticalDeviation(bDeviation, criticalB);
+        var isACritical = aDeviation is { } a && Math.Abs(a) >= criticalA;
+        var isBCritical = bDeviation is { } b && Math.Abs(b) >= criticalB;
 
         var effZeroA = calibration?.ZeroA ?? _config.Thresholds.ZeroA;
         var effZeroB = calibration?.ZeroB ?? _config.Thresholds.ZeroB;
@@ -1116,10 +1117,12 @@ public partial class MainWindow : Window
         }
 
         var latest = visibleReadings.LastOrDefault();
-        var aDeviation = latest is null ? null : _config.Thresholds.DeviationA(latest, calibration?.ZeroA);
-        var bDeviation = latest is null ? null : _config.Thresholds.DeviationB(latest, calibration?.ZeroB);
-        var isACritical = IsCriticalDeviation(aDeviation, _config.Thresholds.CriticalA);
-        var isBCritical = IsCriticalDeviation(bDeviation, _config.Thresholds.EffectiveCriticalB());
+        Evaluation? latestEval = latest is null ? null
+            : ThresholdEvaluator.EvaluateAxisThresholds(latest, _config.Thresholds, calibration);
+        var aDeviation = latestEval?.AValue;
+        var bDeviation = latestEval?.BValue;
+        var isACritical = aDeviation is { } a && Math.Abs(a) >= _config.Thresholds.CriticalA;
+        var isBCritical = bDeviation is { } b && Math.Abs(b) >= _config.Thresholds.EffectiveCriticalB();
         UpdateDashboardSummary(nodeId, buffer, readings.Count, visibleReadings.Count, latest, calibration);
 
         // Banner всегда показывается на критике (без скрытия)
@@ -1293,11 +1296,6 @@ public partial class MainWindow : Window
         return TimeWindowBox.SelectedItem is ComboBoxItem item && item.Content is not null
             ? item.Content.ToString() ?? "1 час"
             : "1 час";
-    }
-
-    private static bool IsCriticalDeviation(double? deviation, double threshold)
-    {
-        return deviation is { } value && Math.Abs(value) >= threshold;
     }
 
     private string ThresholdModeLabel()
