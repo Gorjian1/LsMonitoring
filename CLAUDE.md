@@ -66,7 +66,8 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
   across Email/SMS/Gotify services; `MessagesDialog` shares one `_testHttpClient`.
 - **M5-2** — done: logs to `%LOCALAPPDATA%\LS Monitoring\logs`, not CWD.
 - **M5-3** — done: `TrendPlot.Render` perf: removed redundant `OrderBy`, single `GapThresholdSeconds` call, 20+ static cached brushes/pens (incl. one inside the per-gap loop).
-- **NEXT → M5-4** — debounce/async saves on the UI thread.
+- **M5-4** — done: debounce/async saves on the UI thread.
+- **NEXT → M5-5** — single threshold logic via `ThresholdEvaluator`.
 
 ## Key drift between the plan and current code
 

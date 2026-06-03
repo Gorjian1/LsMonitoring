@@ -59,6 +59,10 @@ public partial class MainWindow : Window
     private bool _isPickingPlotCutoff;
     private bool _pushTunnelStartInProgress;
     private int _heartbeatTick;
+    // Debounce timers: coalesce rapid save requests (e.g. every alarm-state update during an
+    // active deviation) into a single disk write 1.5 s after the last change.
+    private DispatcherTimer? _saveHistoryTimer;
+    private DispatcherTimer? _saveConfigTimer;
 
     public MainWindow()
     {
@@ -85,6 +89,20 @@ public partial class MainWindow : Window
 
     protected override async void OnClosed(EventArgs e)
     {
+        // Flush any pending debounced saves before tearing down. The timers are stopped so
+        // their Tick callbacks won't fire after this point.
+        if (_saveHistoryTimer is { IsEnabled: true })
+        {
+            _saveHistoryTimer.Stop();
+            SaveDeviationHistory();
+        }
+
+        if (_saveConfigTimer is { IsEnabled: true })
+        {
+            _saveConfigTimer.Stop();
+            _config.Save(_configPath);
+        }
+
         await _telegramCompanion.DisposeAsync();
         await StopPollingAsync();
         _heartbeat?.Stop();
@@ -441,7 +459,7 @@ public partial class MainWindow : Window
 
         if (changed)
         {
-            _config.Save(_configPath);
+            ScheduleConfigSave();
         }
     }
 
@@ -821,7 +839,7 @@ public partial class MainWindow : Window
             _activeDeviationHistory[key] = entry;
             InsertDeviationHistoryEntry(entry);
             TrimDeviationHistory();
-            SaveDeviationHistory();
+            ScheduleDeviationHistorySave();
             return;
         }
 
@@ -843,7 +861,7 @@ public partial class MainWindow : Window
         }
 
         RefreshDeviationHistoryRow(active);
-        SaveDeviationHistory();
+        ScheduleDeviationHistorySave();
     }
 
     private void InsertDeviationHistoryEntry(DeviationHistoryEntry entry)
@@ -944,6 +962,46 @@ public partial class MainWindow : Window
         _deviationHistory.Clear();
         _deviationHistoryRowsById.Clear();
         _activeDeviationHistory.Clear();
+    }
+
+    /// <summary>
+    /// Schedules a deviation-history flush 1.5 s after the last call, coalescing rapid writes
+    /// (e.g. every poll tick during an active alarm) into a single disk write.
+    /// </summary>
+    private void ScheduleDeviationHistorySave()
+    {
+        if (_saveHistoryTimer is null)
+        {
+            _saveHistoryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            _saveHistoryTimer.Tick += (_, _) =>
+            {
+                _saveHistoryTimer.Stop();
+                SaveDeviationHistory();
+            };
+        }
+
+        _saveHistoryTimer.Stop();
+        _saveHistoryTimer.Start();
+    }
+
+    /// <summary>
+    /// Schedules a config save 1.5 s after the last call.
+    /// Only for paths that may fire frequently (e.g. heartbeat Telegram chat-id sync).
+    /// </summary>
+    private void ScheduleConfigSave()
+    {
+        if (_saveConfigTimer is null)
+        {
+            _saveConfigTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            _saveConfigTimer.Tick += (_, _) =>
+            {
+                _saveConfigTimer.Stop();
+                _config.Save(_configPath);
+            };
+        }
+
+        _saveConfigTimer.Stop();
+        _saveConfigTimer.Start();
     }
 
     private void SaveDeviationHistory()
