@@ -625,7 +625,15 @@ app.UseRateLimiter();
 полям (как `*_b64` свойства). `admin-pass.txt` тоже шифровать DPAPI. **Готово:** в `config.json`
 нет секретов открытым текстом.
 
-## [ ] M5-2 — Логи в `%LOCALAPPDATA%`, не по CWD 🟢
+## [x] M5-2 — Логи в `%LOCALAPPDATA%`, не по CWD 🟢
+> Сделано: новый `LsMonitoring.Core/IO/AppPaths.cs` — статический хелпер с `LogDirectory`
+> (`%LOCALAPPDATA%\LS Monitoring\logs`) и фабричным методом `LogFile(name)` (создаёт каталог,
+> возвращает полный путь). Во всех четырёх сервисах `EmailAlertService`, `SmsAlertService`,
+> `GotifyAlertService`, `TelegramAlertService`: `const LogFilePath = "logs/..."` → `static readonly
+> LogFilePath = AppPaths.LogFile("...")`, убрана строка `Directory.CreateDirectory("logs")` (теперь
+> делается внутри `AppPaths.LogFile`). Добавлен `using LsMonitoring.Core.IO;` в каждый файл.
+> Сборка 0/0, тесты 31/5/0.
+
 **Проблема.** `logs/*_debug.txt` пишутся относительным путём (`TelegramAlertService.cs:15`,
 `EmailAlertService.cs:18`, `SmsAlertService.cs:15`, `GotifyAlertService.cs:22`) → из `Program Files`
 запись молча падает. **Решение.** Единый путь `%LOCALAPPDATA%\LS Monitoring\logs` (как

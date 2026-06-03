@@ -4,6 +4,7 @@ using System.Net.Mail;
 using System.Text;
 using System.Text.Json;
 using LsMonitoring.Core.Configuration;
+using LsMonitoring.Core.IO;
 
 namespace LsMonitoring.Core.Alarms;
 
@@ -15,7 +16,7 @@ public sealed class ActiveEmailAlarm
 
 public sealed class EmailAlertService : IAlertChannel
 {
-    private const string LogFilePath = "logs/email_debug.txt";
+    private static readonly string LogFilePath = AppPaths.LogFile("email_debug.txt");
 
     private readonly EmailConfig _config;
     private readonly HttpClient _httpClient;
@@ -251,7 +252,6 @@ public sealed class EmailAlertService : IAlertChannel
     {
         try
         {
-            Directory.CreateDirectory("logs");
             File.AppendAllText(LogFilePath, $"[{DateTime.Now}] {message}{Environment.NewLine}");
         }
         catch

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using LsMonitoring.Core.IO;
 
 namespace LsMonitoring.Core.Alarms;
 
@@ -12,7 +13,7 @@ public class ActiveTelegramAlarm
 
 public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
 {
-    private const string LogFilePath = "logs/telegram_debug.txt";
+    private static readonly string LogFilePath = AppPaths.LogFile("telegram_debug.txt");
 
     private readonly string _botToken;
     private readonly List<long> _chatIds;
@@ -457,7 +458,6 @@ public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
     {
         try
         {
-            Directory.CreateDirectory("logs");
             File.AppendAllText(LogFilePath, $"[{DateTime.Now}] {message}{Environment.NewLine}");
         }
         catch

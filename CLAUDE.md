@@ -64,7 +64,8 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
 - **M5-1** — done: `TelegramAlertService` is `IAsyncDisposable`; `BotHost`
   disposes the superseded poller; `MainWindow` shares one `_alertHttpClient`
   across Email/SMS/Gotify services; `MessagesDialog` shares one `_testHttpClient`.
-- **NEXT → M5-2** — logs to `%LOCALAPPDATA%\LS Monitoring\logs`, not CWD.
+- **M5-2** — done: logs to `%LOCALAPPDATA%\LS Monitoring\logs`, not CWD.
+- **NEXT → M5-3** — `TrendPlot.Render` perf: remove redundant sort, cache brushes/pens, compute GapThresholdSeconds once.
 
 ## Key drift between the plan and current code
 

@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
 using LsMonitoring.Core.Configuration;
+using LsMonitoring.Core.IO;
 
 namespace LsMonitoring.Core.Alarms;
 
@@ -12,7 +13,7 @@ public sealed class ActiveSmsAlarm
 
 public sealed class SmsAlertService : IAlertChannel
 {
-    private const string LogFilePath = "logs/sms_debug.txt";
+    private static readonly string LogFilePath = AppPaths.LogFile("sms_debug.txt");
 
     private readonly SmsConfig _config;
     private readonly HttpClient _httpClient;
@@ -241,7 +242,6 @@ public sealed class SmsAlertService : IAlertChannel
     {
         try
         {
-            Directory.CreateDirectory("logs");
             File.AppendAllText(LogFilePath, $"[{DateTime.Now}] {message}{Environment.NewLine}");
         }
         catch

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LsMonitoring.Core.Configuration;
+using LsMonitoring.Core.IO;
 
 namespace LsMonitoring.Core.Alarms;
 
@@ -19,7 +20,7 @@ public sealed class ActiveGotifyAlarm
 
 public sealed class GotifyAlertService : IUpdatableAlertChannel
 {
-    private const string LogFilePath = "logs/gotify_debug.txt";
+    private static readonly string LogFilePath = AppPaths.LogFile("gotify_debug.txt");
 
     private readonly PushConfig _config;
     private readonly HttpClient _httpClient;
@@ -267,7 +268,6 @@ public sealed class GotifyAlertService : IUpdatableAlertChannel
     {
         try
         {
-            Directory.CreateDirectory("logs");
             File.AppendAllText(LogFilePath, $"[{DateTime.Now}] {message}{Environment.NewLine}");
         }
         catch
