@@ -105,6 +105,25 @@ jobs:
           $version = "${{ github.ref_name }}".TrimStart("v")
           "value=$version" >> $env:GITHUB_OUTPUT
 
+      - name: Inject Telegram bot token
+        # Generates TelegramSecrets.Local.cs (gitignored) from the LS_TELEGRAM_BOT_TOKEN secret
+        # so the shared bot token is embedded in the release binary without ever touching the repo.
+        # The file is never committed — it exists only in this ephemeral runner workspace.
+        shell: pwsh
+        env:
+          BOT_TOKEN: ${{ secrets.LS_TELEGRAM_BOT_TOKEN }}
+        run: |
+          if ($env:BOT_TOKEN -notmatch '^\d+:[A-Za-z0-9_-]+$') {
+            throw "LS_TELEGRAM_BOT_TOKEN secret is missing or has an unexpected format."
+          }
+          @"
+          namespace LsMonitoring.Core.Configuration;
+          public static partial class TelegramSecrets
+          {
+              static partial void GetEmbeddedBotToken(ref string token) => token = "$($env:BOT_TOKEN)";
+          }
+          "@ | Set-Content LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs -Encoding UTF8
+
       - name: Test
         run: dotnet test LsMonitoring.Core.Tests/LsMonitoring.Core.Tests.csproj -c Release
 

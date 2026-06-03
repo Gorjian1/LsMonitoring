@@ -145,7 +145,6 @@
                                         </Border>
                                         <Button x:Name="BotLinkButton"
                                                 Classes="link"
-                                                Content="@ls_monitoringbot"
                                                 HorizontalAlignment="Center"
                                                 ToolTip.Tip="Открыть Telegram-бота"/>
                                     </StackPanel>
@@ -154,34 +153,32 @@
                         </Border>
 
                         <Border Classes="form-card">
-                            <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
-                                <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
-                                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto,Auto">
-                                    <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox"
-                                             PlaceholderText="ID чатов: 1234567, 9876543"/>
-                                    <Button Grid.Column="1" x:Name="TestTelegramButton"
-                                            Content="Отправить тест"
-                                            Margin="8,0,0,0"
-                                            Padding="12,4"/>
-                                    <Button Grid.Column="2" x:Name="UnlinkTelegramButton"
-                                            Content="Отвязать чат"
-                                            Margin="8,0,0,0"
-                                            Padding="12,4"/>
+                            <StackPanel Spacing="10">
+                                <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" RowSpacing="10">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Куда слать:"/>
+                                    <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto,Auto">
+                                        <TextBox Grid.Column="0" x:Name="TelegramChatIdsBox"
+                                                 PlaceholderText="ID чатов: 1234567, 9876543"/>
+                                        <Button Grid.Column="1" x:Name="TestTelegramButton"
+                                                Content="Отправить тест"
+                                                Margin="8,0,0,0"
+                                                Padding="12,4"/>
+                                        <Button Grid.Column="2" x:Name="UnlinkTelegramButton"
+                                                Content="Отвязать чат"
+                                                Margin="8,0,0,0"
+                                                Padding="12,4"/>
+                                    </Grid>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Код:"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="TelegramLinkCodeBox"
+                                             IsReadOnly="True"
+                                             PlaceholderText="код привязки"/>
                                 </Grid>
-
-                                <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Код:"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="TelegramLinkCodeBox"
-                                         IsReadOnly="True"
-                                         PlaceholderText="код привязки"/>
-
-                                <TextBlock Grid.Row="2" Grid.Column="0" Classes="field-label" Text="Bot token:"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" x:Name="TelegramBotTokenBox"
-                                         PlaceholderText="токен бота из @BotFather"/>
-
-                                <TextBlock Grid.Row="3" Grid.Column="0" Classes="field-label" Text="Bot @username:"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" x:Name="TelegramBotUsernameBox"
-                                         PlaceholderText="имя бота, напр. my_alerts_bot"/>
-                            </Grid>
+                                <TextBlock Text="Бот встроен в приложение — ничего вводить не нужно. Дайте получателям QR-код или ссылку, пусть нажмут Старт в Telegram."
+                                           FontSize="11"
+                                           Foreground="{StaticResource BrushMuted}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>

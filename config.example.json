@@ -17,8 +17,6 @@
   },
   "telegram": {
     "enabled": false,
-    "bot_token_b64": "",
-    "bot_username": "",
     "link_code": "",
     "chat_ids": []
   },

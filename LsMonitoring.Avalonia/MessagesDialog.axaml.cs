@@ -13,7 +13,6 @@ public partial class MessagesDialog : Window
 {
     private const string SendTestText = "Отправить тест";
     private const string UnlinkChatText = "Отвязать чат";
-    private const string TelegramBotUrl = "https://t.me/ls_monitoringbot";
 
     private static readonly char[] s_chatIdSeparators = [',', ';', ' '];
     private static readonly char[] s_listSeparators = [',', ';', '\r', '\n'];
@@ -68,9 +67,8 @@ public partial class MessagesDialog : Window
     {
         _config = config;
         TelegramLinkCodeBox.Text = config.Telegram.EffectiveLinkCode;
-        TelegramBotTokenBox.Text = config.Telegram.BotToken;
-        TelegramBotUsernameBox.Text = config.Telegram.BotUsername;
         SetQrCode(TelegramBotQrImage, BuildTelegramBotUrl(config.Telegram.EffectiveLinkCode));
+        BotLinkButton.Content = $"@{TelegramSecrets.DefaultBotUsername}";
         EnableTelegramBox.IsChecked = config.Telegram.Enabled;
         TelegramChatIdsBox.Text = string.Join(", ", config.Telegram.ChatIds);
 
@@ -116,8 +114,6 @@ public partial class MessagesDialog : Window
     {
         _config.Telegram.Enabled = EnableTelegramBox.IsChecked ?? false;
         _config.Telegram.ChatIds = ParseTelegramChatIds(TelegramChatIdsBox.Text ?? "");
-        _config.Telegram.BotToken = (TelegramBotTokenBox.Text ?? "").Trim();
-        _config.Telegram.BotUsername = (TelegramBotUsernameBox.Text ?? "").Trim().TrimStart('@');
 
         _config.Email = BuildEmailConfigFromUi();
 
@@ -160,15 +156,10 @@ public partial class MessagesDialog : Window
 
     private async void OnTestTelegramClick(object? sender, RoutedEventArgs e)
     {
-        var token = (TelegramBotTokenBox.Text ?? "").Trim();
+        var token = _config.Telegram.EffectiveBotToken;
         if (string.IsNullOrWhiteSpace(token))
         {
-            token = _config.Telegram.EffectiveBotToken;
-        }
-
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            await FlashTestButtonAsync("Нет токена");
+            await FlashTestButtonAsync("Бот не встроен в эту сборку");
             return;
         }
 
@@ -551,12 +542,9 @@ public partial class MessagesDialog : Window
             : value;
     }
 
-    private string BuildTelegramBotUrl(string linkCode)
+    private static string BuildTelegramBotUrl(string linkCode)
     {
-        var username = (TelegramBotUsernameBox?.Text ?? "").Trim().TrimStart('@');
-        var baseUrl = string.IsNullOrWhiteSpace(username)
-            ? TelegramBotUrl
-            : $"https://t.me/{username}";
+        var baseUrl = $"https://t.me/{TelegramSecrets.DefaultBotUsername}";
         return string.IsNullOrWhiteSpace(linkCode)
             ? baseUrl
             : $"{baseUrl}?start={Uri.EscapeDataString(linkCode.Trim())}";

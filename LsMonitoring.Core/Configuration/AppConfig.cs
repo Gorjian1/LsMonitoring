@@ -153,32 +153,11 @@ public sealed class TelegramConfig
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = false;
 
-    [JsonPropertyName("bot_token_b64")]
-    public string BotTokenBase64 { get; set; } = "";
-
-    // Legacy migration: old configs store the token as plaintext "bot_token".
-    // Deserializing the old key writes it through the protected setter so the
-    // next Save() persists the DPAPI-encoded form and the plaintext key is gone.
-    [JsonPropertyName("bot_token")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public string? LegacyBotToken
-    {
-        get => null;
-        set
-        {
-            if (!string.IsNullOrEmpty(value) && string.IsNullOrEmpty(BotTokenBase64))
-            {
-                BotToken = value;
-            }
-        }
-    }
-
+    // The bot is shared and its token is embedded into release builds (injected from the
+    // LS_TELEGRAM_BOT_TOKEN CI secret), so the token is NEVER persisted to config.json — it lives
+    // only in memory for the session and is resolved via env → this property → embedded token.
     [JsonIgnore]
-    public string BotToken
-    {
-        get => ProtectedSecret.Decode(BotTokenBase64);
-        set => BotTokenBase64 = ProtectedSecret.Encode(value);
-    }
+    public string BotToken { get; set; } = "";
 
     [JsonPropertyName("link_code")]
     public string LinkCode { get; set; } = "";
@@ -186,11 +165,11 @@ public sealed class TelegramConfig
     [JsonPropertyName("chat_ids")]
     public List<long> ChatIds { get; set; } = [];
 
-    [JsonPropertyName("bot_username")]
-    public string BotUsername { get; set; } = "";
-
     [JsonIgnore]
     public string EffectiveBotToken => TelegramSecrets.ResolveBotToken(BotToken);
+
+    [JsonIgnore]
+    public static string EffectiveBotUsername => TelegramSecrets.ResolveBotUsername(null);
 
     [JsonIgnore]
     public string EffectiveLinkCode => EnsureLinkCode();
@@ -752,9 +731,18 @@ public sealed class AppConfig
 
             try
             {
-                var loaded = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(candidate), JsonOptions);
+                var text = File.ReadAllText(candidate);
+                var loaded = JsonSerializer.Deserialize<AppConfig>(text, JsonOptions);
                 if (loaded is not null)
                 {
+                    // One-time scrub: older versions persisted the Telegram bot token to disk
+                    // (bot_token / bot_token_b64). The token is no longer stored, so re-save once to
+                    // drop the stale key from config.json (the property no longer serializes it).
+                    if (text.Contains("bot_token", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try { loaded.Save(path); } catch { /* best-effort scrub */ }
+                    }
+
                     return loaded;
                 }
             }
