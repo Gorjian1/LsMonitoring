@@ -1,8 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Mail;
-using System.Text;
-using System.Text.Json;
 using LsMonitoring.Core.Configuration;
 using LsMonitoring.Core.IO;
 
@@ -19,16 +14,16 @@ public sealed class EmailAlertService : IAlertChannel
     private static readonly string LogFilePath = AppPaths.LogFile("email_debug.txt");
 
     private readonly EmailConfig _config;
-    private readonly HttpClient _httpClient;
+    private readonly IEmailSender _sender;
     private readonly Dictionary<(int NodeId, string Axis), ActiveEmailAlarm> _activeAlarms = [];
 
     public string? LastError { get; private set; }
     public string ChannelName => "Email";
 
-    public EmailAlertService(EmailConfig config, HttpClient? httpClient = null)
+    public EmailAlertService(EmailConfig config, IEmailSender? sender = null)
     {
         _config = config;
-        _httpClient = httpClient ?? new HttpClient();
+        _sender = sender ?? new SmtpEmailSender();
     }
 
     public async Task<bool> SendTestMessageAsync()
@@ -112,110 +107,38 @@ public sealed class EmailAlertService : IAlertChannel
 
     private async Task<bool> SendEmailAsync(string subject, string body)
     {
-        return _config.UsesRelay
-            ? await SendRelayEmailAsync(subject, body)
-            : await SendSmtpEmailAsync(subject, body);
-    }
-
-    private async Task<bool> SendRelayEmailAsync(string subject, string body)
-    {
         LastError = null;
 
-        if (!_config.HasRelaySettings)
+        var transport = _config.ResolveTransport();
+        if (transport is null)
         {
-            RecordError("Не задана сервисная почта: нужны получатели, Relay URL и ключ установки.");
+            RecordError(_config.UsesService
+                ? "Сервисная почта не настроена в этой сборке."
+                : "Не задан альтернативный SMTP: нужны отправитель и сервер.");
             return false;
         }
 
-        try
+        var recipients = _config.Recipients
+            .Select(x => x.Trim())
+            .Where(x => x.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (recipients.Count == 0)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, _config.RelayUrl.Trim());
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _config.RelayToken);
-            request.Headers.TryAddWithoutValidation("X-LS-Installation-Id", _config.InstallationId);
-
-            var payload = new EmailRelayRequest(
-                _config.InstallationId,
-                _config.Recipients,
-                subject,
-                body);
-
-            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            using var response = await _httpClient.SendAsync(request);
-            var responseBody = await response.Content.ReadAsStringAsync();
-
-            if (response.IsSuccessStatusCode)
-            {
-                LogDiagnostic($"relay-email-sent url={_config.RelayUrl} recipients={_config.Recipients.Count} subject={subject}");
-                return true;
-            }
-
-            RecordError($"relay HTTP {(int)response.StatusCode} {response.StatusCode}: {Truncate(responseBody)}");
-            return false;
-        }
-        catch (Exception ex)
-        {
-            RecordError($"relay exception: {ex.Message}");
-            return false;
-        }
-    }
-
-    private async Task<bool> SendSmtpEmailAsync(string subject, string body)
-    {
-        LastError = null;
-
-        if (!_config.HasDeliverySettings)
-        {
-            RecordError("Не задан SMTP: нужны получатели, отправитель и SMTP-сервер.");
+            RecordError("Не указаны корректные получатели email.");
             return false;
         }
 
-        try
+        var result = await _sender.SendAsync(transport, subject, body, recipients);
+        if (result.Success)
         {
-            using var message = new MailMessage
-            {
-                From = new MailAddress(_config.EffectiveFrom, "LS Monitoring", Encoding.UTF8),
-                Subject = subject,
-                SubjectEncoding = Encoding.UTF8,
-                Body = body,
-                BodyEncoding = Encoding.UTF8,
-                IsBodyHtml = false
-            };
-
-            foreach (var recipient in _config.Recipients.Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
-            {
-                message.To.Add(new MailAddress(recipient));
-            }
-
-            if (message.To.Count == 0)
-            {
-                RecordError("Не указаны корректные получатели email.");
-                return false;
-            }
-
-            using var smtp = new SmtpClient(_config.EffectiveSmtpHost, _config.EffectiveSmtpPort)
-            {
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                EnableSsl = _config.UseSsl,
-                Timeout = 15000,
-                UseDefaultCredentials = false
-            };
-
-            var username = _config.EffectiveUsername;
-            var password = _config.Password;
-            if (!string.IsNullOrWhiteSpace(username) || !string.IsNullOrWhiteSpace(password))
-            {
-                smtp.Credentials = new NetworkCredential(username, password);
-            }
-
-            await smtp.SendMailAsync(message);
-            LogDiagnostic($"smtp-email-sent host={_config.EffectiveSmtpHost}:{_config.EffectiveSmtpPort} recipients={message.To.Count} subject={subject}");
+            LogDiagnostic($"email-sent host={transport.Host}:{transport.Port} recipients={recipients.Count} subject={subject}");
             return true;
         }
-        catch (Exception ex)
-        {
-            RecordError($"smtp exception: {ex.Message}");
-            return false;
-        }
+
+        RecordError($"smtp exception: {result.Error}");
+        return false;
     }
 
     private static string FormatAlarmMessage(int nodeId, string axis, double value, DateTime startTime)
@@ -260,15 +183,4 @@ public sealed class EmailAlertService : IAlertChannel
         }
     }
 
-    private static string Truncate(string value)
-    {
-        const int maxLength = 500;
-        return value.Length <= maxLength ? value : value[..maxLength];
-    }
-
-    private sealed record EmailRelayRequest(
-        string InstallationId,
-        IReadOnlyList<string> Recipients,
-        string Subject,
-        string Body);
 }

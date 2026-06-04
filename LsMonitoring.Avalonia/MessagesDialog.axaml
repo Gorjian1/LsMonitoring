@@ -195,7 +195,7 @@
                             <StackPanel Spacing="10">
                                 <TextBlock Classes="card-title" Text="Email"/>
                                 <TextBlock Classes="card-text"
-                                           Text="Письма уходят с адреса lsalerts@mail.ru. Получателей укажите ниже."/>
+                                           Text="Письма уходят с сервисного адреса (встроен в приложение). Укажите только получателей ниже."/>
                                 <StackPanel Spacing="7">
                                     <Grid ColumnDefinitions="26,*">
                                         <Border Classes="step-index">
@@ -216,7 +216,7 @@
                                             <TextBlock Classes="step-number" Text="3"/>
                                         </Border>
                                         <TextBlock Grid.Column="1" Classes="card-text"
-                                                   Text="Тест дошёл — включите канал галочкой во вкладке и сохраните. Если нужен свой ящик отправителя — раскройте блок Свой SMTP."/>
+                                                   Text="Тест дошёл — включите канал галочкой во вкладке и сохраните. Если нужен свой ящик отправителя — раскройте блок Альтернативный SMTP."/>
                                     </Grid>
                                 </StackPanel>
                             </StackPanel>
@@ -243,15 +243,15 @@
                             </Grid>
                         </Border>
 
-                        <Expander Header="Свой SMTP" IsExpanded="False">
+                        <Expander Header="Альтернативный SMTP" IsExpanded="False">
                             <Border Classes="form-card" Margin="0,8,0,0">
                                 <StackPanel Spacing="10">
                                     <TextBlock Classes="card-text"
-                                               Text="Заполните этот блок, если письма должны уходить через отдельный SMTP-ящик. Для Gmail, Яндекс и Mail.ru часто нужен пароль приложения, а не обычный пароль от ящика."/>
+                                               Text="Заполните этот блок, если письма должны уходить через отдельный SMTP-ящик вместо встроенного сервисного. Для Gmail, Яндекс и Mail.ru часто нужен пароль приложения, а не обычный пароль от ящика."/>
                                     <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
                                         <TextBlock Grid.Row="0" Grid.Column="0" Classes="field-label" Text="Режим:"/>
                                         <CheckBox Grid.Row="0" Grid.Column="1" x:Name="UseOwnSmtpBox"
-                                                  Content="Отправлять через свой SMTP"/>
+                                                  Content="Использовать альтернативный SMTP"/>
 
                                         <TextBlock Grid.Row="1" Grid.Column="0" Classes="field-label" Text="Отправитель:"/>
                                         <TextBox Grid.Row="1" Grid.Column="1" x:Name="EmailFromBox"

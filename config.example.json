@@ -22,10 +22,7 @@
   },
   "email": {
     "enabled": false,
-    "delivery_mode": "relay",
-    "relay_url": "",
-    "relay_token_b64": "",
-    "installation_id": "",
+    "delivery_mode": "service",
     "smtp_host": "",
     "smtp_port": 587,
     "use_ssl": true,

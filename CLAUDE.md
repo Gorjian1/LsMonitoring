@@ -73,6 +73,27 @@ Work through `FIX_PLAN.md` phase by phase (M1 → M2 → M3 → …). For each p
 - **M5-8** — done: SMS rate-limit slot on success only; partial errors detected.
 - **ALL PHASES COMPLETE** — M1-1 through M5-8 done. Full solution builds 0/0/0; 31 passed / 5 skipped / 0 failed.
 
+## Post-0.8 feature work (beyond FIX_PLAN — by explicit user request)
+
+The user wants a **shared bot / shared service mailbox** model with **no cloud server** and
+operators entering as little as possible. Secrets are **embedded into release builds from GitHub
+Secrets** (the source repo never holds them). Accepted tradeoff: embedded secrets are extractable
+from the .exe by operators — mitigated by using dedicated alert-only accounts and rotating on leak.
+
+- **Telegram** (done): single shared bot, token embedded via `LS_TELEGRAM_BOT_TOKEN` →
+  `TelegramSecrets.Local.cs` (gitignored, generated in CI `release-desktop`). `TelegramConfig.BotToken`
+  is `[JsonIgnore]` (in-memory only). UI token/username fields removed; `TelegramSecrets.DefaultBotUsername`
+  constant builds the QR/link. `EffectiveBotToken` = env → config → embedded.
+- **Email** (done): default mode `service` uses embedded SMTP creds via `EmailSecrets.Resolve()`
+  (`LS_SMTP_HOST/PORT/SSL/FROM/USER/PASSWORD` → base64 blob → `EmailSecrets.Local.cs` in CI). The old
+  **relay mode was removed from the client** (`RelayUrl`/`RelayToken`/`InstallationId`/`UsesRelay`/
+  `HasRelaySettings` gone; `SendRelayEmailAsync` gone). New `IEmailSender`/`SmtpEmailSender` seam +
+  `EmailConfig.ResolveTransport()`. "Свой SMTP" UI renamed → "Альтернативный SMTP" (`DeliveryMode`
+  `service`|`smtp`, legacy `relay` normalised to `service`). The **`LsMonitoring.AlertRelay` project is
+  intentionally KEPT** (unused by client now) with its M4 hardening.
+- Both `*.Local.cs` are gitignored; `AppConfig.Load` scrubs stale `bot_token*`/`relay_token*` keys from
+  disk on first load. Build 0/0; tests 38 passed / 5 skipped.
+
 ## Key drift between the plan and current code
 
 - **Telegram was moved out of the desktop into a companion process** (M1-2). The

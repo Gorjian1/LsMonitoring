@@ -18,6 +18,7 @@ dist/
 **/obj/
 **/TestResults/
 LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs
+LsMonitoring.Core/Configuration/EmailSecrets.Local.cs
 artifacts/
 publish/
 *.user

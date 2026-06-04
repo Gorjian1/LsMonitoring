@@ -456,9 +456,7 @@ public partial class MainWindow : Window
                 new ChannelDiagnostics(
                     "Почта",
                     _config.Email.Enabled,
-                    _emailAlertService is not null && (_config.Email.UsesRelay
-                        ? _config.Email.HasRelaySettings
-                        : _config.Email.HasDeliverySettings),
+                    _emailAlertService is not null && _config.Email.HasDeliverySettings,
                     false,
                     _emailAlertService?.LastError),
                 new ChannelDiagnostics(
@@ -545,7 +543,8 @@ public partial class MainWindow : Window
 
     private void ReconfigureEmailAlerts()
     {
-        _emailAlertService = _config.Email.Enabled ? new EmailAlertService(_config.Email, _alertHttpClient) : null;
+        // Email sends directly over SMTP now (no relay), so it no longer needs the shared HttpClient.
+        _emailAlertService = _config.Email.Enabled ? new EmailAlertService(_config.Email) : null;
     }
 
     private void ReconfigureSmsAlerts()

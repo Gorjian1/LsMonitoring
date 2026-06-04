@@ -216,35 +216,32 @@ public sealed class TelegramConfig
 
 public static class EmailDeliveryMode
 {
-    public const string Relay = "relay";
+    /// <summary>Default: use the service mailbox whose SMTP credentials are embedded into the build.</summary>
+    public const string Service = "service";
+
+    /// <summary>"Alternative" mode: the operator supplies their own SMTP account.</summary>
     public const string Smtp = "smtp";
 }
 
 public sealed class EmailConfig
 {
-    private string _installationId = Guid.NewGuid().ToString("N");
-
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = false;
 
+    // "service" (default — embedded service mailbox) or "smtp" (operator's own / alternative SMTP).
+    // Legacy "relay" configs are normalised to "service" on set.
     [JsonPropertyName("delivery_mode")]
-    public string DeliveryMode { get; set; } = EmailDeliveryMode.Relay;
-
-    [JsonPropertyName("relay_url")]
-    public string RelayUrl { get; set; } = "";
-
-    [JsonPropertyName("relay_token_b64")]
-    public string RelayTokenBase64 { get; set; } = "";
-
-    [JsonPropertyName("installation_id")]
-    public string InstallationId
+    public string DeliveryMode
     {
-        get => _installationId;
-        set => _installationId = string.IsNullOrWhiteSpace(value)
-            ? Guid.NewGuid().ToString("N")
-            : value.Trim();
+        get => _deliveryMode;
+        set => _deliveryMode = string.Equals(value, EmailDeliveryMode.Smtp, StringComparison.OrdinalIgnoreCase)
+            ? EmailDeliveryMode.Smtp
+            : EmailDeliveryMode.Service;
     }
 
+    private string _deliveryMode = EmailDeliveryMode.Service;
+
+    // ── Alternative (own) SMTP settings ───────────────────────────────────────────────
     [JsonPropertyName("smtp_host")]
     public string SmtpHost { get; set; } = "";
 
@@ -291,41 +288,40 @@ public sealed class EmailConfig
     }
 
     [JsonIgnore]
-    public string RelayToken
+    public bool UsesService => !string.Equals(DeliveryMode, EmailDeliveryMode.Smtp, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Resolves the SMTP transport to actually send through. In service mode this is the embedded
+    /// service mailbox (<see cref="EmailSecrets.Resolve"/>); in alternative mode it is built from the
+    /// operator's own fields. Returns <c>null</c> when the chosen mode has no usable credentials
+    /// (e.g. service mode in a dev build without embedded secrets, or an empty own-SMTP sender).
+    /// </summary>
+    public EmailTransport? ResolveTransport()
     {
-        get => ProtectedSecret.Decode(RelayTokenBase64);
-        set => RelayTokenBase64 = ProtectedSecret.Encode(value);
+        if (UsesService)
+        {
+            return EmailSecrets.Resolve();
+        }
+
+        var from = From.Trim();
+        if (from.Length == 0)
+        {
+            return null;
+        }
+
+        var host = !string.IsNullOrWhiteSpace(SmtpHost) ? SmtpHost.Trim() : EmailSmtpProfile.ResolveHost(from);
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            return null;
+        }
+
+        var username = !string.IsNullOrWhiteSpace(Username) ? Username.Trim() : from;
+        var port = SmtpPort > 0 ? SmtpPort : 587;
+        return new EmailTransport(host, port, UseSsl, from, username, Password);
     }
 
     [JsonIgnore]
-    public string EffectiveFrom => !string.IsNullOrWhiteSpace(From) ? From.Trim() : Username.Trim();
-
-    [JsonIgnore]
-    public string EffectiveUsername => !string.IsNullOrWhiteSpace(Username) ? Username.Trim() : EffectiveFrom;
-
-    [JsonIgnore]
-    public string EffectiveSmtpHost => !string.IsNullOrWhiteSpace(SmtpHost)
-        ? SmtpHost.Trim()
-        : EmailSmtpProfile.ResolveHost(EffectiveFrom);
-
-    [JsonIgnore]
-    public int EffectiveSmtpPort => SmtpPort > 0 ? SmtpPort : 587;
-
-    [JsonIgnore]
-    public bool UsesRelay => !string.Equals(DeliveryMode, EmailDeliveryMode.Smtp, StringComparison.OrdinalIgnoreCase);
-
-    [JsonIgnore]
-    public bool HasRelaySettings =>
-        Recipients.Count > 0 &&
-        !string.IsNullOrWhiteSpace(RelayUrl) &&
-        !string.IsNullOrWhiteSpace(RelayToken);
-
-    [JsonIgnore]
-    public bool HasDeliverySettings =>
-        Recipients.Count > 0 &&
-        !string.IsNullOrWhiteSpace(EffectiveFrom) &&
-        !string.IsNullOrWhiteSpace(EffectiveSmtpHost);
-
+    public bool HasDeliverySettings => Recipients.Count > 0 && ResolveTransport() is not null;
 }
 
 public static class EmailSmtpProfile
@@ -735,10 +731,12 @@ public sealed class AppConfig
                 var loaded = JsonSerializer.Deserialize<AppConfig>(text, JsonOptions);
                 if (loaded is not null)
                 {
-                    // One-time scrub: older versions persisted the Telegram bot token to disk
-                    // (bot_token / bot_token_b64). The token is no longer stored, so re-save once to
-                    // drop the stale key from config.json (the property no longer serializes it).
-                    if (text.Contains("bot_token", StringComparison.OrdinalIgnoreCase))
+                    // One-time scrub: older versions persisted secrets to disk that are no longer
+                    // stored — the Telegram bot token (bot_token / bot_token_b64) and the email relay
+                    // token (relay_token_b64). Re-save once so those stale keys are dropped from
+                    // config.json (the properties no longer serialize them).
+                    if (text.Contains("bot_token", StringComparison.OrdinalIgnoreCase) ||
+                        text.Contains("relay_token", StringComparison.OrdinalIgnoreCase))
                     {
                         try { loaded.Save(path); } catch { /* best-effort scrub */ }
                     }

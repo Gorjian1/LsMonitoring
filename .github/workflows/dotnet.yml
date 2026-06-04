@@ -124,6 +124,39 @@ jobs:
           }
           "@ | Set-Content LsMonitoring.Core/Configuration/TelegramSecrets.Local.cs -Encoding UTF8
 
+      - name: Inject service email credentials
+        # Embeds the shared service mailbox SMTP credentials into the release binary from CI secrets,
+        # as a single Base64 blob (avoids any escaping issue with special chars in the password).
+        # Generated EmailSecrets.Local.cs is gitignored — exists only in this ephemeral runner.
+        shell: pwsh
+        env:
+          SMTP_HOST: ${{ secrets.LS_SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.LS_SMTP_PORT }}
+          SMTP_SSL: ${{ secrets.LS_SMTP_SSL }}
+          SMTP_FROM: ${{ secrets.LS_SMTP_FROM }}
+          SMTP_USER: ${{ secrets.LS_SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.LS_SMTP_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SMTP_HOST) -or
+              [string]::IsNullOrWhiteSpace($env:SMTP_FROM) -or
+              [string]::IsNullOrWhiteSpace($env:SMTP_PASSWORD)) {
+            throw "Service email secrets missing: need LS_SMTP_HOST, LS_SMTP_FROM, LS_SMTP_PASSWORD."
+          }
+          $port = if ([string]::IsNullOrWhiteSpace($env:SMTP_PORT)) { 587 } else { [int]$env:SMTP_PORT }
+          $ssl = if ([string]::IsNullOrWhiteSpace($env:SMTP_SSL)) { $true } else { [bool]::Parse($env:SMTP_SSL) }
+          $obj = [ordered]@{
+            Host = $env:SMTP_HOST; Port = $port; UseSsl = $ssl;
+            From = $env:SMTP_FROM; Username = $env:SMTP_USER; Password = $env:SMTP_PASSWORD
+          }
+          $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($obj | ConvertTo-Json -Compress)))
+          @"
+          namespace LsMonitoring.Core.Configuration;
+          public static partial class EmailSecrets
+          {
+              static partial void GetEmbeddedEmailConfigBase64(ref string value) => value = "$b64";
+          }
+          "@ | Set-Content LsMonitoring.Core/Configuration/EmailSecrets.Local.cs -Encoding UTF8
+
       - name: Test
         run: dotnet test LsMonitoring.Core.Tests/LsMonitoring.Core.Tests.csproj -c Release
 

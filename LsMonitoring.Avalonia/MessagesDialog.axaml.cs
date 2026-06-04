@@ -77,7 +77,7 @@ public partial class MessagesDialog : Window
         EnableEmailBox.IsChecked = config.Email.Enabled;
         EmailRecipientsBox.Text = string.Join(", ", config.Email.Recipients);
         EmailSendResolvedBox.IsChecked = config.Email.SendResolvedNotifications;
-        UseOwnSmtpBox.IsChecked = !config.Email.UsesRelay;
+        UseOwnSmtpBox.IsChecked = !config.Email.UsesService;
         EmailFromBox.Text = config.Email.From;
         EmailPasswordBox.Text = config.Email.Password;
         EmailSmtpHostBox.Text = config.Email.SmtpHost;
@@ -263,7 +263,7 @@ public partial class MessagesDialog : Window
     private async void OnTestEmailClick(object? sender, RoutedEventArgs e)
     {
         var emailConfig = BuildEmailConfigFromUi();
-        var service = new EmailAlertService(emailConfig, _testHttpClient);
+        var service = new EmailAlertService(emailConfig);
 
         TestEmailButton.IsEnabled = false;
         EmailStatusText.Text = "";
@@ -505,11 +505,9 @@ public partial class MessagesDialog : Window
         var config = new EmailConfig
         {
             Enabled = EnableEmailBox.IsChecked ?? false,
-            DeliveryMode = UseOwnSmtpBox.IsChecked == true ? EmailDeliveryMode.Smtp : EmailDeliveryMode.Relay,
-            InstallationId = _config.Email.InstallationId,
+            DeliveryMode = UseOwnSmtpBox.IsChecked == true ? EmailDeliveryMode.Smtp : EmailDeliveryMode.Service,
             Recipients = ParseStringList(EmailRecipientsBox.Text ?? ""),
             SendResolvedNotifications = EmailSendResolvedBox.IsChecked ?? false,
-            RelayUrl = _config.Email.RelayUrl,
             From = (EmailFromBox.Text ?? "").Trim(),
             SmtpHost = (EmailSmtpHostBox.Text ?? "").Trim(),
             SmtpPort = ParsePositiveInt(EmailSmtpPortBox.Text, 587),
@@ -517,7 +515,6 @@ public partial class MessagesDialog : Window
             Username = (EmailUsernameBox.Text ?? "").Trim()
         };
 
-        config.RelayToken = _config.Email.RelayToken;
         config.Password = EmailPasswordBox.Text ?? "";
         return config;
     }
