@@ -54,7 +54,7 @@
 ### Оповещения
 
 - **Telegram**: тестовое сообщение, привязка chat ID по `/start <код>`, отвязка чата, старт тревоги, обновление активной тревоги и завершение.
-- **Push**: отправка через Gotify, запуск временного Cloudflare Tunnel, QR для скачивания Android-приложения LS Alerts, QR для подключения телефона, обновляемое активное push-уведомление и завершение.
+- **Push**: отправка через Gotify, запуск временного tunnel через localhost.run, QR для скачивания Android-приложения LS Alerts, QR для подключения телефона, обновляемое активное push-уведомление и завершение.
 - **Почта**: отправка через встроенную сервисную почту (креды вшиты в сборку) или альтернативный SMTP, тестовое письмо, старт тревоги и опциональное письмо при окончании тревоги.
 - **SMS**: отправка через `sms.ru`, тестовая SMS, старт тревоги, опциональное SMS при окончании тревоги, лимит сообщений в час и защита от повторов по активной тревоге.
 - **Webhook**: сохранение URL и секрета в настройках оповещений.
@@ -91,16 +91,16 @@ Telegram и Push поддерживают обновление активной 
 
 ## Push через временный tunnel
 
-Push-канал рассчитан на связку: локальный Gotify на компьютере с LS Monitoring, временный Cloudflare Tunnel до Gotify и Android-приложение LS Alerts на телефоне.
+Push-канал рассчитан на связку: локальный Gotify на компьютере с LS Monitoring, временный tunnel до Gotify через localhost.run и Android-приложение LS Alerts на телефоне.
 
 1. Запустите Gotify на компьютере. По умолчанию приложение проверяет `http://localhost:8080`.
 2. Откройте **Оповещения -> Push**.
-3. Нажмите **Запустить tunnel**. При первом запуске LS Monitoring скачает `cloudflared.exe` в `%LOCALAPPDATA%\LS Monitoring\tools`, создаст временный `https://*.trycloudflare.com` адрес и подставит его в поле **Сервер**.
+3. Нажмите **Запустить tunnel**. LS Monitoring поднимает обратный SSH-туннель через localhost.run, получает временный адрес `https://*.lhr.life` и подставляет его в поле **Сервер**. Нужен установленный OpenSSH Client (`ssh.exe`): Параметры → Приложения → Дополнительные компоненты → OpenSSH Client.
 4. Отсканируйте QR **Скачать** на телефоне и установите LS Alerts.
 5. Отсканируйте QR **Подключить**, разрешите уведомления Android и отправьте тестовый push.
 6. Оставьте включённым **Автостарт**, если нужно, чтобы LS Monitoring сам пересоздавал временный tunnel при запуске приложения.
 
-Временный `trycloudflare.com` адрес действует только пока работает процесс `cloudflared` на этом компьютере. После перезагрузки компьютера или остановки tunnel адрес меняется: откройте **Оповещения -> Push** и снова нажмите **Запустить tunnel** либо запустите LS Monitoring с включённым **Автостартом**.
+Временный `*.lhr.life` адрес действует только пока работает процесс туннеля (`ssh`) на этом компьютере. После перезагрузки компьютера или остановки tunnel адрес меняется: откройте **Оповещения -> Push** и снова нажмите **Запустить tunnel** либо запустите LS Monitoring с включённым **Автостартом**.
 
 ---
 
@@ -175,11 +175,11 @@ Workflow собирает:
 
 - self-contained desktop exe;
 - portable zip;
-- Inno Setup installer;
-- signed Android APK `ls-alerts-<version>.apk`;
-- stable Android APK asset `ls-alerts-latest.apk` for the QR download link.
+- Velopack-инсталлятор и delta-пакеты для авто-обновления;
+- подписанный Android APK `ls-alerts-<version>.apk`;
+- стабильный Android APK `ls-alerts-latest.apk` для QR-ссылки на скачивание.
 
-Перед публикацией релиза workflow проверяет наличие артефактов, версию desktop exe и подпись APK.
+Релиз публикуется через Velopack (`vpk upload github`); дополнительно к релизу прикладываются APK и portable zip.
 
 ---
 
@@ -190,7 +190,7 @@ LsMonitoring.Core/          # gateway, CSV parser, buffers, thresholds, alerts, 
 LsMonitoring.Avalonia/      # desktop UI на Avalonia
 LsMonitoring.Core.Tests/    # unit-тесты ядра
 LsMonitoring.MobileAlerts/  # Android-приложение LS Alerts для push
-LsMonitoring.AlertRelay/    # HTTP relay для сервисной почты
+LsMonitoring.AlertRelay/    # HTTP relay для почты (legacy; десктоп шлёт почту напрямую по SMTP)
 build/installer/            # Inno Setup installer script
 .github/workflows/          # build, test и release workflow
 ```
