@@ -7,6 +7,7 @@ public sealed class AlertEvent
     public required DateTime StartedAt { get; init; }
     public required DateTime UpdatedAt { get; init; }
     public DateTime? ResolvedAt { get; init; }
+
     public required double CurrentValue { get; init; }
     public required double PeakAbsValue { get; init; }
     public required double Threshold { get; init; }
