@@ -65,16 +65,18 @@ public class EmailConfigTests
     }
 
     [Fact]
-    public void HasDeliverySettings_Service_FalseWithoutEmbeddedSecret()
+    public void HasDeliverySettings_Service_FalseWhenServiceTransportUnavailable()
     {
-        // Dev build (no EmailSecrets.Local.cs) → service transport is null → not deliverable.
-        var config = new EmailConfig
+        WithEmailConfigEnvironment("not-base64", () =>
         {
-            DeliveryMode = EmailDeliveryMode.Service,
-            Recipients = ["boss@example.org"]
-        };
+            var config = new EmailConfig
+            {
+                DeliveryMode = EmailDeliveryMode.Service,
+                Recipients = ["boss@example.org"]
+            };
 
-        Assert.False(config.HasDeliverySettings);
+            Assert.False(config.HasDeliverySettings);
+        });
     }
 
     [Fact]
@@ -84,11 +86,8 @@ public class EmailConfigTests
         var json = JsonSerializer.Serialize(transport);
         var b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
 
-        const string envVar = "LSMONITORING_EMAIL_CONFIG_B64";
-        var previous = Environment.GetEnvironmentVariable(envVar);
-        try
+        WithEmailConfigEnvironment(b64, () =>
         {
-            Environment.SetEnvironmentVariable(envVar, b64);
             var resolved = EmailSecrets.Resolve();
 
             Assert.NotNull(resolved);
@@ -96,22 +95,23 @@ public class EmailConfigTests
             Assert.Equal(465, resolved.Port);
             Assert.Equal("svc@example.org", resolved.From);
             Assert.Equal("svc@example.org", resolved.Username); // falls back to From
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(envVar, previous);
-        }
+        });
     }
 
     [Fact]
-    public void EmailSecrets_Resolve_ReturnsNullWhenAbsent()
+    public void EmailSecrets_Resolve_ReturnsNullForMalformedEnvironmentBlob()
+    {
+        WithEmailConfigEnvironment("not-base64", () => Assert.Null(EmailSecrets.Resolve()));
+    }
+
+    private static void WithEmailConfigEnvironment(string? value, Action action)
     {
         const string envVar = "LSMONITORING_EMAIL_CONFIG_B64";
         var previous = Environment.GetEnvironmentVariable(envVar);
         try
         {
-            Environment.SetEnvironmentVariable(envVar, "");
-            Assert.Null(EmailSecrets.Resolve());
+            Environment.SetEnvironmentVariable(envVar, value);
+            action();
         }
         finally
         {
