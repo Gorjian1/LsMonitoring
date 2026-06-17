@@ -53,6 +53,8 @@ public partial class MainWindow : Window
     private DispatcherTimer? _heartbeat;
     private int? _currentNode;
     private bool _isPolling;
+    private bool _isDiscovering;
+    private bool _startupDiscoveryAttempted;
     private int _totalMessages;
     private DateTime? _nextPollAt;
     private double _plotVisibleWindowSeconds = 3600;
@@ -91,6 +93,7 @@ public partial class MainWindow : Window
         RefreshCurrentNode();
         StartConfiguredPushTunnelInBackground();
         CheckForUpdatesInBackground();
+        StartStartupDiscoveryOnce();
     }
 
     protected override async void OnClosing(WindowClosingEventArgs e)
@@ -234,6 +237,23 @@ public partial class MainWindow : Window
             RefreshDeviationHistoryDurations();
         };
         _heartbeat.Start();
+    }
+
+    private void StartStartupDiscoveryOnce()
+    {
+        if (_startupDiscoveryAttempted)
+        {
+            return;
+        }
+
+        _startupDiscoveryAttempted = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (!_isShuttingDown)
+            {
+                _ = DiscoverNodesAsync();
+            }
+        });
     }
 
     private void LoadConfigToUi()
@@ -695,12 +715,20 @@ public partial class MainWindow : Window
 
     private async Task DiscoverNodesAsync()
     {
+        if (_isDiscovering)
+        {
+            return;
+        }
+
+        _isDiscovering = true;
+        DiscoverButton.IsEnabled = false;
+
         try
         {
             StatusText.Text = "Поиск узлов…";
             await using var source = CreateGatewaySource();
 
-            var found = await source.DiscoverNodesAsync();
+            var found = await source.DiscoverNodesAsync(_shutdownCts.Token);
             foreach (var node in found)
             {
                 EnsureNode(node.NodeId).Model = node.Model;
@@ -711,9 +739,20 @@ public partial class MainWindow : Window
             SaveUiToConfig();
             UpdateNodeSummary();
         }
+        catch (OperationCanceledException) when (_shutdownCts.IsCancellationRequested)
+        {
+        }
         catch (Exception e)
         {
             StatusText.Text = $"Ошибка поиска: {e.Message}";
+        }
+        finally
+        {
+            _isDiscovering = false;
+            if (!_isShuttingDown)
+            {
+                DiscoverButton.IsEnabled = true;
+            }
         }
     }
 
