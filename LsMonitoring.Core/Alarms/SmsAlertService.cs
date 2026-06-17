@@ -19,6 +19,7 @@ public sealed class SmsAlertService : IAlertChannel
     private readonly HttpClient _httpClient;
     private readonly Dictionary<(int NodeId, string Axis), ActiveSmsAlarm> _activeAlarms = [];
     private readonly Queue<DateTime> _sentAt = [];
+    private readonly SemaphoreSlim _alarmGate = new(1, 1);
 
     public SmsAlertService(SmsConfig config, HttpClient? httpClient = null)
     {
@@ -56,47 +57,55 @@ public sealed class SmsAlertService : IAlertChannel
 
     public async Task UpdateAlarmAsync(int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
     {
-        if (!_config.Enabled)
+        await _alarmGate.WaitAsync();
+        try
         {
-            return;
-        }
-
-        var key = (nodeId, axis);
-
-        if (isCritical)
-        {
-            if (_activeAlarms.TryGetValue(key, out var active))
+            if (!_config.Enabled)
             {
-                active.LastValue = value;
                 return;
             }
 
-            var sent = await SendSmsAsync(FormatAlarmMessage(nodeId, axis, value, timestamp));
-            if (sent)
+            var key = (nodeId, axis);
+
+            if (isCritical)
             {
-                _activeAlarms[key] = new ActiveSmsAlarm
+                if (_activeAlarms.TryGetValue(key, out var active))
                 {
-                    StartTime = timestamp,
-                    LastValue = value
-                };
-            }
+                    active.LastValue = value;
+                    return;
+                }
 
-            return;
-        }
+                var sent = await SendSmsAsync(FormatAlarmMessage(nodeId, axis, value, timestamp));
+                if (sent)
+                {
+                    _activeAlarms[key] = new ActiveSmsAlarm
+                    {
+                        StartTime = timestamp,
+                        LastValue = value
+                    };
+                }
 
-        if (_activeAlarms.TryGetValue(key, out var alarm))
-        {
-            if (!_config.SendResolvedNotifications)
-            {
-                _activeAlarms.Remove(key);
                 return;
             }
 
-            var sent = await SendSmsAsync(FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp));
-            if (sent)
+            if (_activeAlarms.TryGetValue(key, out var alarm))
             {
-                _activeAlarms.Remove(key);
+                if (!_config.SendResolvedNotifications)
+                {
+                    _activeAlarms.Remove(key);
+                    return;
+                }
+
+                var sent = await SendSmsAsync(FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp));
+                if (sent)
+                {
+                    _activeAlarms.Remove(key);
+                }
             }
+        }
+        finally
+        {
+            _alarmGate.Release();
         }
     }
 

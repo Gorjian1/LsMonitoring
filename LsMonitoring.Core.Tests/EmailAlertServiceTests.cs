@@ -35,6 +35,22 @@ public sealed class EmailAlertServiceTests
         Assert.Equal(2, sender.Sends.Count);
     }
 
+    [Fact]
+    public async Task UpdateAlarmAsync_SerializesConcurrentAxesAndSendsBothStartedEmails()
+    {
+        var sender = new CapturingSender { Delay = TimeSpan.FromMilliseconds(20) };
+        var service = new EmailAlertService(BuildConfig(sendResolved: false), sender);
+        var start = new DateTime(2026, 5, 26, 10, 0, 0);
+
+        await Task.WhenAll(
+            service.UpdateAlarmAsync(6989, "A", true, -12, start),
+            service.UpdateAlarmAsync(6989, "B", true, 13, start));
+
+        Assert.Equal(2, sender.Sends.Count);
+        Assert.Contains(sender.Sends, send => send.Subject.Contains("ось A", StringComparison.Ordinal));
+        Assert.Contains(sender.Sends, send => send.Subject.Contains("ось B", StringComparison.Ordinal));
+    }
+
     private static EmailConfig BuildConfig(bool sendResolved)
     {
         // Alternative (own) SMTP mode so ResolveTransport() succeeds without embedded secrets.
@@ -52,17 +68,29 @@ public sealed class EmailAlertServiceTests
 
     private sealed class CapturingSender : IEmailSender
     {
+        private readonly object _lock = new();
+
+        public TimeSpan Delay { get; init; }
         public List<(string Subject, IReadOnlyList<string> Recipients)> Sends { get; } = [];
 
-        public Task<EmailSendResult> SendAsync(
+        public async Task<EmailSendResult> SendAsync(
             EmailTransport transport,
             string subject,
             string body,
             IReadOnlyList<string> recipients,
             CancellationToken cancellationToken = default)
         {
-            Sends.Add((subject, recipients));
-            return Task.FromResult(EmailSendResult.Ok());
+            if (Delay > TimeSpan.Zero)
+            {
+                await Task.Delay(Delay, cancellationToken);
+            }
+
+            lock (_lock)
+            {
+                Sends.Add((subject, recipients));
+            }
+
+            return EmailSendResult.Ok();
         }
     }
 }

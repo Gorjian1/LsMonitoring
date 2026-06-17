@@ -16,6 +16,7 @@ public sealed class EmailAlertService : IAlertChannel
     private readonly EmailConfig _config;
     private readonly IEmailSender _sender;
     private readonly Dictionary<(int NodeId, string Axis), ActiveEmailAlarm> _activeAlarms = [];
+    private readonly SemaphoreSlim _alarmGate = new(1, 1);
 
     public string? LastError { get; private set; }
     public string ChannelName => "Email";
@@ -55,53 +56,61 @@ public sealed class EmailAlertService : IAlertChannel
 
     public async Task UpdateAlarmAsync(int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
     {
-        if (!_config.Enabled)
+        await _alarmGate.WaitAsync();
+        try
         {
-            return;
-        }
-
-        var key = (nodeId, axis);
-
-        if (isCritical)
-        {
-            if (_activeAlarms.TryGetValue(key, out var active))
+            if (!_config.Enabled)
             {
-                active.LastValue = value;
                 return;
             }
 
-            var sent = await SendEmailAsync(
-                $"LS Monitoring: тревога, узел {nodeId}, ось {axis}",
-                FormatAlarmMessage(nodeId, axis, value, timestamp));
+            var key = (nodeId, axis);
 
-            if (sent)
+            if (isCritical)
             {
-                _activeAlarms[key] = new ActiveEmailAlarm
+                if (_activeAlarms.TryGetValue(key, out var active))
                 {
-                    StartTime = timestamp,
-                    LastValue = value
-                };
-            }
+                    active.LastValue = value;
+                    return;
+                }
 
-            return;
-        }
+                var sent = await SendEmailAsync(
+                    $"LS Monitoring: тревога, узел {nodeId}, ось {axis}",
+                    FormatAlarmMessage(nodeId, axis, value, timestamp));
 
-        if (_activeAlarms.TryGetValue(key, out var alarm))
-        {
-            if (!_config.SendResolvedNotifications)
-            {
-                _activeAlarms.Remove(key);
+                if (sent)
+                {
+                    _activeAlarms[key] = new ActiveEmailAlarm
+                    {
+                        StartTime = timestamp,
+                        LastValue = value
+                    };
+                }
+
                 return;
             }
 
-            var sent = await SendEmailAsync(
-                $"LS Monitoring: норма, узел {nodeId}, ось {axis}",
-                FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp));
-
-            if (sent)
+            if (_activeAlarms.TryGetValue(key, out var alarm))
             {
-                _activeAlarms.Remove(key);
+                if (!_config.SendResolvedNotifications)
+                {
+                    _activeAlarms.Remove(key);
+                    return;
+                }
+
+                var sent = await SendEmailAsync(
+                    $"LS Monitoring: норма, узел {nodeId}, ось {axis}",
+                    FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp));
+
+                if (sent)
+                {
+                    _activeAlarms.Remove(key);
+                }
             }
+        }
+        finally
+        {
+            _alarmGate.Release();
         }
     }
 

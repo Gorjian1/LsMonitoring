@@ -877,7 +877,8 @@ public partial class MainWindow : Window
         }
 
         var calibration = _config.GetCalibration(nodeId);
-        var eval = ThresholdEvaluator.EvaluateAxisThresholds(latest, _config.Thresholds, calibration);
+        var alertResult = AlertReadingProcessor.UpdateState(_alertState, nodeId, latest, _config.Thresholds, calibration);
+        var eval = alertResult.Evaluation;
         var aDeviation = eval.AValue;
         var bDeviation = eval.BValue;
         var criticalA = _config.Thresholds.CriticalA;
@@ -893,8 +894,10 @@ public partial class MainWindow : Window
             $"thA={criticalA} thB={criticalB} zeroA={effZeroA} zeroB={effZeroB} " +
             $"critA={isACritical} critB={isBCritical} invalid={latest.Invalid}");
 
-        ProcessAlertStateChange(_alertState.Update(nodeId, "A", isACritical, aDeviation ?? 0, criticalA, latest.Timestamp));
-        ProcessAlertStateChange(_alertState.Update(nodeId, "B", isBCritical, bDeviation ?? 0, criticalB, latest.Timestamp));
+        foreach (var change in alertResult.Changes)
+        {
+            ProcessAlertStateChange(change);
+        }
     }
 
     private void ProcessAlertStateChange(AlertStateChange? change)

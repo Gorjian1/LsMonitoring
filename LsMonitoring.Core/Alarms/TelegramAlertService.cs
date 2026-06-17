@@ -26,6 +26,7 @@ public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
     private long _lastUpdateId = 0;
 
     private readonly Dictionary<(int NodeId, string Axis), Dictionary<long, ActiveTelegramAlarm>> _activeAlarms = new();
+    private readonly SemaphoreSlim _alarmGate = new(1, 1);
 
     public string? LastError { get; private set; }
     public string ChannelName => "Telegram";
@@ -202,70 +203,78 @@ public class TelegramAlertService : IUpdatableAlertChannel, IAsyncDisposable
 
     public async Task UpdateAlarmAsync(int nodeId, string axis, bool isCritical, double value, DateTime timestamp)
     {
-        var key = (nodeId, axis);
-        var chatCount = GetChatIdsSnapshot().Count;
-        var hasKey = _activeAlarms.ContainsKey(key);
-        LogDiagnostic($"UpdateAlarmAsync node={nodeId} axis={axis} critical={isCritical} value={value:F3} chats={chatCount} hasActiveKey={hasKey}");
-
-        if (chatCount == 0)
+        await _alarmGate.WaitAsync();
+        try
         {
-            LogDiagnostic($"UpdateAlarmAsync skipped: no chat ids registered");
-            return;
-        }
+            var key = (nodeId, axis);
+            var chatCount = GetChatIdsSnapshot().Count;
+            var hasKey = _activeAlarms.ContainsKey(key);
+            LogDiagnostic($"UpdateAlarmAsync node={nodeId} axis={axis} critical={isCritical} value={value:F3} chats={chatCount} hasActiveKey={hasKey}");
 
-        if (isCritical)
-        {
-            if (!_activeAlarms.TryGetValue(key, out var existingMap))
+            if (chatCount == 0)
             {
-                var activeMap = new Dictionary<long, ActiveTelegramAlarm>();
+                LogDiagnostic($"UpdateAlarmAsync skipped: no chat ids registered");
+                return;
+            }
 
-                foreach (var chatId in GetChatIdsSnapshot())
+            if (isCritical)
+            {
+                if (!_activeAlarms.TryGetValue(key, out var existingMap))
                 {
-                    var msg = FormatMessage(nodeId, axis, value, timestamp, timestamp);
-                    var msgId = await SendMessageAsync(chatId, msg);
-                    if (msgId != null)
+                    var activeMap = new Dictionary<long, ActiveTelegramAlarm>();
+
+                    foreach (var chatId in GetChatIdsSnapshot())
                     {
-                        activeMap[chatId] = new ActiveTelegramAlarm
+                        var msg = FormatMessage(nodeId, axis, value, timestamp, timestamp);
+                        var msgId = await SendMessageAsync(chatId, msg);
+                        if (msgId != null)
                         {
-                            StartTime = timestamp,
-                            MessageId = msgId.Value,
-                            LastValue = value
-                        };
+                            activeMap[chatId] = new ActiveTelegramAlarm
+                            {
+                                StartTime = timestamp,
+                                MessageId = msgId.Value,
+                                LastValue = value
+                            };
+                        }
+                    }
+
+                    if (activeMap.Count > 0)
+                    {
+                        _activeAlarms[key] = activeMap;
                     }
                 }
-
-                if (activeMap.Count > 0)
+                else
                 {
-                    _activeAlarms[key] = activeMap;
+                    var activeMap = existingMap;
+                    foreach (var kvp in activeMap)
+                    {
+                        var chatId = kvp.Key;
+                        var alarm = kvp.Value;
+                        alarm.LastValue = value;
+
+                        var msg = FormatMessage(nodeId, axis, alarm.LastValue, alarm.StartTime, timestamp);
+                        await EditMessageAsync(chatId, alarm.MessageId, msg);
+                    }
                 }
             }
             else
             {
-                var activeMap = existingMap;
-                foreach (var kvp in activeMap)
+                if (_activeAlarms.TryGetValue(key, out var activeMap))
                 {
-                    var chatId = kvp.Key;
-                    var alarm = kvp.Value;
-                    alarm.LastValue = value;
-                    
-                    var msg = FormatMessage(nodeId, axis, alarm.LastValue, alarm.StartTime, timestamp);
-                    await EditMessageAsync(chatId, alarm.MessageId, msg);
+                    foreach (var kvp in activeMap)
+                    {
+                        var chatId = kvp.Key;
+                        var alarm = kvp.Value;
+                        var msg = FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp);
+                        await EditMessageAsync(chatId, alarm.MessageId, msg);
+                    }
+                    _activeAlarms.Remove(key);
                 }
             }
         }
-        else
+        finally
         {
-            if (_activeAlarms.TryGetValue(key, out var activeMap))
-            {
-                foreach (var kvp in activeMap)
-                {
-                    var chatId = kvp.Key;
-                    var alarm = kvp.Value;
-                    var msg = FormatResolvedMessage(nodeId, axis, alarm.StartTime, timestamp);
-                    await EditMessageAsync(chatId, alarm.MessageId, msg);
-                }
-                _activeAlarms.Remove(key);
-            }
+            _alarmGate.Release();
         }
     }
 
